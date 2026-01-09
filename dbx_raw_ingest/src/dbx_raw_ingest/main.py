@@ -1,6 +1,6 @@
 import argparse
 from databricks.sdk.runtime import spark
-from dbx_raw_ingest.src.dbx_raw_ingest import taxis
+from dbx_raw_ingest import taxis
 
 
 def main():

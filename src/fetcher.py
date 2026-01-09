@@ -1,5 +1,5 @@
 """
-Bitcoin Data Fetcher from CoinGecko API (Free tier)
+Bitcoin Data Fetcher from Coinbase API (Free tier)
 - Historique complet disponible
 - Pas de limite de rate (gratuit)
 - JSON response structuré
@@ -7,9 +7,9 @@ Bitcoin Data Fetcher from CoinGecko API (Free tier)
 
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 import requests
 import pandas as pd
 from dotenv import load_dotenv
@@ -25,9 +25,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class CoinGeckoFetcher:
+class CoinbaseFetcher:
     """
-    Fetch Bitcoin data from CoinGecko API (Free tier - no API key required)
+    Fetch Bitcoin data from Coinbase API (Free tier - no API key required)
 
     Features:
     - Historical data (years back)
@@ -36,43 +36,47 @@ class CoinGeckoFetcher:
     - No rate limits on free tier
     """
 
-    # CoinGecko API endpoints
-    BASE_URL = "https://api.coingecko.com/api/v3"
-    PRICE_ENDPOINT = f"{BASE_URL}/simple/price"
-    MARKET_DATA_ENDPOINT = f"{BASE_URL}/coins/bitcoin/market_chart"
+    # Coinbase API endpoints
+    ticker_id = "BTC-USD"
+    BASE_URL = "https://api.exchange.coinbase.com"
+    PRICE_ENDPOINT = f"{BASE_URL}/products/{ticker_id}/candles"
 
     def __init__(
             self,
-            crypto_id: str = "bitcoin",
-            currency: str = "usd",
-            data_dir: str = "data"
+            ticker_id: str = "BTC-USD",
+            data_dir: str = "data",
+            base_url: str = "https://api.exchange.coinbase.com"
     ):
         """
         Initialize fetcher
 
         Args:
-            crypto_id: CoinGecko crypto ID (default: bitcoin)
-            currency: Currency (default: usd)
+            ticker_id: Coinbase crypto ID (default: BTC-USD)
             data_dir: Directory to store data
+            base_url: base api url
         """
-        self.crypto_id = crypto_id
-        self.currency = currency.lower()
+        self.ticker_id = ticker_id
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
+        self.base_url = base_url
+        self.price_endpoint = f"/products/{ self.ticker_id}/candles"
 
-        logger.info(f"✓ CoinGeckoFetcher initialized for {crypto_id.upper()}/{currency.upper()}")
+
+        logger.info(f"✓ CoinbaseFetcher initialized for {ticker_id.upper()}")
 
     def fetch_historical_data(
             self,
+            ticker_id: str,
             days: int = 365,
-            vs_currency: str = "usd"
+            granularity: int = 86400 # daily
     ) -> pd.DataFrame:
         """
-        Fetch historical OHLCV data from CoinGecko
+        Fetch historical OHLCV data from Coinbase
 
         Args:
+            ticker_id : coin ticker with currency. E.g. BTC-USD
             days: Number of days to fetch (1, 7, 30, 365, max)
-            vs_currency: Currency (usd, eur, gbp, jpy, etc.)
+            granularity:
 
         Returns:
             DataFrame with columns: timestamp, open, high, low, close, volume
@@ -81,107 +85,69 @@ class CoinGeckoFetcher:
             requests.RequestException: If API request fails
             ValueError: If response is invalid
         """
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        delta = timedelta(days=200)
+        all_data = []
+        current_start = start_date
         try:
-            logger.info(f"📥 Fetching {self.crypto_id} historical data ({days} days)")
+            logger.info(f"📥 Fetching {self.ticker_id} historical data ({days} days)")
 
-            # Parameters pour l'API
-            params = {
-                "vs_currency": vs_currency,
-                "days": days,
-                "interval": "daily"
-            }
+            while current_start < end_date:
+                current_end = min(current_start + delta, end_date)
+                params = {
+                    "start": current_start.isoformat(),
+                    "end": current_end.isoformat(),
+                    "granularity": granularity
+                }
 
-            # Endpoint spécifique pour données OHLC
-            url = f"{self.BASE_URL}/coins/{self.crypto_id}/ohlc"
+                response = requests.get(self.base_url + self.price_endpoint, params=params)
 
-            # Requête
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()  # Raise exception si erreur HTTP
+                if response.status_code == 200:
+                    data = response.json()
+                    # Ensure all values are cast to the correct type
+                    for row in data:
+                        # Coinbase returns: [ time, low, high, open, close, volume ]
+                        all_data.append([
+                            int(row[0]),         # time (unix timestamp)
+                            float(row[1]),       # low
+                            float(row[2]),       # high
+                            float(row[3]),       # open
+                            float(row[4]),       # close
+                            float(row[5])        # volume
+                        ])
+                else:
+                    print(f"Error: {response.status_code} - {response.text}")
+                    break
 
-            data = response.json()
+                current_start = current_end
 
-            # Validation réponse
-            if not isinstance(data, list) or len(data) == 0:
-                raise ValueError(f"Invalid response from CoinGecko: {data}")
-
-            # Transformer en DataFrame
-            # Format: [timestamp, open, high, low, close]
-            df = pd.DataFrame(
-                data,
-                columns=['timestamp', 'open', 'high', 'low', 'close']
-            )
-
-            # Convertir timestamp (ms) en datetime
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            df['date'] = df['timestamp'].dt.date
-
-            # Ajouter colonnes supplémentaires
-            df['crypto'] = self.crypto_id.upper()
-            df['currency'] = vs_currency.upper()
+            columns = ["time", "low", "high", "open", "close", "volume"]
+            df = pd.DataFrame(all_data, columns=columns)
+            df["time"] = pd.to_datetime(df["time"], unit="s")
+            # df["month_name_year"] = df["time"].dt.strftime("%Y-%B")
+            # df["last_close_month_name_year"] = df.groupby("month_name_year")["close"].transform("first")
+            # df_agg = df.groupby("month_name_year", as_index=False).agg({"last_close_month_name_year": "max"})
+            # df_agg = df_agg.rename(columns={"last_close_month_name_year": "close"})
 
             # Vérifier données nulles
             if df[['open', 'high', 'low', 'close']].isnull().any().any():
                 logger.warning("⚠️  Found null values in OHLC data")
 
             logger.info(f"✓ Fetched {len(df)} rows of historical data")
-            logger.info(f"  Date range: {df['date'].min()} to {df['date'].max()}")
+            logger.info(f"  Date range: {df['time'].min()} to {df['time'].max()}")
             logger.info(f"  Price range: ${df['close'].min():.2f} - ${df['close'].max():.2f}")
 
             return df
 
         except requests.exceptions.Timeout:
-            logger.error("✗ Request timeout - CoinGecko API not responding")
+            logger.error("✗ Request timeout - Coinbase API not responding")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"✗ API request failed: {e}")
             raise
         except ValueError as e:
             logger.error(f"✗ Invalid response data: {e}")
-            raise
-
-    def fetch_latest_price(self) -> Dict[str, float]:
-        """
-        Fetch current Bitcoin price (real-time)
-
-        Returns:
-            Dict with keys: price, market_cap, volume_24h, change_24h
-        """
-        try:
-            logger.info(f"💰 Fetching latest {self.crypto_id} price")
-
-            params = {
-                "ids": self.crypto_id,
-                "vs_currencies": self.currency,
-                "include_market_cap": "true",
-                "include_24hr_vol": "true",
-                "include_24hr_change": "true"
-            }
-
-            response = requests.get(self.PRICE_ENDPOINT, params=params, timeout=5)
-            response.raise_for_status()
-
-            data = response.json()
-
-            if self.crypto_id not in data:
-                raise ValueError(f"Crypto {self.crypto_id} not found in response")
-
-            crypto_data = data[self.crypto_id]
-
-            result = {
-                'timestamp': datetime.now().isoformat(),
-                'crypto': self.crypto_id.upper(),
-                'currency': self.currency.upper(),
-                'price': crypto_data.get(self.currency),
-                'market_cap': crypto_data.get(f"{self.currency}_market_cap"),
-                'volume_24h': crypto_data.get(f"{self.currency}_24h_vol"),
-                'change_24h': crypto_data.get(f"{self.currency}_24h_change")
-            }
-
-            logger.info(f"✓ Current price: ${result['price']:.2f}")
-            return result
-
-        except Exception as e:
-            logger.error(f"✗ Failed to fetch latest price: {e}")
             raise
 
     def save_to_csv(
@@ -217,7 +183,7 @@ class CoinGeckoFetcher:
                     ignore_index=True
                 )
                 combined_df = combined_df.drop_duplicates(
-                    subset=['timestamp'],
+                    subset=['time'],
                     keep='last'
                 )
                 combined_df.to_csv(filepath, index=False)
@@ -237,24 +203,17 @@ def main():
     """
     Démonstration d'utilisation
     """
-    fetcher = CoinGeckoFetcher()
-
-    # Fetch historique (1 an)
-    historical = fetcher.fetch_historical_data(days=1)
-    logger.info("\n📊 Historique (dernier jour):")
-    logger.info(historical.tail(10))
+    fetcher = CoinbaseFetcher()
+    # Parameters
+    ticker_id = "BTC-USD"
+    days = 100 #365 * 13
+    # Fetch historique (1 jour)
+    historical = fetcher.fetch_historical_data(ticker_id,days= days)
+    logger.info(f"\n📊 Historique (dernier {days} jour):")
+    logger.info(historical.sort_values(by="time",ascending=False).tail(10))
 
     # Sauvegarder
-    fetcher.save_to_csv(historical, filename="bitcoin_full_day.csv")
-
-    # Fetch prix actuel
-    latest = fetcher.fetch_latest_price()
-    logger.info(f"\n💰 Prix actuel: ${latest['price']:.2f}")
-
-    # Sauvegarder prix actuel
-    latest_df = pd.DataFrame([latest])
-    fetcher.save_to_csv(latest_df, filename="bitcoin_latest.csv", append=True)
-
+    fetcher.save_to_csv(historical, filename=f"bitcoin_full_{days}_day.csv",append=True)
 
 if __name__ == "__main__":
     main()

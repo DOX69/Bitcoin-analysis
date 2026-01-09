@@ -11,6 +11,8 @@ dependencies = [
     "pandas>=2.1.0",              # Data manipulation
     "python-dotenv>=1.0.0",       # Manage .env variables
     "pytz>=2023.3",               # Timezone handling
+    "databricks>=0.2",
+    "databricks-sdk>=0.77.0",
 ]
 
 [project.optional-dependencies]

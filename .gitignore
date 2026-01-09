@@ -209,5 +209,8 @@ __marimo__/
 # txt file
 requirements.txt
 
-#markdown
+# markdown
 /markdown
+
+# idea
+/.idea

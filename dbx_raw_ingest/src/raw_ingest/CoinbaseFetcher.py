@@ -60,8 +60,9 @@ class CoinbaseFetcher:
         self.base_url = base_url
         self.price_endpoint = f"/products/{self.ticker_id}/candles"
 
-
+        logger.info("-" * 80)
         logger.info(f"✓ CoinbaseFetcher initialized for {self.ticker_id}")
+        logger.info("-" * 80)
 
     def fetch_historical_data(
             self,

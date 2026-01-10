@@ -57,8 +57,9 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
             historical = fetcher.fetch_historical_data()
             fetcher.save_bronze_table(historical)
 
+        logger.info("-" * 80)
         logger.info(f"\n End ingesting {ticker.upper()}-{currency.upper()} data.")
-
+        logger.info("-" * 80)
 
         return True
 
@@ -69,8 +70,9 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
 
 def main():
     logger.info("=" * 80)
-    logger.info("🚀 TICKER DATA INGESTION PIPELINE STARTED")
+    logger.info("🚀 CRYPTO DATA INGESTION PIPELINE STARTED")
     logger.info("=" * 80)
+
     # Process command-line arguments
     parser = argparse.ArgumentParser(
         description="Databricks job with catalog and schema parameters",
@@ -82,11 +84,21 @@ def main():
     # Set the default catalog and schema
     spark.sql(f"USE CATALOG {args.catalog}")
     spark.sql(f"USE SCHEMA {args.schema}")
+    ticker_ids = [
+        ("BTC", "USD"),
+        ("BTC", "EUR"),
+        ("ETH", "USD"),
+        ("ETH", "EUR"),
+        ("ETH", "BTC"),
+    ]
+    for ticker, currency in ticker_ids:
+        succeed = ingest_ticker_data(ticker.upper(),currency.upper(),args.catalog,args.schema)
+        if not succeed:
+            sys.exit(0)
 
-    succeed = ingest_ticker_data('BTC','USD',args.catalog,args.schema)
-
-    if not succeed:
-        sys.exit(0)
+    logger.info("=" * 80)
+    logger.info("🚀 CRYPTO DATA INGESTION PIPELINE ENDED")
+    logger.info("=" * 80)
 
 
 

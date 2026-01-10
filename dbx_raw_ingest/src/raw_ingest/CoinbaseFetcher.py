@@ -11,8 +11,6 @@ from datetime import datetime, timedelta
 import requests
 import pandas as pd
 from dotenv import load_dotenv
-from databricks.sdk.runtime import spark
-from pyspark.sql.functions import col, current_timestamp
 
 # Charger variables d'environnement
 load_dotenv()
@@ -145,37 +143,4 @@ class CoinbaseFetcher:
             raise
         except ValueError as e:
             logger.error(f"✗ Invalid response data: {e}")
-            raise
-
-    def save_bronze_table(
-            self,
-            pandas_df: pd.DataFrame,
-    ) -> None:
-        """
-        Save DataFrame to bronze table
-
-        Args:
-            pandas_df: Pandas DataFrame to save
-
-        Returns:
-            None, write delta
-        """
-        spark_df = (
-                    spark.createDataFrame(pandas_df)
-                    .withColumn("date",col("time").cast("date"))
-                    .withColumn("ingest_date_time",current_timestamp())
-                    )
-        full_path_table_name = self.full_path_table_name
-
-        try:
-            if spark.catalog.tableExists(full_path_table_name):
-                spark_df.write.mode("append").saveAsTable(full_path_table_name)
-                logger.info(f"✓ Append to {full_path_table_name} ({spark_df.count()} rows appended)")
-            else:
-                # Create new table
-                spark_df.write.partitionBy("date").mode("overwrite").option("mergeSchema", "true").saveAsTable(full_path_table_name)
-                logger.info(f"✓ Saved to {full_path_table_name} ({spark_df.count()} rows)")
-
-        except Exception as e:
-            logger.error(f"✗ Failed to save to table: {e}")
             raise

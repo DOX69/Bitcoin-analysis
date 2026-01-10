@@ -150,14 +150,12 @@ class CoinbaseFetcher:
     def save_bronze_table(
             self,
             pandas_df: pd.DataFrame,
-            start_date: str = None,
     ) -> None:
         """
         Save DataFrame to bronze table
 
         Args:
             pandas_df: Pandas DataFrame to save
-            start_date: start date where data will be eventually overwrite
 
         Returns:
             None, write delta
@@ -171,16 +169,8 @@ class CoinbaseFetcher:
 
         try:
             if spark.catalog.tableExists(full_path_table_name):
-                # Overwrite to existing table
-                (
-                    spark_df.write
-                    .partitionBy("date")
-                    .mode("overwrite")
-                    .option("replaceWhere",f"date >= '{start_date}'")
-                    .option("mergeSchema", "true")
-                    .saveAsTable(full_path_table_name)
-                 )
-                logger.info(f"✓ Merged to {full_path_table_name} ({spark_df.count()} rows merged)")
+                spark_df.write.mode("append").saveAsTable(full_path_table_name)
+                logger.info(f"✓ Append to {full_path_table_name} ({spark_df.count()} rows appended)")
             else:
                 # Create new table
                 spark_df.write.partitionBy("date").mode("overwrite").option("mergeSchema", "true").saveAsTable(full_path_table_name)

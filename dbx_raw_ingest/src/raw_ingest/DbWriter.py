@@ -5,6 +5,7 @@ import logging
 import pandas as pd
 import os
 from dotenv import load_dotenv
+from pyspark.sql import DataFrame
 
 # Charger variables d'environnement
 load_dotenv()
@@ -16,6 +17,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def overwrite_replace_where(
+        spark_df: DataFrame,
+        partitioned_cols:list[str],
+        full_path_table_name:str,
+        replace_where_condition:str
+) -> None:
+    """
+    Merge delta table
+    :param replace_where_condition: replace where logic (e.g. f"date >= '{start_date}')
+    :param full_path_table_name: Full path to table
+    :param spark_df: Spark DataFrame
+    :param partitioned_cols: List of columns to merge
+    :return:  None
+    """
+    (
+        spark_df.write
+        .partitionBy(partitioned_cols)
+        .mode("overwrite")
+        .option("replaceWhere", replace_where_condition)
+        .option("mergeSchema", "true")
+        .saveAsTable(full_path_table_name)
+    )
 class DbWriter:
     def __init__(self):
         self.data_dir = None

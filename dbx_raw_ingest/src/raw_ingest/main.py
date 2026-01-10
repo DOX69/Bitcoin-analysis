@@ -43,19 +43,24 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
             schema
         )
         full_path_table_name = fetcher.full_path_table_name
-        is_table_exists = spark.catalog.tableExists(full_path_table_name)
+        try:
+            latest_date = spark.read.table(full_path_table_name).select(f.max("date")).collect()[0][0]
+        except Exception :
+            logger.info(f"🔎 No table {full_path_table_name} found for {ticker}-{currency}.")
+            latest_date = None
+            pass
+
         # ÉTAPE 1 : Fetch dernière date dans la table bronze
         logger.info(f"[1/2] Fetching latest ingested data date for {full_path_table_name} ...")
-        if is_table_exists:
-            latest_date = spark.read.table(full_path_table_name).select(f.max("date")).collect()[0][0]
+        if latest_date:
             latest_date_time = pd.to_datetime(latest_date)
             logger.info(f"[2/2] Historical data already exists - skipping full fetch - Incremental fetch from {latest_date}...")
             historical = fetcher.fetch_historical_data(start_date_time=latest_date_time)
-            fetcher.save_bronze_table(historical,latest_date)
         else:
             logger.info("[2/2] First run detected - Fetching full historical ... ")
             historical = fetcher.fetch_historical_data()
-            fetcher.save_bronze_table(historical)
+
+        fetcher.save_bronze_table(historical)
 
         logger.info("-" * 80)
         logger.info(f"End ingesting {ticker.upper()}-{currency.upper()} data.")
@@ -81,12 +86,10 @@ def main():
     parser.add_argument("--schema", required=True)
     args = parser.parse_args()
 
-    # Set the default catalog and schema
-    spark.sql(f"USE CATALOG {args.catalog}")
-    spark.sql(f"USE SCHEMA {args.schema}")
     ticker_ids = [
         ("BTC", "USD"),
         ("BTC", "EUR"),
+        ("AAVE", "USD"),
         ("ETH", "USD"),
         ("ETH", "EUR"),
         ("ETH", "BTC"),

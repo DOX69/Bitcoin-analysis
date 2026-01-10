@@ -1,11 +1,10 @@
-from datetime import datetime
-from pathlib import Path
-from typing import Optional
 import logging
 import pandas as pd
 import os
 from dotenv import load_dotenv
 from pyspark.sql import DataFrame
+from pyspark.sql.functions import col, current_timestamp
+from databricks.sdk.runtime import spark
 
 # Charger variables d'environnement
 load_dotenv()
@@ -25,7 +24,7 @@ def overwrite_replace_where(
 ) -> None:
     """
     Merge delta table
-    :param replace_where_condition: replace where logic (e.g. f"date >= '{start_date}')
+    :param replace_where_condition: replace where logic (e.g. "f"date >= '{start_date}'")
     :param full_path_table_name: Full path to table
     :param spark_df: Spark DataFrame
     :param partitioned_cols: List of columns to merge
@@ -40,53 +39,38 @@ def overwrite_replace_where(
         .saveAsTable(full_path_table_name)
     )
 class DbWriter:
-    def __init__(self):
-        self.data_dir = None
-
-    def save_to_csv(
+    def __init__(
             self,
-            df: pd.DataFrame,
-            filename: Optional[str] = None,
-            append: bool = False
-    ) -> Path:
+            full_path_table_name : str,
+            pandas_df: pd.DataFrame
+    ):
+        self.full_path_table_name = full_path_table_name
+        self.pandas_df = pandas_df
+
+        logger.info("-" * 80)
+        logger.info(f"✓ DbWriter initialized for {self.full_path_table_name} delta table")
+        logger.info("-" * 80)
+    def save_delta_table(self, is_table_found: bool) -> None:
         """
-        Save DataFrame to CSV
-
-        Args:
-            df: DataFrame to save
-            filename: Custom filename (default: bitcoin_YYYYMMDD_HHMMSS.csv)
-            append: If True, append to existing file instead of overwriting
-
+        Save DataFrame to bronze table
         Returns:
-            Path to saved file
+            Delta table saved
         """
+        spark_df = (
+                    spark.createDataFrame(self.pandas_df)
+                    .withColumn("date",col("time").cast("date"))
+                    .withColumn("ingest_date_time",current_timestamp())
+                    )
+
         try:
-            if filename is None:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"bitcoin_{timestamp}.csv"
-
-            filepath = self.data_dir / filename
-
-            if append and filepath.exists():
-                # Lire le fichier existant
-                existing_df = pd.read_csv(filepath)
-                # Concaténer et supprimer les doublons basés sur timestamp
-                combined_df = pd.concat(
-                    [existing_df, df],
-                    ignore_index=True
-                )
-                combined_df = combined_df.drop_duplicates(
-                    subset=['time'],
-                    keep='last'
-                )
-                combined_df.to_csv(filepath, index=False)
-                logger.info(f"✓ Appended to {filepath} ({len(combined_df)} rows total)")
+            if is_table_found:
+                spark_df.write.mode("append").saveAsTable(self.full_path_table_name)
+                logger.info(f"✓ Append to {self.full_path_table_name} ({spark_df.count()} rows appended)")
             else:
-                df.to_csv(filepath, index=False)
-                logger.info(f"✓ Saved to {filepath} ({len(df)} rows)")
-
-            return filepath
+                # Create new table
+                spark_df.write.partitionBy("date").mode("overwrite").option("mergeSchema", "true").saveAsTable(self.full_path_table_name)
+                logger.info(f"✓ Saved to {self.full_path_table_name} ({spark_df.count()} rows)")
 
         except Exception as e:
-            logger.error(f"✗ Failed to save CSV: {e}")
+            logger.error(f"✗ Failed to save to table: {e}")
             raise

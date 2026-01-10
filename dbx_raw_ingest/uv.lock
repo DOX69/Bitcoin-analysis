@@ -130,24 +130,14 @@ wheels = [
 ]
 
 [[package]]
-name = "dbx-raw-ingest"
-version = "0.0.1"
-source = { editable = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "databricks-connect" },
-    { name = "databricks-dlt" },
-    { name = "pytest" },
+name = "dotenv"
+version = "0.9.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dotenv" },
 ]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "databricks-connect", specifier = ">=15.4,<15.5" },
-    { name = "databricks-dlt" },
-    { name = "pytest" },
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/b7/545d2c10c1fc15e48653c91efde329a790f2eecfbbf2bd16003b5db2bab0/dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9", size = 1892, upload-time = "2025-02-19T22:15:01.647Z" },
 ]
 
 [[package]]
@@ -155,7 +145,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -459,6 +449,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-dotenv"
+version = "1.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/26/19cadc79a718c5edbec86fd4919a6b6d3f681039a2f6d66d14be94e75fb9/python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6", size = 44221, upload-time = "2025-10-26T15:12:10.434Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/1b/a298b06749107c305e1fe0f814c6c74aea7b2f1e10989cb30f544a1b3253/python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61", size = 21230, upload-time = "2025-10-26T15:12:09.109Z" },
+]
+
+[[package]]
 name = "pytz"
 version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
@@ -466,6 +465,34 @@ sdist = { url = "https://files.pythonhosted.org/packages/f8/bf/abbd3cdfb8fbc7fb3
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/c4/34e93fe5f5429d7570ec1fa436f1986fb1f00c3e0f43a589fe2bbcd22c3f/pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00", size = 509225, upload-time = "2025-03-25T02:24:58.468Z" },
 ]
+
+[[package]]
+name = "raw-ingest"
+version = "0.0.1"
+source = { editable = "." }
+dependencies = [
+    { name = "databricks-connect" },
+    { name = "dotenv" },
+    { name = "pytest" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "databricks-connect" },
+    { name = "databricks-dlt" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "databricks-connect", specifier = ">=15.4.17" },
+    { name = "databricks-connect", marker = "extra == 'dev'", specifier = ">=15.4,<15.5" },
+    { name = "databricks-dlt", marker = "extra == 'dev'" },
+    { name = "dotenv" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest", marker = "extra == 'dev'" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "requests"

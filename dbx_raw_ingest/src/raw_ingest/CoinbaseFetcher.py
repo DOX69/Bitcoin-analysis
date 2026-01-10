@@ -1,5 +1,5 @@
 """
-Bitcoin Data Fetcher from Coinbase API (Free tier)
+Crypto Data Fetcher from Coinbase API (Free tier)
 - Historique complet disponible
 - Pas de limite de rate (gratuit)
 - JSON response structuré
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class CoinbaseFetcher:
     """
-    Fetch Bitcoin data from Coinbase API
+    Fetch crypto data from Coinbase API
 
     Features:
     - Historical data (years back)
@@ -79,7 +79,7 @@ class CoinbaseFetcher:
             start_date_time: date_time when history fetch begins
 
         Returns:
-            DataFrame with columns: timestamp, open, high, low, close, volume
+            Pandas DataFrame with columns: timestamp, open, high, low, close, volume
 
         Raises:
             requests.RequestException: If API request fails

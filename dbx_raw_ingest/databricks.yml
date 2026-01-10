@@ -38,7 +38,7 @@ targets:
     workspace:
       host: https://dbc-00120f69-4aad.cloud.databricks.com
       # We explicitly deploy to /Workspace/Users/ggrftm@gmail.com to make sure we only have a single copy.
-      root_path: /Workspace/Users/ggrftm@gmail.com/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/ggrftm@gmail.com/.bundle/PROD/${bundle.name}/${bundle.target}
     variables:
       catalog: prod
       schema: bronze

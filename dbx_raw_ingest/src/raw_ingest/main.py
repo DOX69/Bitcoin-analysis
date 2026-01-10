@@ -45,20 +45,20 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
         full_path_table_name = fetcher.full_path_table_name
         is_table_exists = spark.catalog.tableExists(full_path_table_name)
         # ÉTAPE 1 : Fetch dernière date dans la table bronze
-        logger.info(f"\n[1/2] Fetching latest ingested data date for {full_path_table_name} ...")
+        logger.info(f"[1/2] Fetching latest ingested data date for {full_path_table_name} ...")
         if is_table_exists:
             latest_date = spark.read.table(full_path_table_name).select(f.max("date")).collect()[0][0]
             latest_date_time = pd.to_datetime(latest_date)
-            logger.info(f"\n[2/2] Historical data already exists - skipping full fetch - Incremental fetch from {latest_date}...")
+            logger.info(f"[2/2] Historical data already exists - skipping full fetch - Incremental fetch from {latest_date}...")
             historical = fetcher.fetch_historical_data(start_date_time=latest_date_time)
             fetcher.save_bronze_table(historical,latest_date)
         else:
-            logger.info("\n[2/2] First run detected - Fetching full historical ... ")
+            logger.info("[2/2] First run detected - Fetching full historical ... ")
             historical = fetcher.fetch_historical_data()
             fetcher.save_bronze_table(historical)
 
         logger.info("-" * 80)
-        logger.info(f"\n End ingesting {ticker.upper()}-{currency.upper()} data.")
+        logger.info(f"End ingesting {ticker.upper()}-{currency.upper()} data.")
         logger.info("-" * 80)
 
         return True

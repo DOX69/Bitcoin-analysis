@@ -1,4 +1,4 @@
-# The main pipeline for dbx_raw_ingest
+# The main pipeline for raw_ingest
 
 resources:
   pipelines:

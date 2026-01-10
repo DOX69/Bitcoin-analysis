@@ -1,7 +1,7 @@
-# This is a Databricks asset bundle definition for dbx_raw_ingest.
+# This is a Databricks asset bundle definition for raw_ingest.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: dbx_raw_ingest
+  name: raw_ingest
   uuid: 5a000346-9b36-4da2-acf8-1833b2f56a85
 
 include:

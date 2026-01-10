@@ -1,4 +1,4 @@
-# A sample job for dbx_raw_ingest.
+# A sample job for raw_ingest.
 
 resources:
   jobs:
@@ -29,7 +29,7 @@ resources:
           depends_on:
             - task_key: notebook_task
           python_wheel_task:
-            package_name: dbx_raw_ingest
+            package_name: raw_ingest
             entry_point: main
             parameters:
               - "--catalog"
@@ -48,7 +48,7 @@ resources:
           spec:
             environment_version: "4"
             dependencies:
-              # By default we just include the .whl file generated for the dbx_raw_ingest package.
+              # By default we just include the .whl file generated for the raw_ingest package.
               # See https://docs.databricks.com/dev-tools/bundles/library-dependencies.html
               # for more information on how to add other libraries.
               - ../dist/*.whl

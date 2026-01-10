@@ -214,3 +214,6 @@ requirements.txt
 
 # idea
 .idea/
+
+# data
+data

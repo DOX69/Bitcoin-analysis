@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class CoinbaseFetcher:
     """
-    Fetch Bitcoin data from Coinbase API (Free tier - no API key required)
+    Fetch Bitcoin data from Coinbase API
 
     Features:
     - Historical data (years back)
@@ -36,16 +36,11 @@ class CoinbaseFetcher:
     - No rate limits on free tier
     """
 
-    # Coinbase API endpoints
-    ticker_id = "BTC-USD"
-    BASE_URL = "https://api.exchange.coinbase.com"
-    PRICE_ENDPOINT = f"{BASE_URL}/products/{ticker_id}/candles"
-
     def __init__(
             self,
-            ticker_id: str = "BTC-USD",
+            ticker_id: str,
             data_dir: str = "data",
-            base_url: str = "https://api.exchange.coinbase.com"
+            base_url: str = os.getenv("BASE_COINBASE_API_URL")
     ):
         """
         Initialize fetcher
@@ -59,7 +54,7 @@ class CoinbaseFetcher:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
         self.base_url = base_url
-        self.price_endpoint = f"/products/{ self.ticker_id}/candles"
+        self.price_endpoint = f"/products/{self.ticker_id}/candles"
 
 
         logger.info(f"✓ CoinbaseFetcher initialized for {ticker_id.upper()}")
@@ -91,7 +86,7 @@ class CoinbaseFetcher:
         all_data = []
         current_start = start_date
         try:
-            logger.info(f"📥 Fetching {self.ticker_id} historical data ({days} days)")
+            logger.info(f"📥 Fetching {ticker_id} historical data ({days} days)")
 
             while current_start < end_date:
                 current_end = min(current_start + delta, end_date)
@@ -198,14 +193,13 @@ class CoinbaseFetcher:
             logger.error(f"✗ Failed to save CSV: {e}")
             raise
 
-
 def main():
     """
     Démonstration d'utilisation
     """
-    fetcher = CoinbaseFetcher()
     # Parameters
-    ticker_id = "BTC-USD"
+    ticker_id = "BTC-EUR"
+    fetcher = CoinbaseFetcher(ticker_id)
     days = 100 #365 * 13
     # Fetch historique (1 jour)
     historical = fetcher.fetch_historical_data(ticker_id,days= days)

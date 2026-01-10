@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 import requests
 import pandas as pd
 from dotenv import load_dotenv
-from pyspark.shell import spark
-from pyspark.sql.functions import col
+from databricks.sdk.runtime import spark
+from pyspark.sql.functions import col, current_timestamp
 
 # Charger variables d'environnement
 load_dotenv()
@@ -91,7 +91,7 @@ class CoinbaseFetcher:
         all_data = []
         current_start = start_date_time
         try:
-            logger.info(f"📥 Trying to fetch {self.ticker_id} historical data ({days} days)")
+            logger.info(f"📥 Trying to fetch {self.ticker_id} historical data from {current_start}")
 
             while current_start < end_date:
                 current_end = min(current_start + delta, end_date)
@@ -117,7 +117,7 @@ class CoinbaseFetcher:
                             float(row[5])        # volume
                         ])
                 else:
-                    print(f"Error: {response.status_code} - {response.text}")
+                    logger.error(f"Error: {response.status_code} - {response.text}")
                     break
 
                 current_start = current_end
@@ -148,28 +148,41 @@ class CoinbaseFetcher:
 
     def save_bronze_table(
             self,
-            df: pd.DataFrame
+            pandas_df: pd.DataFrame,
+            start_date: str = None,
     ) -> None:
         """
         Save DataFrame to bronze table
 
         Args:
-            df: DataFrame to save
+            pandas_df: Pandas DataFrame to save
+            start_date: start date where data will be eventually overwrite
 
         Returns:
             None, write delta
         """
-        spark_df = spark.createDataFrame(df).withColumn("date",col("time").cast("date"))
+        spark_df = (
+                    spark.createDataFrame(pandas_df)
+                    .withColumn("date",col("time").cast("date"))
+                    .withColumn("ingest_date_time",current_timestamp())
+                    )
         full_path_table_name = self.full_path_table_name
 
         try:
             if spark.catalog.tableExists(full_path_table_name):
-                # Append to existing table
-                spark_df.write.partitionBy("date").mode("append").saveAsTable(full_path_table_name)
-                logger.info(f"✓ Appended to {full_path_table_name} ({spark_df.count()} rows appended)")
+                # Overwrite to existing table
+                (
+                    spark_df.write
+                    .partitionBy("date")
+                    .mode("overwrite")
+                    .option("replaceWhere",f"date >= '{start_date}'")
+                    .option("mergeSchema", "true")
+                    .saveAsTable(full_path_table_name)
+                 )
+                logger.info(f"✓ Merged to {full_path_table_name} ({spark_df.count()} rows merged)")
             else:
                 # Create new table
-                spark_df.write.partitionBy("date").mode("overwrite").saveAsTable(full_path_table_name)
+                spark_df.write.partitionBy("date").mode("overwrite").option("mergeSchema", "true").saveAsTable(full_path_table_name)
                 logger.info(f"✓ Saved to {full_path_table_name} ({spark_df.count()} rows)")
 
         except Exception as e:

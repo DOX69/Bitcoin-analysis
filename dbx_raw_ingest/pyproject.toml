@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # "raw-ingest" pour matcher le job configuration
 name = "raw-ingest"
 version = "0.0.1"
-description = "Bitcoin raw data ingestion and ETL pipeline"
+description = "Ticker raw data ingestion and ETL pipeline"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 authors = [

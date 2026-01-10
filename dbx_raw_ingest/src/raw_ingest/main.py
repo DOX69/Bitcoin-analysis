@@ -1,15 +1,15 @@
 import argparse
 import logging
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 from dotenv import load_dotenv
-from pyspark.shell import spark
+from databricks.sdk.runtime import spark
 from pyspark.sql import functions as f
 from raw_ingest import CoinbaseFetcher
-from raw_ingest import taxis
 
 # Charger config
 load_dotenv()
@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str):
+def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> bool:
     """
     Pipeline d'ingestion Bitcoin
     À appeler tous les jours
@@ -47,19 +47,18 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str):
         # ÉTAPE 1 : Fetch dernière date dans la table bronze
         logger.info(f"\n[1/2] Fetching latest ingested data date for {full_path_table_name} ...")
         if is_table_exists:
-            latest_date = spark.read.table(full_path_table_name).select(f.min("date")).collect()[0][0]
-            logger.info(f"\n[2/2] Historical data already exists - skipping full fetch - Incremental fetch from {latest_date}...")
+            latest_date = spark.read.table(full_path_table_name).select(f.max("date")).collect()[0][0]
             latest_date_time = pd.to_datetime(latest_date)
+            logger.info(f"\n[2/2] Historical data already exists - skipping full fetch - Incremental fetch from {latest_date}...")
             historical = fetcher.fetch_historical_data(start_date_time=latest_date_time)
-            fetcher.save_bronze_table(historical)
+            fetcher.save_bronze_table(historical,latest_date)
         else:
             logger.info("\n[2/2] First run detected - Fetching full historical ... ")
             historical = fetcher.fetch_historical_data()
             fetcher.save_bronze_table(historical)
 
-        logger.info("\n" + "=" * 80)
-        logger.info("✅ INGESTION PIPELINE COMPLETED SUCCESSFULLY")
-        logger.info("=" * 80)
+        logger.info(f"\n End ingesting {ticker.upper()}-{currency.upper()} data.")
+
 
         return True
 
@@ -84,10 +83,10 @@ def main():
     spark.sql(f"USE CATALOG {args.catalog}")
     spark.sql(f"USE SCHEMA {args.schema}")
 
-    # Example: just find all taxis from a sample catalog
-    taxis.find_all_taxis().show(5)
+    succeed = ingest_ticker_data('BTC','USD',args.catalog,args.schema)
 
-    ingest_ticker_data('BTC','USD',args.catalog,args.schema)
+    if not succeed:
+        sys.exit(0)
 
 
 

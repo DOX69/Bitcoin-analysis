@@ -12,7 +12,9 @@ dependencies = [
     "python-dotenv>=1.0.0",       # Manage .env variables
     "pytz>=2023.3",               # Timezone handling
     "databricks>=0.2",
-    "databricks-sdk>=0.77.0",
+    "databricks-sdk==0.20.0",
+    "dbt-core>=1.7.19",
+    "dbt-databricks>=1.7.3",
 ]
 
 [project.optional-dependencies]

@@ -9,19 +9,11 @@ version = "0.0.1"
 description = "Ticker raw data ingestion and ETL pipeline"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
-authors = [
-    { name = "ggrftm@gmail.com" }
-]
+authors = [{name = "Mickael", email = "mickael.rakotoa@gmail.com"}]
 
 dependencies = [
     "databricks>=0.2",
-    "databricks-cli==0.18.0",
     "databricks-connect>=15.4.17",
-    # Any dependencies for jobs and pipelines in this project can be added here
-    # See also https://docs.databricks.com/dev-tools/bundles/library-dependencies
-    #
-    # LIMITATION: for pipelines, dependencies are cached during development;
-    # add dependencies to the 'environment' section of your pipeline.yml file instead
     "dotenv",
     "pytest>=9.0.2",
 ]

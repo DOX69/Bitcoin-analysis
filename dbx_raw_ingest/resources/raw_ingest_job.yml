@@ -1,0 +1,42 @@
+# A job for raw_ingest.
+
+resources:
+  jobs:
+    raw_ingest_job:
+      name: raw_ingest_job
+      schedule:
+        quartz_cron_expression: 6 0 3 * * ?
+        timezone_id: Europe/Paris
+        pause_status: ${var.pauseStatus}
+
+      #email_notifications:
+      #  on_failure:
+      #    - your_email@example.com
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+
+      tasks:
+        - task_key: raw_ingest_crypto
+          python_wheel_task:
+            package_name: raw_ingest
+            entry_point: main
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              # By default, we just include the .whl file generated for the raw_ingest package.
+              # See https://docs.databricks.com/dev-tools/bundles/library-dependencies.html
+              # for more information on how to add other libraries.
+              - ../dist/*.whl

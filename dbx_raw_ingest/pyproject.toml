@@ -14,6 +14,7 @@ authors = [
 ]
 
 dependencies = [
+    "databricks>=0.2",
     "databricks-connect>=15.4.17",
     # Any dependencies for jobs and pipelines in this project can be added here
     # See also https://docs.databricks.com/dev-tools/bundles/library-dependencies

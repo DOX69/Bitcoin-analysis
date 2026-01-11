@@ -6,6 +6,8 @@ charset-normalizer==3.4.4
     # via requests
 colorama==0.4.6
     # via pytest
+databricks==0.2
+    # via raw-ingest (pyproject.toml)
 databricks-connect==15.4.17
     # via raw-ingest (pyproject.toml)
 databricks-sdk==0.77.0

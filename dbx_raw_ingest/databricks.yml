@@ -19,6 +19,8 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  pauseStatus:
+    description: Pause status for schedule 'PAUSED/UNPAUSED'
 
 targets:
   dev:

@@ -1,0 +1,1 @@
+select *,{{ rsi(close, period=14) }} as rsi_14 from {{ source('bronze', 'btc_usd_ohlcv') }}

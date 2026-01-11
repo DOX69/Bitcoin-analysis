@@ -218,3 +218,36 @@ requirements.txt
 # data
 data
 test
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Databricks
+.databricks
+*.databrickscfg
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# dbt
+target/
+dbt_packages/
+logs/

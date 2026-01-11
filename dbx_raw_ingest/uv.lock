@@ -83,6 +83,15 @@ wheels = [
 ]
 
 [[package]]
+name = "databricks"
+version = "0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/94/acee395ffab7057cb025a3d65e61bf686c09d1c00b41518a0a4de0c0f80d/databricks-0.2.tar.gz", hash = "sha256:f20074914eea742cdc5f0b60db18b2408c62d90b50013adf5614f00a2e042059", size = 734, upload-time = "2018-11-15T17:21:26.562Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/71/3a1f0cb5f5e3060054a48c17281aaf3e75a52e31e602d5e5769f94c16624/databricks-0.2-py2.py3-none-any.whl", hash = "sha256:2d4384b4d1f992ac9c94b0933a61082a61ee6bae5e95a208d1e843216d860adf", size = 1244, upload-time = "2018-11-15T17:21:25.469Z" },
+]
+
+[[package]]
 name = "databricks-connect"
 version = "15.4.17"
 source = { registry = "https://pypi.org/simple" }
@@ -471,6 +480,7 @@ name = "raw-ingest"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
+    { name = "databricks" },
     { name = "databricks-connect" },
     { name = "dotenv" },
     { name = "pytest" },
@@ -485,6 +495,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "databricks", specifier = ">=0.2" },
     { name = "databricks-connect", specifier = ">=15.4.17" },
     { name = "databricks-connect", marker = "extra == 'dev'", specifier = ">=15.4,<15.5" },
     { name = "databricks-dlt", marker = "extra == 'dev'" },

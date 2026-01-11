@@ -213,7 +213,8 @@ requirements.txt
 /markdown
 
 # idea
-.idea/
+.idea
 
 # data
 data
+test

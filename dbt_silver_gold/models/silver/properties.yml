@@ -1,0 +1,19 @@
+models:
+  - name: obt_fact_day_btc
+    description: "A starter dbt model"
+    columns:
+      - name: date_prices
+        description: "The date of the price data"
+        data_type: date
+        data_tests:
+          - unique
+          - not_null
+  - name: obt_fact_day_eth
+    description: "A starter dbt model"
+    columns:
+      - name: date_prices
+        description: "The date of the price data"
+        data_type: date
+        data_tests:
+          - unique
+          - not_null

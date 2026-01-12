@@ -1,0 +1,1 @@
+select * from {{ ref("obt_fact_day_btc")}} order by date_prices desc limit 10;

@@ -5,24 +5,9 @@ Crypto Data Fetcher from Coinbase API (Free tier)
 - JSON response structuré
 """
 
-import os
-import logging
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
-from dotenv import load_dotenv
-
-# Charger variables d'environnement
-load_dotenv()
-
-# Configuration logging
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-
 class CoinbaseFetcher:
     """
     Fetch crypto data from Coinbase API
@@ -36,6 +21,7 @@ class CoinbaseFetcher:
 
     def __init__(
             self,
+            logger,
             ticker: str,
             currency: str,
             catalog: str,
@@ -50,6 +36,7 @@ class CoinbaseFetcher:
             currency: Coinbase currency (e.g. USD)
             base_url: base api url
         """
+        self.logger = logger
         self.table_name = ticker.lower() + "_" + currency.lower() + "_ohlcv"
         self.full_path_table_name = f"{catalog}.{schema}.{self.table_name}"
         self.ticker = ticker
@@ -90,7 +77,7 @@ class CoinbaseFetcher:
         all_data = []
         current_start = start_date_time
         try:
-            logger.info(f"📥 Trying to fetch {self.ticker_id} historical data from {current_start}")
+            self.logger.info(f"📥 Trying to fetch {self.ticker_id} historical data from {current_start}")
 
             while current_start < end_date:
                 current_end = min(current_start + delta, end_date)
@@ -116,7 +103,7 @@ class CoinbaseFetcher:
                             float(row[5])        # volume
                         ])
                 else:
-                    logger.error(f"Error: {response.status_code} - {response.text}")
+                    self.logger.error(f"Error: {response.status_code} - {response.text}")
                     break
 
                 current_start = current_end
@@ -127,20 +114,20 @@ class CoinbaseFetcher:
 
             # Vérifier données nulles
             if df[['open', 'high', 'low', 'close']].isnull().any().any():
-                logger.warning("⚠️  Found null values in OHLC data")
+                self.logger.warning("⚠️  Found null values in OHLC data")
 
-            logger.info(f"✓ Fetched {len(df)} rows of historical data")
-            logger.info(f"  Date range: {df['time'].min()} to {df['time'].max()}")
-            logger.info(f"  Price range: ${df['close'].min():.2f} - ${df['close'].max():.2f}")
+            self.logger.info(f"✓ Fetching {len(df)} rows of historical data succeeded")
+            self.logger.info(f"  Date range: {df['time'].min()} to {df['time'].max()}")
+            self.logger.info(f"  Price range: ${df['close'].min():.2f} - ${df['close'].max():.2f}")
 
             return df
 
         except requests.exceptions.Timeout:
-            logger.error("✗ Request timeout - Coinbase API not responding")
+            self.logger.error("✗ Request timeout - Coinbase API not responding")
             raise
         except requests.exceptions.RequestException as e:
-            logger.error(f"✗ API request failed: {e}")
+            self.logger.error(f"✗ API request failed: {e}")
             raise
         except ValueError as e:
-            logger.error(f"✗ Invalid response data: {e}")
+            self.logger.error(f"✗ Invalid response data: {e}")
             raise

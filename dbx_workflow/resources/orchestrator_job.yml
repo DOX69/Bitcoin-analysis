@@ -1,9 +1,9 @@
-# A job for raw_ingest.
+# A job for orchestrator_job.
 
 resources:
   jobs:
-    raw_ingest_job:
-      name: raw_ingest_job
+    orchestrator_job:
+      name: orchestrator_job
       schedule:
         quartz_cron_expression: 6 0 3 * * ?
         timezone_id: Europe/Paris

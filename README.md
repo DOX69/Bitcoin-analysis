@@ -7,7 +7,7 @@ uv pip compile pyproject.toml -o requirements.txt
 # test rapide :
 ```bash
 # 1. Simuler ce que le workflow va faire
-cd dbx_raw_ingest
+cd dbx_workflow
 
 # 2. Supprimer vos anciens packages (nettoyer)
 pip uninstall -r requirements.txt -y

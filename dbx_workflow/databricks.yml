@@ -1,7 +1,7 @@
 # This is a Databricks asset bundle definition for raw_ingest.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: raw_ingest
+  name: orchestrator_job
   uuid: 5a000346-9b36-4da2-acf8-1833b2f56a85
 
 include:
@@ -21,6 +21,7 @@ variables:
     description: The schema to use
   pauseStatus:
     description: Pause status for schedule 'PAUSED/UNPAUSED'
+    default: PAUSED
 
 targets:
   dev:
@@ -39,7 +40,7 @@ targets:
     mode: production
     workspace:
       host: https://dbc-00120f69-4aad.cloud.databricks.com
-      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/PROD/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.target}/${bundle.name}
     variables:
       catalog: prod
       schema: bronze

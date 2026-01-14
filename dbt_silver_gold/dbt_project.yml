@@ -1,11 +1,12 @@
-flags:
-  use_managed_iceberg: true
-  use_materialization_v2: true
 # Name your project! Project names should contain only lowercase characters
 # and underscores. A good package name should reflect your organization's
 # name or the intended use of these models
 name: 'dbt_silver_gold'
 version: '1.0.0'
+
+flags:
+  use_managed_iceberg: true
+  use_materialization_v2: true
 
 # This setting configures which "profile" dbt uses for this project.
 profile: 'dbt_silver_gold'

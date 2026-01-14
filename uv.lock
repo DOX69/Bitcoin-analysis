@@ -8,6 +8,12 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 
+[manifest]
+members = [
+    "bitcoin-analysis",
+    "dbt-silver-gold",
+]
+
 [[package]]
 name = "agate"
 version = "1.7.1"
@@ -667,6 +673,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2e/38/e889ad15d281093e53a7ec1e692a387a92dc056fff56b8c2961634b1968b/dbt_semantic_interfaces-0.4.4.tar.gz", hash = "sha256:3b8126deb964c03d14e8af1cb4bdfb9f20c53dfcef28fa3a0bc158a8312e4070", size = 75128, upload-time = "2024-02-26T19:34:34.962Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/a8/718950dfc5975f49f5b05cd3604d266a5d68c37e2e2e95d353363d33a01c/dbt_semantic_interfaces-0.4.4-py3-none-any.whl", hash = "sha256:0149a4fd7fd4f25309edf5f856410536eaf2019f29dad58967dcf6d0625e6914", size = 118618, upload-time = "2024-02-26T19:34:36.853Z" },
+]
+
+[[package]]
+name = "dbt-silver-gold"
+version = "0.1.0"
+source = { virtual = "dbt_silver_gold" }
+dependencies = [
+    { name = "dbt-core" },
+    { name = "dbt-databricks" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dbt-core", specifier = ">=1.7.19" },
+    { name = "dbt-databricks", specifier = ">=1.7.3" },
 ]
 
 [[package]]

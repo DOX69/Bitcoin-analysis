@@ -44,3 +44,8 @@ build-backend = "hatchling.build"
 # Dit à hatchling où est le code
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
+
+[tool.uv.workspace]
+members = [
+    "dbt_silver_gold",
+]

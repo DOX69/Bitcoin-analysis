@@ -1,30 +1,39 @@
 {%- macro create_update_agg(table_source, granularity) -%}
-{{ 
-            config(
-                materialized='incremental',
-                unique_key='iso_week_start_date',
-                on_schema_change='sync_all_columns'
-                ) 
-        }}
-
 {%- if granularity == "week" -%}
+    {%- set smaller_granularity_ref_col = "date_prices" -%}
     {%- set agg_cols = "iso_week_start_date, month_start_date, quarter_start_date, year_start_date" -%}
     {%- set parition_by_col = "iso_week_start_date" -%}
-    {%- set order_by_col = "date_prices" -%}
     
 {%- elif granularity == "month" %}
+    {%- set smaller_granularity_ref_col = "iso_week_start_date" -%}
     {%- set agg_cols = "month_start_date, quarter_start_date, year_start_date" -%}
     {%- set parition_by_col = "month_start_date" -%}
-    {%- set order_by_col = "iso_week_start_date" -%}
+    
+{%- elif granularity == "quarter" %}
+    {%- set smaller_granularity_ref_col = "month_start_date" -%}
+    {%- set agg_cols = "quarter_start_date, year_start_date" -%}
+    {%- set parition_by_col = "quarter_start_date" -%}
+    
+{%- elif granularity == "year" %}
+    {%- set smaller_granularity_ref_col = "quarter_start_date" -%}
+    {%- set agg_cols = "year_start_date" -%}
+    {%- set parition_by_col = "year_start_date" -%}
 
 {%- endif -%}
+
+
+{{ 
+    config(
+        materialized='incremental',
+        unique_key=parition_by_col,
+        on_schema_change='sync_all_columns'
+        ) 
+}}
 
 With join_calendar as (
         select ingest_date_time,
 
-        {%- if granularity == "week" -%}
-        date_prices,
-        {%- endif -%}
+        {{smaller_granularity_ref_col}},
 
         low,
         high,
@@ -38,12 +47,14 @@ With join_calendar as (
     )
     ,open_close as (
         select
-        date_prices,
+
+        {{smaller_granularity_ref_col}},
         {{agg_cols}},
+
         low,
         high,
-        first(open) over(partition by {{parition_by_col}} order by {{order_by_col}} asc ) as open,
-        first(close) over(partition by {{parition_by_col}} order by {{order_by_col}} desc) as close,
+        first(open) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} asc ) as open,
+        first(close) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} desc) as close,
         ingest_date_time
         from join_calendar
     )

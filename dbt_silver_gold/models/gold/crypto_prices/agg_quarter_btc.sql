@@ -1,0 +1,1 @@
+{{ create_update_agg(ref("agg_month_btc"), 'quarter')}}

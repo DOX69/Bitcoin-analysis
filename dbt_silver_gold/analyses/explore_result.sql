@@ -1,1 +1,1 @@
-select * from {{ ref("agg_week_btc")}} order by iso_week_start_date desc limit 10;
+select * from {{ ref("agg_year_btc")}} order by 1 desc limit 1000;

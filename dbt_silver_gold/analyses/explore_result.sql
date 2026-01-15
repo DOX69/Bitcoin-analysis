@@ -1,1 +1,1 @@
-select * from {{ ref("obt_fact_day_btc")}} order by date_prices desc limit 10;
+select * from {{ ref("agg_week_btc")}} order by iso_week_start_date desc limit 10;

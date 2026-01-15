@@ -37,7 +37,8 @@ with deduplicate as (
             {% endif %}
 
     )
-select *,
+select * except (ingest_date_time),
+     current_timestamp as ingest_date_time,
     '{{ invocation_id }}' as dbt_batch_id
 from increment_data
     {% endmacro %}

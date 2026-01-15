@@ -1,1 +1,0 @@
-select 'dlh_gold__agg_crypto_prices' as desired_schema_name;

@@ -31,7 +31,7 @@ resources:
           dbt_task:
             project_directory: dbt_silver_gold
             commands:
-              - dbt run -s models/silver
+              - dbt run -s models
             schema: ${var.schema}
             warehouse_id: 4ec8ed922861dd83
             catalog: ${var.catalog}

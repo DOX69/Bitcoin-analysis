@@ -1,4 +1,6 @@
 {%- macro create_update_agg(table_source, granularity) -%}
+{% set period = 14 %}
+
 {%- if granularity == "week" -%}
     {%- set smaller_granularity_ref_col = "date_prices" -%}
     {%- set agg_cols = "iso_week_start_date, month_start_date, quarter_start_date, year_start_date" -%}
@@ -59,7 +61,7 @@ With join_calendar as (
         from join_calendar
     )
     ,agg as (
-    select 
+    select
         {{agg_cols}},
         min(low) as low,
         max(high) as high,
@@ -69,13 +71,23 @@ With join_calendar as (
         from open_close
     group by ALL
     )
+    ,add_previous_price_change as (
+        select *,
+            {{ previous_price_change('close', parition_by_col) }} AS change
+        from agg
+    )
+    ,add_rsi as (
+        select *,
+            {{ rsi('change', period, parition_by_col) }}
+        from add_previous_price_change
+    )
     ,increment_data as (
-    select * from agg
+    select * from add_rsi
     {% if is_incremental() %}
       where ingest_date_time >= (select max(ingest_date_time) from {{ this }})
     {% endif %}
     )
-    select *  except (ingest_date_time),
+    select *  except (ingest_date_time, avg_gain, avg_loss, change, rsi_calculated),
     current_timestamp as ingest_date_time,
     '{{ invocation_id }}' as dbt_batch_id
     from increment_data

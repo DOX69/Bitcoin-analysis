@@ -15,6 +15,7 @@ dependencies = [
     "databricks-sdk==0.20.0",
     "dbt-core>=1.7.19",
     "dbt-databricks>=1.7.3",
+    "pip>=25.3",
 ]
 
 [project.optional-dependencies]

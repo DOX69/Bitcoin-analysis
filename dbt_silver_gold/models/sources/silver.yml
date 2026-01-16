@@ -1,0 +1,6 @@
+sources:
+    - name: silver
+      database: prod
+      schema: dlh_silver__global
+      tables:
+        - name: dim_calendar

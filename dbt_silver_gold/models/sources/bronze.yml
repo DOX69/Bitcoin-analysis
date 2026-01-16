@@ -1,0 +1,7 @@
+sources:
+    - name: bronze
+      database: prod
+      schema: bronze
+      tables:
+        - name: btc_usd_ohlcv
+        - name: eth_usd_ohlcv

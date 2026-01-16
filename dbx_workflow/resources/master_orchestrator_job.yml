@@ -1,0 +1,67 @@
+# A job for master_orchestrator_job.
+
+resources:
+  jobs:
+    master_orchestrator_job:
+      name: master_orchestrator_job
+      schedule:
+        quartz_cron_expression: 6 0 3 * * ?
+        timezone_id: Europe/Paris
+        pause_status: ${var.pauseStatus}
+
+      #email_notifications:
+      #  on_failure:
+      #    - your_email@example.com
+
+      tasks:
+        - task_key: raw_ingest_crypto
+          python_wheel_task:
+            package_name: raw_ingest
+            entry_point: main
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+          environment_key: default
+
+        - task_key: dbt_silver_gold
+          depends_on:
+            - task_key: raw_ingest_crypto
+          dbt_task:
+            project_directory: dbt_silver_gold
+            commands:
+              - dbt run -s models/
+            schema: ${var.schema}
+            warehouse_id: 4ec8ed922861dd83
+            catalog: ${var.catalog}
+            source: GIT
+          environment_key: dbt-default
+
+      git_source:
+        git_url: https://github.com/DOX69/Bitcoin-analysis
+        git_provider: gitHub
+        git_branch: main
+
+      queue:
+        enabled: true
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+
+      environments:
+        - environment_key: default
+          spec:
+              dependencies:
+                - ${var.root_path}/artifacts/.internal/raw_ingest-0.0.1-py3-none-any.whl
+              environment_version: "4"
+        - environment_key: dbt-default
+          spec:
+            dependencies:
+              - dbt-databricks>=1.0.0,<2.0.0
+            environment_version: "4"
+
+      performance_target: PERFORMANCE_OPTIMIZED

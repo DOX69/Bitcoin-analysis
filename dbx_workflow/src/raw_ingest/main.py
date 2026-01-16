@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
@@ -10,6 +9,7 @@ from databricks.sdk.runtime import spark
 from pyspark.sql import functions as f
 from raw_ingest.CoinbaseFetcher import CoinbaseFetcher
 from raw_ingest.DbWriter import DbWriter
+from raw_ingest.logger import CustomFormatter
 
 # Charger config
 load_dotenv()
@@ -20,14 +20,17 @@ log_dir.mkdir(exist_ok=True)
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_dir / f"crypto_ingest_{datetime.now().strftime('%Y%m%d')}.log"),
-        logging.StreamHandler()
-    ]
+    format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
 )
+
 logger = logging.getLogger(__name__)
 
+for handler in logger.handlers:
+    handler.setFormatter(CustomFormatter())
+
+for handler in logging.root.handlers:
+    handler.setFormatter(CustomFormatter())
 
 def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> bool:
     """
@@ -37,6 +40,7 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
     try:
         # Initialiser fetcher
         fetcher = CoinbaseFetcher(
+            logger,
             ticker,
             currency,
             catalog,
@@ -63,7 +67,7 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
             fetched_pandas_df = fetcher.fetch_historical_data()
 
         # Save delta table
-        DbWriter(full_path_table_name,fetched_pandas_df).save_delta_table(is_table_found)
+        DbWriter(logger, full_path_table_name, fetched_pandas_df).save_delta_table(is_table_found)
 
         logger.info("-" * 80)
         logger.info(f"End ingesting {ticker.upper()}-{currency.upper()} data.")

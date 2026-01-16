@@ -1,20 +1,7 @@
-import logging
 import pandas as pd
-import os
-from dotenv import load_dotenv
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, current_timestamp
 from databricks.sdk.runtime import spark
-
-# Charger variables d'environnement
-load_dotenv()
-
-# Configuration logging
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 def overwrite_replace_where(
         spark_df: DataFrame,
@@ -41,15 +28,18 @@ def overwrite_replace_where(
 class DbWriter:
     def __init__(
             self,
+            logger,
             full_path_table_name : str,
             pandas_df: pd.DataFrame
     ):
+        self.logger = logger
         self.full_path_table_name = full_path_table_name
         self.pandas_df = pandas_df
 
-        logger.info("-" * 80)
-        logger.info(f"✓ DbWriter initialized for {self.full_path_table_name} delta table")
-        logger.info("-" * 80)
+        self.logger.info("-" * 80)
+        self.logger.info(f"✓ DbWriter initialized for {self.full_path_table_name} delta table.")
+        self.logger.info("-" * 80)
+        
     def save_delta_table(self, is_table_found: bool) -> None:
         """
         Save DataFrame to bronze table
@@ -65,12 +55,11 @@ class DbWriter:
         try:
             if is_table_found:
                 spark_df.write.mode("append").saveAsTable(self.full_path_table_name)
-                logger.info(f"✓ Append to {self.full_path_table_name} ({spark_df.count()} rows appended)")
+                self.logger.info(f"✓ Append to {self.full_path_table_name} succeeded ({spark_df.count()} rows appended)")
             else:
                 # Create new table
                 spark_df.write.partitionBy("date").mode("overwrite").option("mergeSchema", "true").saveAsTable(self.full_path_table_name)
-                logger.info(f"✓ Saved to {self.full_path_table_name} ({spark_df.count()} rows)")
-
+                self.logger.info(f"✓ Saved to {self.full_path_table_name} succeeded ({spark_df.count()} rows)")
         except Exception as e:
-            logger.error(f"✗ Failed to save to table: {e}")
+            self.logger.error(f"✗ Failed to save to table: {e}")
             raise

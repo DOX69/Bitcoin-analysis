@@ -1,0 +1,10 @@
+[project]
+name = "dbt-silver-gold"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dbt-core>=1.7.19",
+    "dbt-databricks>=1.7.3",
+]

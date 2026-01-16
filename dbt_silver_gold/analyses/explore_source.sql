@@ -1,0 +1,1 @@
+select * from {{ source('bronze', 'btc_usd_ohlcv') }} order by ingest_date_time desc limit 10;

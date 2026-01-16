@@ -1,0 +1,1 @@
+{{ create_update_agg(ref("obt_fact_day_btc"), 'week')}}

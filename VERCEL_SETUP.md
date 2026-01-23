@@ -29,7 +29,7 @@ You need to configure the following environment variables in Vercel project sett
 Once deployed, Vercel will create a deployment URL.
 
 *   ✅ **Production**: The main URL assigned by Vercel.
-*   ✅ **Development**: Any subsequent pushes to `feature/create-web-app` (Preview Deployments).
+*   ✅ **Development**: Any subsequent pushes to `<branch-name>` (Preview Deployments).
 
 ## 4. Verification Checklist
 

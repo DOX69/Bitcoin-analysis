@@ -3,7 +3,7 @@
 Use this checklist to ensure everything is ready before checking your Vercel dashboard.
 
 ## Git & Code Preparation
-- [ ] **Feature Branch**: You are on `feature/create-web-app`.
+- [ ] **Feature Branch**: You are on `<branch-name>`.
 - [ ] **Package.json**: Contains `build` ("next build") and `start` ("next start") scripts. (✅ Checked)
 - [ ] **Next Config**: `next.config.ts` is present. (✅ Checked)
 - [ ] **.gitignore**: Excludes `.env`, `.env.local`, `.next`, `node_modules`. (✅ Checked)
@@ -19,7 +19,7 @@ Use this checklist to ensure everything is ready before checking your Vercel das
     ```
 3.  **Push Branch**:
     ```bash
-    git push origin feature/create-web-app
+    git push origin <branch-name>
     ```
 
 ## Vercel Import

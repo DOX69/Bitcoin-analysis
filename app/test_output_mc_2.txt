@@ -1,0 +1,14 @@
+PASS src/__tests__/MetricsCard.test.tsx
+  MetricsCard Component
+    √ should render title and value correctly (23 ms)
+    √ should display positive change with green color (19 ms)
+    √ should display negative change with red color (3 ms)
+    √ should show loading state (31 ms)
+    √ should format numeric values correctly (3 ms)
+    √ should handle string values (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        1.044 s
+Ran all test suites matching src/__tests__/MetricsCard.test.tsx.

@@ -96,3 +96,52 @@ def pytest_configure(config: pytest.Config):
             DatabricksSession.builder.validateSession().getOrCreate()
         else:
             DatabricksSession.builder.getOrCreate()
+
+
+# Additional fixtures for testing raw_ingest modules
+from datetime import datetime
+import pandas as pd
+import logging
+
+
+@pytest.fixture()
+def mock_logger():
+    """Provide a mock logger for testing."""
+    logger = logging.getLogger("test_logger")
+    logger.setLevel(logging.INFO)
+    return logger
+
+
+@pytest.fixture()
+def mock_coinbase_api_response():
+    """Provide sample Coinbase API response data."""
+    # Coinbase returns: [ time, low, high, open, close, volume ]
+    return [
+        [1640995200, 46000.0, 47500.0, 46500.0, 47000.0, 1500.5],
+        [1641081600, 47000.0, 48000.0, 47000.0, 47800.0, 1800.3],
+        [1641168000, 47800.0, 49000.0, 47800.0, 48500.0, 2100.7],
+        [1641254400, 48500.0, 49500.0, 48500.0, 49000.0, 1950.2],
+        [1641340800, 49000.0, 50000.0, 49000.0, 49800.0, 2200.1],
+    ]
+
+
+@pytest.fixture()
+def sample_pandas_df():
+    """Provide sample pandas DataFrame with crypto OHLCV data."""
+    data = {
+        "time": pd.to_datetime([
+            "2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05"
+        ]),
+        "low": [46000.0, 47000.0, 47800.0, 48500.0, 49000.0],
+        "high": [47500.0, 48000.0, 49000.0, 49500.0, 50000.0],
+        "open": [46500.0, 47000.0, 47800.0, 48500.0, 49000.0],
+        "close": [47000.0, 47800.0, 48500.0, 49000.0, 49800.0],
+        "volume": [1500.5, 1800.3, 2100.7, 1950.2, 2200.1],
+    }
+    return pd.DataFrame(data)
+
+
+@pytest.fixture()
+def sample_spark_df(spark: SparkSession, sample_pandas_df: pd.DataFrame):
+    """Provide sample Spark DataFrame with crypto OHLCV data."""
+    return spark.createDataFrame(sample_pandas_df)

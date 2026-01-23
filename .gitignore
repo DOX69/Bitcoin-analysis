@@ -248,3 +248,7 @@ Thumbs.db
 target/
 dbt_packages/
 logs/
+
+# Agent
+.agent/
+init_agent.md

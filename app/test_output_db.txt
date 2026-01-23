@@ -1,0 +1,55 @@
+FAIL src/__tests__/databricks.test.ts
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation, specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jose\dist\browser\index.js:1
+    export { compactDecrypt } from './jwe/compact/decrypt.js';
+    ^^^^^^
+
+    SyntaxError: Unexpected token 'export'
+
+    [0m [90m 24 |[39m         [36mconst[39m connection [33m=[39m [36mawait[39m client[33m.[39mconnect({
+     [90m 25 |[39m             host[33m:[39m config[33m.[39mhost[33m,[39m
+    [31m[1m>[22m[39m[90m 26 |[39m             path[33m:[39m config[33m.[39mhttpPath[33m,[39m
+     [90m    |[39m              [31m[1m^[22m[39m
+     [90m 27 |[39m             token[33m:[39m config[33m.[39mtoken[33m,[39m
+     [90m 28 |[39m         })[33m;[39m
+     [90m 29 |[39m[0m
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1318:40)
+      at Object.<anonymous> (node_modules/openid-client/lib/client.js:9:14)
+      at Object.<anonymous> (node_modules/openid-client/lib/issuer.js:5:19)
+      at Object.<anonymous> (node_modules/openid-client/lib/index.js:1:16)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/connection/auth/DatabricksOAuth/OAuthManager.ts:2:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/connection/auth/DatabricksOAuth/index.ts:4:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/DBSQLClient.ts:21:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/index.ts:7:1)
+      at Object.<anonymous> (src/lib/databricks.ts:26:14)
+      at Object.<anonymous> (src/__tests__/databricks.test.ts:7:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.147 s
+Ran all test suites matching src/__tests__/databricks.test.ts.

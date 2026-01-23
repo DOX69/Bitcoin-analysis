@@ -2,7 +2,7 @@
     "git": {
         "deploymentEnabled": {
             "feature/create-web-app": true,
-            "main": false
+            "main": true
         }
     }
 }

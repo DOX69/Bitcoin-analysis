@@ -251,3 +251,6 @@ logs/
 # Agent
 .agent/
 init_agent.md
+
+# screenshot
+screenshot/

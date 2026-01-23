@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { BitcoinPrice } from '@/lib/bitcoin-api';
+import { formatPrice, formatDate, formatTooltipTime } from '@/lib/format-utils';
 
 ChartJS.register(
     CategoryScale,
@@ -57,11 +58,12 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                 label: 'Bitcoin Price (USD)',
                 data: filteredData.map((item) => item.close),
                 borderColor: 'rgba(255, 107, 53, 1)',
+                borderWidth: 1.5,
                 backgroundColor: (context: any) => {
                     const ctx = context.chart.ctx;
                     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                    gradient.addColorStop(0, 'rgba(255, 107, 53, 0.3)');
-                    gradient.addColorStop(0.5, 'rgba(247, 183, 49, 0.2)');
+                    gradient.addColorStop(0, 'rgba(255, 107, 53, 0.15)');
+                    gradient.addColorStop(0.5, 'rgba(247, 183, 49, 0.05)');
                     gradient.addColorStop(1, 'rgba(255, 165, 0, 0.0)');
                     return gradient;
                 },
@@ -86,19 +88,32 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
             tooltip: {
                 mode: 'index' as const,
                 intersect: false,
-                backgroundColor: 'rgba(20, 20, 20, 0.95)',
-                titleColor: '#fff',
-                bodyColor: '#a0a0a0',
+                backgroundColor: 'rgba(28, 28, 28, 0.95)',
+                padding: 15,
+                displayColors: false,
+                cornerRadius: 12,
+                titleFont: {
+                    size: 18,
+                    weight: 'bold' as const,
+                    family: "'Inter', sans-serif",
+                },
+                bodyFont: {
+                    size: 14,
+                    family: "'Inter', sans-serif",
+                },
+                titleColor: '#ffffff',
+                bodyColor: '#9ca3af',
                 borderColor: 'rgba(255, 165, 0, 0.3)',
                 borderWidth: 1,
-                padding: 12,
-                displayColors: false,
                 callbacks: {
+                    title: function (context: any) {
+                        const value = context[0].parsed.y;
+                        return formatPrice(value);
+                    },
                     label: function (context: any) {
-                        return `$${context.parsed.y.toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                        })}`;
+                        const date = formatDate(context.label);
+                        const time = formatTooltipTime();
+                        return [date, time];
                     },
                 },
             },
@@ -109,18 +124,41 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                     display: false,
                 },
                 ticks: {
-                    color: '#666',
-                    maxTicksLimit: 8,
+                    color: '#6b7280',
+                    maxTicksLimit: 12,
+                    font: {
+                        size: 11,
+                    },
+                    callback: function (this: any, value: any) {
+                        const label = this.getLabelForValue(value);
+                        const date = new Date(label);
+                        const day = date.getDate();
+                        const month = date.getMonth();
+
+                        if (day === 1 && month === 0) {
+                            return date.getFullYear().toString();
+                        }
+
+                        if (day === 1) {
+                            return date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+                        }
+
+                        return day.toString();
+                    },
                 },
             },
             y: {
+                position: 'right' as const,
                 grid: {
-                    color: 'rgba(255, 165, 0, 0.05)',
+                    display: false,
                 },
                 ticks: {
-                    color: '#666',
+                    color: '#6b7280',
+                    font: {
+                        size: 11,
+                    },
                     callback: function (value: any) {
-                        return '$' + value.toLocaleString('en-US');
+                        return formatPrice(value);
                     },
                 },
             },
@@ -133,36 +171,17 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
     };
 
     return (
-        <div className="glass-card rounded-xl p-6 gradient-border">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold gradient-text">Price Chart</h2>
-
-                <div className="flex gap-2">
-                    {(['7d', '30d', '90d', '1y'] as TimeRange[]).map((range) => (
-                        <button
-                            key={range}
-                            onClick={() => setTimeRange(range)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium smooth-transition ${timeRange === range
-                                    ? 'bg-gradient-to-r from-energy-orange to-energy-yellow text-black'
-                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                                }`}
-                        >
-                            {range}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
+        <>
             {loading ? (
-                <div className="h-[400px] flex items-center justify-center">
+                <div className="h-full flex items-center justify-center">
                     <div className="loading-pulse text-gray-400">Loading chart...</div>
                 </div>
             ) : (
-                <div className="h-[400px]">
+                <div className="h-full w-full">
                     <Line data={chartData} options={options} />
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

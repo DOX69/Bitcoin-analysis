@@ -38,7 +38,7 @@ export default function SignupPage() {
                     <div className="flex justify-center md:justify-start">
                         <div className="relative w-12 h-12 rounded-full overflow-hidden">
                             <Image
-                                src="/logo_B_ai.jpeg"
+                                src="/logo_B_ai_bg_removed.png"
                                 alt="Bitcoin Analytics Logo"
                                 fill
                                 className="object-cover"

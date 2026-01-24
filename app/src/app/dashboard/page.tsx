@@ -23,9 +23,27 @@ export default function Dashboard() {
         { label: '1W', value: '1w' },
         { label: '1M', value: '1m' },
         { label: '6M', value: '6m' },
+        { label: '1Y', value: '1y' },
         { label: 'YTD', value: 'ytd' },
         { label: 'ALL', value: 'all' },
     ];
+
+    const getDaysForFilter = (filter: string) => {
+        switch (filter) {
+            case '1w': return 7;
+            case '1m': return 30;
+            case '6m': return 180;
+            case '1y': return 365;
+            case 'ytd': {
+                const now = new Date();
+                const startOfYear = new Date(now.getFullYear(), 0, 1);
+                const diff = now.getTime() - startOfYear.getTime();
+                return Math.ceil(diff / (1000 * 60 * 60 * 24));
+            }
+            case 'all': return 3650;
+            default: return 180;
+        }
+    };
 
     useEffect(() => {
         async function fetchData() {
@@ -37,15 +55,24 @@ export default function Dashboard() {
                 // Fetch current metrics and historical data
                 const [metricsData, priceData] = await Promise.all([
                     getCurrentBitcoinMetrics(),
-                    getHistoricalPrices(90), // Get 90 days of data
+                    getHistoricalPrices(getDaysForFilter(selectedTime)),
                 ]);
 
                 setMetrics(metricsData);
                 setHistoricalData(priceData);
+
+                // Update start/end dates based on data
+                if (priceData.length > 0) {
+                    const formatDate = (dateStr: string) => {
+                        const d = new Date(dateStr);
+                        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    };
+                    setStartDate(formatDate(priceData[0].date));
+                    setEndDate(formatDate(priceData[priceData.length - 1].date));
+                }
             } catch (err) {
                 console.error('Error fetching Bitcoin data:', err);
                 setError('Failed to load Bitcoin data.');
-                // In production we might want to show cached data or retry
             } finally {
                 setLoading(false);
             }
@@ -56,7 +83,7 @@ export default function Dashboard() {
         // Refresh data every 60 seconds
         const interval = setInterval(fetchData, 60 * 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, [selectedTime]);
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans flex flex-col">

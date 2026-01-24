@@ -26,7 +26,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentPage = 'Dashbo
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center gap-2">
                         <Image
-                            src="/logo_B_ai.jpeg"
+                            src="/logo_B_ai_bg_removed.png"
                             alt="B.ai Logo"
                             width={36}
                             height={36}

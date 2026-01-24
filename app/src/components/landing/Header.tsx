@@ -12,7 +12,7 @@ export default function Header() {
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
                         <Image
-                            src="/logo_B_ai.jpeg"
+                            src="/logo_B_ai_bg_removed.png"
                             alt="B.ai - Bitcoin AI Analysis"
                             width={80}
                             height={40}

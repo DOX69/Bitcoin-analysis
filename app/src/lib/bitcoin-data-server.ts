@@ -8,6 +8,8 @@ export interface BitcoinPrice {
     low: number;
     close: number;
     volume: number;
+    rsi: number;
+    rsi_status: string;
 }
 
 export interface BitcoinMetrics {
@@ -79,11 +81,19 @@ export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
  * Get historical Bitcoin prices for charting
  */
 export async function getHistoricalPrices(
-    days: number = 30
+    days: number = 30,
+    startDate?: string,
+    endDate?: string
 ): Promise<BitcoinPrice[]> {
     const config = getDatabricksConfig();
 
     try {
+        let whereClause = `date_prices >= DATEADD(day, -${days}, CURRENT_DATE())`;
+
+        if (startDate && endDate) {
+            whereClause = `date_prices BETWEEN '${startDate}' AND '${endDate}'`;
+        }
+
         const query = `
       SELECT 
         date_prices as date,
@@ -91,9 +101,11 @@ export async function getHistoricalPrices(
         high as high,
         low as low,
         close as close,
-        volume
+        volume,
+        rsi,
+        rsi_status
       FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
-      WHERE date_prices >= DATEADD(day, -${days}, CURRENT_DATE())
+      WHERE ${whereClause}
       ORDER BY date_prices ASC
     `;
 

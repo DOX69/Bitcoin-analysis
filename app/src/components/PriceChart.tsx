@@ -11,10 +11,14 @@ import {
     Tooltip,
     Legend,
     Filler,
+    TimeScale,
+    TimeSeriesScale
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Chart } from 'react-chartjs-2';
 import { BitcoinPrice } from '@/lib/bitcoin-api';
 import { formatPrice, formatDate, formatTooltipTime } from '@/lib/format-utils';
+import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
+import 'chartjs-adapter-date-fns'; // Import date adapter for potential time scale usage
 
 ChartJS.register(
     CategoryScale,
@@ -24,39 +28,28 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
+    CandlestickController,
+    CandlestickElement,
+    TimeScale,
+    TimeSeriesScale
 );
 
 interface PriceChartProps {
     data: BitcoinPrice[];
     loading?: boolean;
+    showRsi?: boolean;
+    type?: 'line' | 'candlestick';
 }
 
-type TimeRange = '7d' | '30d' | '90d' | '1y';
-
-const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
-    const [timeRange, setTimeRange] = useState<TimeRange>('30d');
-    const [filteredData, setFilteredData] = useState<BitcoinPrice[]>(data);
-
-    useEffect(() => {
-        const daysMap: Record<TimeRange, number> = {
-            '7d': 7,
-            '30d': 30,
-            '90d': 90,
-            '1y': 365,
-        };
-
-        const days = daysMap[timeRange];
-        const filtered = data.slice(-days);
-        setFilteredData(filtered);
-    }, [data, timeRange]);
-
+const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi = false, type = 'line' }) => {
     const chartData = {
-        labels: filteredData.map((item) => item.date),
+        labels: data.map((item) => item.date),
         datasets: [
-            {
+            ...(type === 'line' ? [{
+                type: 'line' as const,
                 label: 'Bitcoin Price (USD)',
-                data: filteredData.map((item) => item.close),
+                data: data.map((item) => item.close),
                 borderColor: 'rgba(255, 107, 53, 1)',
                 borderWidth: 1.5,
                 backgroundColor: (context: any) => {
@@ -74,11 +67,70 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                 pointHoverBackgroundColor: '#ffa500',
                 pointHoverBorderColor: '#fff',
                 pointHoverBorderWidth: 2,
-            },
+                yAxisID: 'y',
+            }] : [{
+                type: 'candlestick' as const,
+                label: 'Bitcoin Price (USD)',
+                data: data.map((item) => ({
+                    x: item.date, // Use string date to match Category scale Labels
+                    o: item.open,
+                    h: item.high,
+                    l: item.low,
+                    c: item.close
+                })),
+                color: {
+                    up: '#F7931A', // Orange for Up
+                    down: '#ffffff', // White for Down
+                    unchanged: '#F7931A',
+                },
+                borderColor: {
+                    up: '#F7931A',
+                    down: '#ffffff',
+                    unchanged: '#F7931A',
+                },
+                borderWidth: 1, // Ensure white candles have a visible border
+                wickColor: {
+                    up: '#F7931A',
+                    down: '#ffffff',
+                    unchanged: '#F7931A',
+                },
+                yAxisID: 'y',
+            }]),
+            ...(showRsi ? [{
+                type: 'line' as const,
+                label: 'RSI',
+                data: data.map((item) => item.rsi || 50),
+                borderColor: '#ffffff',
+                borderWidth: 1.5,
+                backgroundColor: (context: any) => {
+                    const ctx = context.chart.ctx;
+                    const chartArea = context.chart.chartArea;
+                    if (!chartArea) return 'transparent';
+
+                    const rsiHeight = showRsi ? chartArea.height * 0.25 : 0;
+                    const rsiBottom = chartArea.bottom;
+                    const rsiTop = chartArea.bottom - rsiHeight;
+
+                    const gradient = ctx.createLinearGradient(0, rsiBottom, 0, rsiTop);
+                    gradient.addColorStop(0, 'rgba(255, 165, 0, 0.4)');
+                    gradient.addColorStop(0.3, 'rgba(255, 165, 0, 0.1)');
+                    gradient.addColorStop(0.35, 'rgba(255, 255, 255, 0)');
+                    gradient.addColorStop(0.65, 'rgba(255, 255, 255, 0)');
+                    gradient.addColorStop(0.7, 'rgba(234, 88, 12, 0.1)');
+                    gradient.addColorStop(1, 'rgba(234, 88, 12, 0.5)');
+                    return gradient;
+                },
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                pointHoverBackgroundColor: '#ffffff',
+                yAxisID: 'y1',
+            }] : [])
         ],
     };
 
-    const options = {
+    const options: any = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -107,21 +159,38 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                 borderWidth: 1,
                 callbacks: {
                     title: function (context: any) {
-                        const value = context[0].parsed.y;
-                        return formatPrice(value);
+                        const raw = context[0].raw;
+                        // Handle Candlestick object or Line number
+                        if (raw && typeof raw === 'object' && raw.x) {
+                            return formatDate(raw.x);
+                        }
+                        // For line chart, context[0].label is usually correct for Category scale
+                        return formatDate(context[0].label);
                     },
                     label: function (context: any) {
-                        const date = formatDate(context.label);
-                        const time = formatTooltipTime();
-                        return [date, time];
+                        if (context.dataset.label === 'RSI') {
+                            return `RSI: ${Math.round(context.parsed.y)}`;
+                        }
+                        if (context.dataset.type === 'candlestick') {
+                            const raw = context.raw;
+                            return [
+                                `O: ${formatPrice(raw.o)}`,
+                                `H: ${formatPrice(raw.h)}`,
+                                `L: ${formatPrice(raw.l)}`,
+                                `C: ${formatPrice(raw.c)}`
+                            ];
+                        }
+                        return '$' + formatPrice(context.parsed.y);
                     },
                 },
             },
         },
         scales: {
             x: {
+                type: 'category',
                 grid: {
                     display: false,
+                    drawBorder: false,
                 },
                 ticks: {
                     color: '#6b7280',
@@ -129,9 +198,13 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                     font: {
                         size: 11,
                     },
-                    callback: function (this: any, value: any) {
+                    callback: function (this: any, value: any, index: any) {
                         const label = this.getLabelForValue(value);
+                        if (!label || typeof label !== 'string') return ''; // Safety check to prevent .toString crash
+
                         const date = new Date(label);
+                        if (isNaN(date.getTime())) return label; // Return raw label if invalid date
+
                         const day = date.getDate();
                         const month = date.getMonth();
 
@@ -148,7 +221,11 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                 },
             },
             y: {
+                type: 'linear' as const,
+                display: true,
                 position: 'right' as const,
+                stack: 'demo',
+                stackWeight: showRsi ? 3 : 1,
                 grid: {
                     display: false,
                 },
@@ -162,10 +239,33 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                     },
                 },
             },
+            ...(showRsi ? {
+                y1: {
+                    type: 'linear' as const,
+                    display: true,
+                    position: 'right' as const,
+                    stack: 'demo',
+                    stackWeight: 1,
+                    min: 0,
+                    max: 100,
+                    offset: false,
+                    grid: {
+                        display: true,
+                        color: 'rgba(255, 255, 255, 0.1)',
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: '#6b7280',
+                        stepSize: 50,
+                        font: {
+                            size: 10,
+                        }
+                    }
+                }
+            } : {})
         },
         interaction: {
-            mode: 'nearest' as const,
-            axis: 'x' as const,
+            mode: 'index',
             intersect: false,
         },
     };
@@ -178,7 +278,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false }) => {
                 </div>
             ) : (
                 <div className="h-full w-full">
-                    <Line data={chartData} options={options} />
+                    <Chart type={type === 'candlestick' ? 'candlestick' : 'line'} data={chartData as any} options={options} />
                 </div>
             )}
         </>

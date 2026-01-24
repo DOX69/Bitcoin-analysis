@@ -96,21 +96,21 @@
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 4px;
+    height: 4px;
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(20, 20, 20, 0.5);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #ff6b35, #f7b731);
+    background: #333;
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #f7b731, #ffa500);
+    background: #555;
   }
 
   /* Smooth transitions */
@@ -189,8 +189,8 @@
 
 .stats-panel {
   background: rgba(20, 20, 20, 0.6);
-  border-left: 1px solid rgba(255, 107, 53, 0.1);
   padding: 1.5rem;
+  /* border-left removed, handled by parent separator layout */
   min-width: 320px;
   max-width: 360px;
 }

@@ -12,7 +12,9 @@ export async function GET(request: Request) {
             return NextResponse.json(data);
         } else if (type === 'history') {
             const days = parseInt(searchParams.get('days') || '30');
-            const data = await getHistoricalPrices(days);
+            const startDate = searchParams.get('startDate') || undefined;
+            const endDate = searchParams.get('endDate') || undefined;
+            const data = await getHistoricalPrices(days, startDate, endDate);
             return NextResponse.json(data);
         } else if (type === 'aggregated') {
             const period = searchParams.get('period') as 'weekly' | 'monthly' | 'quarterly' || 'weekly';

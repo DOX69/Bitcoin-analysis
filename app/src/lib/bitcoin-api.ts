@@ -6,6 +6,8 @@ export interface BitcoinPrice {
     low: number;
     close: number;
     volume: number;
+    rsi: number;
+    rsi_status: string;
 }
 
 export interface BitcoinMetrics {
@@ -34,8 +36,16 @@ export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
     return response.json();
 }
 
-export async function getHistoricalPrices(days: number = 30): Promise<BitcoinPrice[]> {
-    const response = await fetch(`/api/bitcoin?type=history&days=${days}`);
+export async function getHistoricalPrices(
+    days: number = 30,
+    startDate?: string,
+    endDate?: string
+): Promise<BitcoinPrice[]> {
+    let url = `/api/bitcoin?type=history&days=${days}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+
+    const response = await fetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch historical prices');
     }

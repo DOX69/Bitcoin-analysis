@@ -1,5 +1,6 @@
 
 import { BitcoinMetrics, BitcoinPrice, AggregatedData } from '@/lib/schemas';
+export type { BitcoinMetrics, BitcoinPrice, AggregatedData };
 
 export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
     const response = await fetch('/api/bitcoin?type=metrics');

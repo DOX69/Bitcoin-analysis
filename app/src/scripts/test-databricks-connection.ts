@@ -98,7 +98,7 @@ async function main() {
     try {
         // Initialize connection
         console.log('\n🔌 Initializing Databricks connection...');
-        await initDatabricksConnection(config);
+        await initDatabricksConnection();
         console.log('✅ Connection established\n');
 
         console.log('='.repeat(60));

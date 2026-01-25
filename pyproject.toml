@@ -12,7 +12,7 @@ dependencies = [
     "python-dotenv>=1.0.0",       # Manage .env variables
     "pytz>=2023.3",               # Timezone handling
     "databricks>=0.2",
-    "databricks-sdk==0.20.0",
+    "databricks-sdk>=0.20.0",
     "dbt-core>=1.7.19",
     "dbt-databricks>=1.7.3",
     "pip>=25.3",
@@ -24,6 +24,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "black>=23.0.0",
     "ruff>=0.1.0",
+    "raw-ingest",
 ]
 analytics = [
     "scikit-learn>=1.3.0",
@@ -49,4 +50,12 @@ packages = ["src"]
 [tool.uv.workspace]
 members = [
     "dbt_silver_gold",
+    "dbx_workflow",
 ]
+
+[tool.uv.sources]
+raw-ingest = { workspace = true }
+
+[tool.pytest.ini_options]
+norecursedirs = ["markdown", "app", "node_modules", ".venv"]
+

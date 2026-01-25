@@ -4,6 +4,7 @@ Use this checklist to ensure everything is ready before checking your Vercel das
 
 ## Git & Code Preparation
 - [ ] **Feature Branch**: You are on `<branch-name>`.
+- [ ] **Run Checks**: Run `./check-all.bat` (Windows) or `./check-all` (Linux/Mac) and ensure PASS.
 - [ ] **Package.json**: Contains `build` ("next build") and `start` ("next start") scripts. (✅ Checked)
 - [ ] **Next Config**: `next.config.ts` is present. (✅ Checked)
 - [ ] **.gitignore**: Excludes `.env`, `.env.local`, `.next`, `node_modules`. (✅ Checked)

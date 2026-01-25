@@ -12,11 +12,12 @@ from raw_ingest.DbWriter import DbWriter, overwrite_replace_where
 class TestOverwriteReplaceWhere:
     """Test overwrite_replace_where function."""
 
-    def test_overwrite_replace_where_calls_write_correctly(self, spark, sample_spark_df):
+    def test_overwrite_replace_where_calls_write_correctly(self):
         """Test that overwrite_replace_where writes with correct options."""
         # Mock the write operations
+        mock_df = MagicMock()
         mock_writer = MagicMock()
-        sample_spark_df.write = mock_writer
+        mock_df.write = mock_writer
         
         # Setup the chain of method calls
         mock_writer.partitionBy.return_value = mock_writer
@@ -25,7 +26,7 @@ class TestOverwriteReplaceWhere:
 
         # Call the function
         overwrite_replace_where(
-            spark_df=sample_spark_df,
+            spark_df=mock_df,
             partitioned_cols=["date"],
             full_path_table_name="test_catalog.test_schema.test_table",
             replace_where_condition="date >= '2022-01-01'"
@@ -40,17 +41,18 @@ class TestOverwriteReplaceWhere:
         assert call("replaceWhere", "date >= '2022-01-01'") in option_calls
         assert call("mergeSchema", "true") in option_calls
 
-    def test_overwrite_replace_where_with_multiple_partitions(self, spark, sample_spark_df):
+    def test_overwrite_replace_where_with_multiple_partitions(self):
         """Test with multiple partition columns."""
+        mock_df = MagicMock()
         mock_writer = MagicMock()
-        sample_spark_df.write = mock_writer
+        mock_df.write = mock_writer
         
         mock_writer.partitionBy.return_value = mock_writer
         mock_writer.mode.return_value = mock_writer
         mock_writer.option.return_value = mock_writer
 
         overwrite_replace_where(
-            spark_df=sample_spark_df,
+            spark_df=mock_df,
             partitioned_cols=["date", "ticker"],
             full_path_table_name="test.table",
             replace_where_condition="date >= '2022-01-01'"
@@ -94,7 +96,7 @@ class TestDbWriterSaveDeltaTable:
     def test_save_delta_table_creates_new_table(self, mock_spark, mock_logger, sample_pandas_df):
         """Test creating a new table with partitioning."""
         # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock(spec=DataFrame)
+        mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
         
         # Setup method chaining
@@ -131,7 +133,7 @@ class TestDbWriterSaveDeltaTable:
     def test_save_delta_table_appends_to_existing_table(self, mock_spark, mock_logger, sample_pandas_df):
         """Test appending to an existing table."""
         # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock(spec=DataFrame)
+        mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
         
         # Setup method chaining
@@ -159,7 +161,7 @@ class TestDbWriterSaveDeltaTable:
     def test_save_delta_table_adds_date_column(self, mock_spark, mock_logger, sample_pandas_df):
         """Test that date column is added from time column."""
         # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock(spec=DataFrame)
+        mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
         
         # Track withColumn calls
@@ -192,7 +194,7 @@ class TestDbWriterSaveDeltaTable:
     def test_save_delta_table_handles_exceptions(self, mock_spark, mock_logger, sample_pandas_df):
         """Test exception handling during save."""
         # Setup mock to raise exception
-        mock_spark_df = MagicMock(spec=DataFrame)
+        mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
         mock_spark_df.withColumn.return_value = mock_spark_df
         
@@ -220,7 +222,7 @@ class TestDbWriterSaveDeltaTable:
     def test_save_delta_table_logs_row_count(self, mock_spark, mock_logger, sample_pandas_df):
         """Test that row count is logged."""
         # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock(spec=DataFrame)
+        mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
         
         mock_spark_df.withColumn.return_value = mock_spark_df

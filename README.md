@@ -223,3 +223,9 @@ echo "✅ Step 2: Authentication works"
 databricks bundle validate --target prod --profile PROD --var="pauseStatus=UNPAUSED"
 echo "✅ Step 3: Bundle validation works"
 
+
+## Run Checks (Development)
+
+Run all tests before checking in code:
+- **Windows**: .\check-all.bat
+- **Linux/Mac**: ./check-all

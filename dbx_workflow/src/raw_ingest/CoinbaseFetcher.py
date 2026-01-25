@@ -86,13 +86,16 @@ class CoinbaseFetcher(BaseFetcher):
                     # Ensure all values are cast to the correct type
                     for row in data:
                         # Coinbase returns: [ time, low, high, open, close, volume ]
+                        def safe_float(val):
+                            return float(val) if val is not None else None
+                            
                         all_data.append([
-                            int(row[0]),         # time (unix timestamp)
-                            float(row[1]),       # low
-                            float(row[2]),       # high
-                            float(row[3]),       # open
-                            float(row[4]),       # close
-                            float(row[5])        # volume
+                            int(row[0]) if row[0] is not None else None,
+                            safe_float(row[1]),       # low
+                            safe_float(row[2]),       # high
+                            safe_float(row[3]),       # open
+                            safe_float(row[4]),       # close
+                            safe_float(row[5])        # volume
                         ])
                 else:
                     self.logger.error(f"Error: {response.status_code} - {response.text}")

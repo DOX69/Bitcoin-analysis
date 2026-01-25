@@ -6,7 +6,15 @@ project, including tests under resources/.
 
 import os, sys, pathlib
 from contextlib import contextmanager
+from unittest.mock import MagicMock
 
+
+
+from dotenv import load_dotenv
+
+# Load .env from project root
+root_dir = pathlib.Path(__file__).parent.parent.parent
+load_dotenv(root_dir / ".env")
 
 try:
     from databricks.connect import DatabricksSession
@@ -107,9 +115,7 @@ import logging
 @pytest.fixture()
 def mock_logger():
     """Provide a mock logger for testing."""
-    logger = logging.getLogger("test_logger")
-    logger.setLevel(logging.INFO)
-    return logger
+    return MagicMock()
 
 
 @pytest.fixture()

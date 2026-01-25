@@ -6,9 +6,12 @@ import {
     getCurrentBitcoinMetrics,
     getHistoricalPrices,
     getAggregatedData,
+} from '@/lib/bitcoin-data-server';
+import {
     BitcoinMetrics,
     BitcoinPrice,
-} from '@/lib/bitcoin-data-server';
+} from '@/lib/schemas';
+
 
 // Mock the databricks module
 jest.mock('@/lib/databricks', () => ({
@@ -84,6 +87,8 @@ describe('Bitcoin API', () => {
                 low: 41000 + i * 100,
                 close: 42500 + i * 100,
                 volume: 25000000000,
+                rsi: 50,
+                rsi_status: 'Neutral',
             }));
 
             (executeQuery as jest.Mock).mockResolvedValue(mockPrices);
@@ -110,6 +115,8 @@ describe('Bitcoin API', () => {
                     low: 41000,
                     close: 42500,
                     volume: 25000000000,
+                    rsi: 50,
+                    rsi_status: 'Neutral',
                 },
             ];
 
@@ -161,14 +168,12 @@ describe('Bitcoin API', () => {
 
             await getAggregatedData('monthly');
             expect(executeQuery).toHaveBeenCalledWith(
-                expect.stringContaining('prod.dlh_gold__crypto_prices.agg_month_btc'),
-                expect.any(Object)
+                expect.stringContaining('prod.dlh_gold__crypto_prices.agg_month_btc')
             );
 
             await getAggregatedData('quarterly');
             expect(executeQuery).toHaveBeenCalledWith(
-                expect.stringContaining('prod.dlh_gold__crypto_prices.agg_quarter_btc'),
-                expect.any(Object)
+                expect.stringContaining('prod.dlh_gold__crypto_prices.agg_quarter_btc')
             );
         });
 
@@ -189,6 +194,8 @@ describe('Bitcoin API', () => {
                     low: 41000,
                     close: 42500,
                     volume: 25000000000,
+                    rsi: 50,
+                    rsi_status: 'Neutral',
                 },
             ];
 
@@ -212,6 +219,8 @@ describe('Bitcoin API', () => {
                     low: 41000,
                     close: 42500,
                     volume: 25000000000,
+                    rsi: 50,
+                    rsi_status: 'Neutral',
                 },
             ];
 

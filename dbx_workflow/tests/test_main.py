@@ -42,8 +42,10 @@ class TestIngestTickerData:
         # Verify CoinbaseFetcher was initialized correctly
         mock_fetcher_class.assert_called_once()
         init_call = mock_fetcher_class.call_args
-        assert init_call[1]['ticker'] == "BTC" or init_call[0][1] == "BTC"
-        assert init_call[1]['currency'] == "USD" or init_call[0][2] == "USD"
+        # Check call arguments (either positional or keyword)
+        args, kwargs = init_call
+        assert (kwargs.get('ticker') == "BTC" or (len(args) > 1 and args[1] == "BTC"))
+        assert (kwargs.get('currency') == "USD" or (len(args) > 2 and args[2] == "USD"))
         
         # Verify fetch was called without start_date_time (full historical)
         fetch_call = mock_fetcher.fetch_historical_data.call_args
@@ -182,11 +184,11 @@ class TestMain:
         # Verify the expected ticker pairs
         expected_pairs = [
             ("BTC", "USD"),
-            ("BTC", "EUR"),
             ("AAVE", "USD"),
             ("ETH", "USD"),
-            ("ETH", "EUR"),
             ("ETH", "BTC"),
+            ("USD", "EUR"),
+            ("USD", "CHF"),
         ]
         
         actual_calls = [
@@ -217,9 +219,11 @@ class TestMain:
         """Test that main exits when a ticker ingestion fails."""
         # Setup mock to fail on second ticker
         mock_ingest.side_effect = [True, False, True, True, True, True]
+        mock_exit.side_effect = SystemExit(0)
         
-        # Call main
-        main()
+        # Call main and expect it to exit
+        with pytest.raises(SystemExit):
+            main()
         
         # Verify sys.exit was called
         mock_exit.assert_called_once_with(0)
@@ -257,11 +261,11 @@ class TestMain:
         
         expected_order = [
             ("BTC", "USD"),
-            ("BTC", "EUR"),
             ("AAVE", "USD"),
             ("ETH", "USD"),
-            ("ETH", "EUR"),
             ("ETH", "BTC"),
+            ("USD", "EUR"),
+            ("USD", "CHF"),
         ]
         
         assert actual_order == expected_order

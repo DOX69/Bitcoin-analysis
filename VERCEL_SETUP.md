@@ -7,9 +7,9 @@ You need to configure the following environment variables in Vercel project sett
 
 | Variable Name | Description | Where to find it |
 |--------------|-------------|------------------|
-| `NEXT_PUBLIC_DATABRICKS_HOST` | Databricks Workspace Host | Connection Details |
-| `NEXT_PUBLIC_DATABRICKS_TOKEN` | Personal Access Token | User Settings > Developer |
-| `NEXT_PUBLIC_DATABRICKS_HTTP_PATH` | SQL Warehouse HTTP Path | Connection Details |
+| `DATABRICKS_HOST` | Databricks Workspace Host | Connection Details |
+| `DATABRICKS_TOKEN` | Personal Access Token | User Settings > Developer |
+| `DATABRICKS_HTTP_PATH` | SQL Warehouse HTTP Path | Connection Details |
 
 ## 2. Deploy Steps
 

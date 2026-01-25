@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from databricks.sdk.runtime import spark
 from pyspark.sql import functions as f
 from raw_ingest.CoinbaseFetcher import CoinbaseFetcher
+from raw_ingest.FrankfurterFetcher import FrankfurterFetcher
 from raw_ingest.DbWriter import DbWriter
 from raw_ingest.logger import CustomFormatter
 
@@ -32,6 +33,20 @@ for handler in logger.handlers:
 for handler in logging.root.handlers:
     handler.setFormatter(CustomFormatter())
 
+def get_fetcher(ticker, currency, catalog, schema):
+    """Factory to get the correct fetcher based on pair"""
+    # Frankfurter pairs: USD-EUR, USD-CHF
+    # Note: Logic assumes if it's NOT a crypto pair (usually involving BTC/ETH/AAVE), it might be FX?
+    # Or explicit check.
+    # User added: USD/EUR, USD/CHF.
+    # Ticker=USD, Currency=EUR -> Frankfurter
+    # Ticker=USD, Currency=CHF -> Frankfurter
+    
+    if ticker == "USD" and currency in ["EUR", "CHF"]:
+        return FrankfurterFetcher(logger, ticker, currency, catalog, schema)
+    else:
+        return CoinbaseFetcher(logger, ticker, currency, catalog, schema)
+
 def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> bool:
     """
     Pipeline d'ingestion crypto
@@ -39,13 +54,8 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
     """
     try:
         # Initialiser fetcher
-        fetcher = CoinbaseFetcher(
-            logger,
-            ticker,
-            currency,
-            catalog,
-            schema
-        )
+        fetcher = get_fetcher(ticker, currency, catalog, schema)
+        
         full_path_table_name: str = fetcher.full_path_table_name
 
         try:
@@ -67,7 +77,10 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
             fetched_pandas_df = fetcher.fetch_historical_data()
 
         # Save delta table
-        DbWriter(logger, full_path_table_name, fetched_pandas_df).save_delta_table(is_table_found)
+        if not fetched_pandas_df.empty:
+            DbWriter(logger, full_path_table_name, fetched_pandas_df).save_delta_table(is_table_found)
+        else:
+            logger.warning("No new data fetched.")
 
         logger.info("-" * 80)
         logger.info(f"End ingesting {ticker.upper()}-{currency.upper()} data.")
@@ -95,15 +108,19 @@ def main():
 
     ticker_ids = [
         ("BTC", "USD"),
-        ("BTC", "EUR"),
+        # ("BTC", "EUR"),
         ("AAVE", "USD"),
         ("ETH", "USD"),
-        ("ETH", "EUR"),
+        # ("ETH", "EUR"),
         ("ETH", "BTC"),
+        ("USD", "EUR"),
+        ("USD", "CHF"),
     ]
     for ticker, currency in ticker_ids:
         succeed = ingest_ticker_data(ticker.upper(),currency.upper(),args.catalog,args.schema)
         if not succeed:
+            # If one fails, do we stop everything? User code had sys.exit(0) on failure.
+            # I will keep that behavior.
             sys.exit(0)
 
     logger.info("=" * 80)

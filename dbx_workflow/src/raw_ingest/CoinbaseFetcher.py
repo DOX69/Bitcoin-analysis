@@ -1,14 +1,9 @@
-"""
-Crypto Data Fetcher from Coinbase API (Free tier)
-- Historique complet disponible
-- Pas de limite de rate (gratuit)
-- JSON response structuré
-"""
-
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
-class CoinbaseFetcher:
+from raw_ingest.BaseFetcher import BaseFetcher
+
+class CoinbaseFetcher(BaseFetcher):
     """
     Fetch crypto data from Coinbase API
 
@@ -36,13 +31,10 @@ class CoinbaseFetcher:
             currency: Coinbase currency (e.g. USD)
             base_url: base api url
         """
-        self.logger = logger
+        super().__init__(logger, ticker, currency, catalog, schema, base_url)
+        
         self.table_name = ticker.lower() + "_" + currency.lower() + "_ohlcv"
         self.full_path_table_name = f"{catalog}.{schema}.{self.table_name}"
-        self.ticker = ticker
-        self.currency = currency
-        self.ticker_id = f"{ticker.upper()}-{currency.upper()}"
-        self.base_url = base_url
         self.price_endpoint = f"/products/{self.ticker_id}/candles"
 
         logger.info("-" * 80)

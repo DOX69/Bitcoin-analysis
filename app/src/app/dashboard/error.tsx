@@ -22,10 +22,16 @@ export default function Error({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
-                <h2 className="text-2xl font-bold mb-2">Something went wrong!</h2>
-                <p className="text-gray-400 mb-8">
-                    We encountered an error while loading the dashboard data. Please try again or contact support if the problem persists.
-                </p>
+                <h2 className="text-2xl font-bold mb-2 text-red-500">Error: {error.name}</h2>
+                <div className="text-left bg-black p-4 rounded mb-8 overflow-auto max-h-60 border border-gray-800">
+                    <p className="font-mono text-red-400 mb-2">{error.message}</p>
+                    {error.digest && (
+                        <p className="font-mono text-gray-500 text-xs">Digest: {error.digest}</p>
+                    )}
+                    <p className="text-gray-500 text-xs mt-4">
+                        Check Vercel logs for full stack trace.
+                    </p>
+                </div>
                 <div className="flex gap-4 justify-center">
                     <button
                         onClick={() => reset()}

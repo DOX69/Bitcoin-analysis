@@ -1,5 +1,6 @@
-// Databricks SQL connection utilities
+
 import { DBSQLClient } from '@databricks/sql';
+import { env } from '@/lib/env';
 
 interface DatabricksConfig {
     host: string;
@@ -7,31 +8,31 @@ interface DatabricksConfig {
     httpPath: string;
 }
 
-// Use inferred type from openSession() to avoid TypeScript compatibility issues
 type DBSession = Awaited<ReturnType<Awaited<ReturnType<DBSQLClient['connect']>>['openSession']>>;
 
 let client: DBSQLClient | null = null;
 let session: DBSession | null = null;
 
-/**
- * Initialize Databricks connection
- */
-export async function initDatabricksConnection(config: DatabricksConfig): Promise<DBSession> {
-    if (session) {
-        return session;
+export async function initDatabricksConnection(): Promise<DBSession> {
+    if (session) return session;
+
+    if (!env.DATABRICKS_HOST || !env.DATABRICKS_PATH || !env.DATABRICKS_TOKEN) {
+        const missing = [];
+        if (!env.DATABRICKS_HOST) missing.push('DATABRICKS_HOST');
+        if (!env.DATABRICKS_PATH) missing.push('DATABRICKS_PATH');
+        if (!env.DATABRICKS_TOKEN) missing.push('DATABRICKS_TOKEN');
+        throw new Error(`Databricks credentials missing in environment: ${missing.join(', ')}`);
     }
 
     try {
         client = new DBSQLClient();
-
         const connection = await client.connect({
-            host: config.host,
-            path: config.httpPath,
-            token: config.token,
+            host: env.DATABRICKS_HOST.replace(/^https?:\/\//, ''),
+            path: env.DATABRICKS_PATH,
+            token: env.DATABRICKS_TOKEN,
         });
 
         session = await connection.openSession();
-        console.log('Databricks connection established');
         return session;
     } catch (error) {
         console.error('Failed to connect to Databricks:', error);
@@ -39,22 +40,13 @@ export async function initDatabricksConnection(config: DatabricksConfig): Promis
     }
 }
 
-/**
- * Execute a SQL query
- */
-export async function executeQuery<T = any>(
-    sql: string,
-    config?: DatabricksConfig
-): Promise<T[]> {
+export async function executeQuery<T = any>(sql: string): Promise<T[]> {
     try {
-        // If no session exists and config is provided, initialize connection
-        if (!session && config) {
-            await initDatabricksConnection(config);
+        if (!session) {
+            await initDatabricksConnection();
         }
 
-        if (!session) {
-            throw new Error('Databricks session not initialized');
-        }
+        if (!session) throw new Error('Session initialization failed');
 
         const queryOperation = await session.executeStatement(sql, {
             runAsync: true,
@@ -71,9 +63,6 @@ export async function executeQuery<T = any>(
     }
 }
 
-/**
- * Close Databricks connection
- */
 export async function closeDatabricksConnection(): Promise<void> {
     try {
         if (session) {
@@ -84,28 +73,16 @@ export async function closeDatabricksConnection(): Promise<void> {
             await client.close();
             client = null;
         }
-        console.log('Databricks connection closed');
     } catch (error) {
         console.error('Failed to close Databricks connection:', error);
         throw error;
     }
 }
 
-/**
- * Get Databricks configuration from environment variables
- */
 export function getDatabricksConfig(): DatabricksConfig {
-    const host = process.env.DATABRICKS_HOST || process.env.NEXT_PUBLIC_DATABRICKS_HOST || '';
-    const token = process.env.DATABRICKS_TOKEN || process.env.NEXT_PUBLIC_DATABRICKS_TOKEN || '';
-    const httpPath = process.env.DATABRICKS_HTTP_PATH || process.env.NEXT_PUBLIC_DATABRICKS_HTTP_PATH || '';
-
-    if (!host || !token || !httpPath) {
-        console.warn('Databricks credentials not found in environment variables');
-    }
-
     return {
-        host,
-        token,
-        httpPath,
+        host: env.DATABRICKS_HOST,
+        token: env.DATABRICKS_TOKEN,
+        httpPath: env.DATABRICKS_PATH,
     };
 }

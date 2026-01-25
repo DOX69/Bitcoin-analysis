@@ -15,7 +15,7 @@ import {
     TimeSeriesScale
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
-import { BitcoinPrice } from '@/lib/bitcoin-api';
+import { BitcoinPrice } from '@/lib/schemas';
 import { formatPrice, formatDate, formatTooltipTime } from '@/lib/format-utils';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns'; // Import date adapter for potential time scale usage
@@ -44,12 +44,14 @@ interface PriceChartProps {
 
 const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi = false, type = 'line' }) => {
     const chartData = {
-        labels: data.map((item) => item.date),
         datasets: [
             ...(type === 'line' ? [{
                 type: 'line' as const,
                 label: 'Bitcoin Price (USD)',
-                data: data.map((item) => item.close),
+                data: data.map((item) => ({
+                    x: new Date(item.date).getTime(),
+                    y: item.close
+                })),
                 borderColor: 'rgba(255, 107, 53, 1)',
                 borderWidth: 1.5,
                 backgroundColor: (context: any) => {
@@ -72,24 +74,23 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 type: 'candlestick' as const,
                 label: 'Bitcoin Price (USD)',
                 data: data.map((item) => ({
-                    x: item.date, // Use string date to match Category scale Labels
+                    x: new Date(item.date).getTime(),
                     o: item.open,
                     h: item.high,
                     l: item.low,
                     c: item.close
                 })),
-                color: {
-                    up: '#F7931A', // Orange for Up
-                    down: '#ffffff', // White for Down
-                    unchanged: '#F7931A',
-                },
-                borderColor: {
+                backgroundColors: {
                     up: '#F7931A',
                     down: '#ffffff',
                     unchanged: '#F7931A',
                 },
-                borderWidth: 1, // Ensure white candles have a visible border
-                wickColor: {
+                borderColors: {
+                    up: '#F7931A',
+                    down: '#ffffff',
+                    unchanged: '#F7931A',
+                },
+                wickColors: {
                     up: '#F7931A',
                     down: '#ffffff',
                     unchanged: '#F7931A',
@@ -99,7 +100,10 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
             ...(showRsi ? [{
                 type: 'line' as const,
                 label: 'RSI',
-                data: data.map((item) => item.rsi || 50),
+                data: data.map((item) => ({
+                    x: new Date(item.date).getTime(),
+                    y: item.rsi || 50
+                })),
                 borderColor: '#ffffff',
                 borderWidth: 1.5,
                 backgroundColor: (context: any) => {
@@ -145,12 +149,12 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 displayColors: false,
                 cornerRadius: 12,
                 titleFont: {
-                    size: 18,
+                    size: 16,
                     weight: 'bold' as const,
                     family: "'Inter', sans-serif",
                 },
                 bodyFont: {
-                    size: 14,
+                    size: 13,
                     family: "'Inter', sans-serif",
                 },
                 titleColor: '#ffffff',
@@ -160,11 +164,9 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 callbacks: {
                     title: function (context: any) {
                         const raw = context[0].raw;
-                        // Handle Candlestick object or Line number
-                        if (raw && typeof raw === 'object' && raw.x) {
-                            return formatDate(raw.x);
+                        if (raw && raw.x) {
+                            return formatDate(new Date(raw.x).toISOString());
                         }
-                        // For line chart, context[0].label is usually correct for Category scale
                         return formatDate(context[0].label);
                     },
                     label: function (context: any) {
@@ -187,36 +189,18 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
         },
         scales: {
             x: {
-                type: 'category',
+                type: 'timeseries',
+                offset: true,
                 grid: {
                     display: false,
                     drawBorder: false,
                 },
                 ticks: {
                     color: '#6b7280',
-                    maxTicksLimit: 12,
+                    maxTicksLimit: 8,
+                    autoSkip: true,
                     font: {
                         size: 11,
-                    },
-                    callback: function (this: any, value: any, index: any) {
-                        const label = this.getLabelForValue(value);
-                        if (!label || typeof label !== 'string') return ''; // Safety check to prevent .toString crash
-
-                        const date = new Date(label);
-                        if (isNaN(date.getTime())) return label; // Return raw label if invalid date
-
-                        const day = date.getDate();
-                        const month = date.getMonth();
-
-                        if (day === 1 && month === 0) {
-                            return date.getFullYear().toString();
-                        }
-
-                        if (day === 1) {
-                            return date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
-                        }
-
-                        return day.toString();
                     },
                 },
             },
@@ -251,7 +235,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                     offset: false,
                     grid: {
                         display: true,
-                        color: 'rgba(255, 255, 255, 0.1)',
+                        color: 'rgba(255, 255, 255, 0.05)',
                         drawBorder: false,
                     },
                     ticks: {
@@ -277,7 +261,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                     <div className="loading-pulse text-gray-400">Loading chart...</div>
                 </div>
             ) : (
-                <div className="h-full w-full">
+                <div className="h-full w-full" key={`${type}-${showRsi}-${data.length}`}>
                     <Chart type={type === 'candlestick' ? 'candlestick' : 'line'} data={chartData as any} options={options} />
                 </div>
             )}

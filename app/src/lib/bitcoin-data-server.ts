@@ -1,43 +1,21 @@
-// Bitcoin data fetching API using Databricks
-import { executeQuery, getDatabricksConfig } from './databricks';
 
-export interface BitcoinPrice {
-    date: string;
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-    volume: number;
-    rsi: number;
-    rsi_status: string;
-}
+import { executeQuery } from './databricks';
+import { cache } from 'react';
+import { env } from './env';
+import {
+    BitcoinMetricsSchema,
+    BitcoinHistorySchema,
+    AggregatedDataListSchema
+} from './schemas';
 
-export interface BitcoinMetrics {
-    currentPrice: number;
-    change24h: number;
-    changePercent24h: number;
-    volume24h: number;
-    high24h: number;
-    low24h: number;
-    rsi: number;
-}
-
-export interface AggregatedData {
-    period: string;
-    avgPrice: number;
-    maxPrice: number;
-    minPrice: number;
-    totalVolume: number;
-}
+console.log('DATACENTER SERVER LOADED - ENV HOST:', env?.DATABRICKS_HOST ? 'SET' : 'UNSET');
 
 /**
  * Get current Bitcoin price and 24h metrics
+ * Cached per-request for deduplication
  */
-export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
-    const config = getDatabricksConfig();
-
+export const getCurrentBitcoinMetrics = cache(async () => {
     try {
-        // Query latest data from silver layer OBT
         const query = `
       SELECT 
         close as current_price,
@@ -50,7 +28,7 @@ export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
       LIMIT 2
     `;
 
-        const results = await executeQuery<any>(query, config);
+        const results = await executeQuery<any>(query);
 
         if (results.length < 2) {
             throw new Error('Insufficient data to calculate metrics');
@@ -62,7 +40,7 @@ export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
         const change24h = latest.current_price - previous.current_price;
         const changePercent24h = (change24h / previous.current_price) * 100;
 
-        return {
+        const metrics = {
             currentPrice: latest.current_price,
             change24h,
             changePercent24h,
@@ -71,22 +49,23 @@ export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
             low24h: latest.low_24h,
             rsi: latest.rsi || 50,
         };
+
+        return BitcoinMetricsSchema.parse(metrics);
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch Bitcoin metrics:', error);
         throw error;
     }
-}
+});
 
 /**
  * Get historical Bitcoin prices for charting
+ * Cached based on arguments
  */
-export async function getHistoricalPrices(
+export const getHistoricalPrices = cache(async (
     days: number = 30,
     startDate?: string,
     endDate?: string
-): Promise<BitcoinPrice[]> {
-    const config = getDatabricksConfig();
-
+) => {
     try {
         let whereClause = `date_prices >= DATEADD(day, -${days}, CURRENT_DATE())`;
 
@@ -109,32 +88,27 @@ export async function getHistoricalPrices(
       ORDER BY date_prices ASC
     `;
 
-        const results = await executeQuery<BitcoinPrice>(query, config);
-        return results;
+        const results = await executeQuery<any>(query);
+        return BitcoinHistorySchema.parse(results);
     } catch (error) {
         console.error('Failed to fetch historical prices:', error);
         throw error;
     }
-}
+});
 
 /**
  * Get aggregated data (weekly, monthly, etc.)
  */
-export async function getAggregatedData(
+export const getAggregatedData = cache(async (
     aggregation: 'weekly' | 'monthly' | 'quarterly' = 'weekly'
-): Promise<AggregatedData[]> {
-    const config = getDatabricksConfig();
-
+) => {
     try {
-        // Map aggregation period to table name suffix
         const tableSuffix = aggregation === 'weekly' ? 'week'
             : aggregation === 'monthly' ? 'month'
                 : aggregation === 'quarterly' ? 'quarter'
                     : 'week';
 
         const tableName = `prod.dlh_gold__crypto_prices.agg_${tableSuffix}_btc`;
-
-        // Determine date column based on aggregation
         const dateCol = aggregation === 'weekly' ? 'iso_week_start_date'
             : aggregation === 'monthly' ? 'month_start_date'
                 : aggregation === 'quarterly' ? 'quarter_start_date'
@@ -152,10 +126,10 @@ export async function getAggregatedData(
       LIMIT 12
     `;
 
-        const results = await executeQuery<AggregatedData>(query, config);
-        return results;
+        const results = await executeQuery<any>(query);
+        return AggregatedDataListSchema.parse(results);
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch aggregated data:', error);
         throw error;
     }
-}
+});

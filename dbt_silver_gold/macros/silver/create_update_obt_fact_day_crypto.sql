@@ -18,7 +18,7 @@ with deduplicate_source as (
         select date_rates,
         rate_usd_chf,
         rate_usd_eur
-        from {{ source('silver_currency_rate', 'usd_to_other')}}
+        from {{ ref('usd_to_other') }}
     )
     -- RSI Calculation
     , add_previous_price_change as (
@@ -49,7 +49,14 @@ select * except (ingest_date_time),
     '{{ invocation_id }}' as dbt_batch_id
 from increment_filter
     )
-    select id.*,
+    select date_prices,
+    low as low_usd,
+    high as high_usd,
+    open as open_usd,
+    close as close_usd,
+    volume,
+    rsi,
+    rsi_status,
     rate_usd_chf,
     rate_usd_eur,
     round(low * rate_usd_chf, 2) as low_chf,
@@ -59,7 +66,9 @@ from increment_filter
     round(low * rate_usd_eur, 2) as low_eur,
     round(high * rate_usd_eur, 2) as high_eur,
     round(open * rate_usd_eur, 2) as open_eur,
-    round(close * rate_usd_eur, 2) as close_eur
+    round(close * rate_usd_eur, 2) as close_eur,
+    ingest_date_time,
+    dbt_batch_id
     from increment_data as id left join rates as r
     on r.date_rates = id.date_prices
     {% endmacro %}

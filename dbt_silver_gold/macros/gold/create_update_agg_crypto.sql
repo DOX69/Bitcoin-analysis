@@ -1,6 +1,6 @@
 {%- macro create_update_agg(table_source, granularity) -%}
 {% set period = 14 %}
-{%- set currencies = ["", "chf", "eur"] -%}
+{%- set currencies = ["usd", "chf", "eur"] -%}
 {%- set ohlc_configs = [] -%}
 
 {%- for cur in currencies -%}
@@ -105,7 +105,7 @@ With join_calendar as (
     )
     ,add_previous_price_change as (
         select *,
-            {{ previous_price_change('close', parition_by_col) }} AS change
+            {{ previous_price_change('close_usd', parition_by_col) }} AS change
         from agg
     )
     ,add_rsi as (

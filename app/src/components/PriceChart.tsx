@@ -193,6 +193,13 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
             x: {
                 type: 'timeseries',
                 offset: true,
+                time: {
+                    unit: 'day',
+                    displayFormats: {
+                        day: 'MMM d'
+                    },
+                    tooltipFormat: 'MMM d, yyyy'
+                },
                 grid: {
                     display: false,
                     drawBorder: false,

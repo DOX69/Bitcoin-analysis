@@ -127,26 +127,60 @@ export const getHistoricalPrices = cache(async (
     currency: Currency = 'USD'
 ) => {
     try {
-        let whereClause = `date_prices >= DATEADD(day, -${days}, CURRENT_DATE())`;
+        // Check if we should use monthly aggregation (for 'All' filter / > 5 years)
+        const useMonthlyAgg = days >= 1800; // 5 years
 
-        if (startDate && endDate) {
-            whereClause = `date_prices BETWEEN '${startDate}' AND '${endDate}'`;
+        let query;
+
+        if (useMonthlyAgg) {
+            // Use aggregated monthly data for long-term views to smooth RSI
+            let whereClause = `month_start_date >= DATEADD(day, -${days}, CURRENT_DATE())`;
+
+            if (startDate && endDate) {
+                whereClause = `month_start_date BETWEEN '${startDate}' AND '${endDate}'`;
+            }
+
+            query = `
+              SELECT
+                month_start_date as date,
+                open_usd as open,
+                high_usd as high,
+                low_usd as low,
+                close_usd as close,
+                0 as volume,
+                rsi,
+                CASE 
+                    WHEN rsi >= 70 THEN 'Overbought'
+                    WHEN rsi <= 30 THEN 'Oversold'
+                    ELSE 'Neutral'
+                END as rsi_status
+              FROM prod.dlh_gold__crypto_prices.agg_month_btc
+              WHERE ${whereClause}
+              ORDER BY month_start_date ASC
+            `;
+        } else {
+            // Use daily data for shorter periods
+            let whereClause = `date_prices >= DATEADD(day, -${days}, CURRENT_DATE())`;
+
+            if (startDate && endDate) {
+                whereClause = `date_prices BETWEEN '${startDate}' AND '${endDate}'`;
+            }
+
+            query = `
+              SELECT
+                date_prices as date,
+                open_usd as open,
+                high_usd as high,
+                low_usd as low,
+                close_usd as close,
+                volume,
+                rsi,
+                rsi_status
+              FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
+              WHERE ${whereClause}
+              ORDER BY date_prices ASC
+            `;
         }
-
-        const query = `
-      SELECT
-        date_prices as date,
-        open_usd as open,
-        high_usd as high,
-        low_usd as low,
-        close_usd as close,
-        volume,
-        rsi,
-        rsi_status
-      FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
-      WHERE ${whereClause}
-      ORDER BY date_prices ASC
-    `;
 
         const results = await executeQuery<any>(query);
 

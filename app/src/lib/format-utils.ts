@@ -1,9 +1,30 @@
 
+import type { Currency } from './bitcoin-data-server';
+
 export const formatPrice = (value: number): string => {
     return value.toLocaleString('fr-FR', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).replace(/\s/g, ' ');
+};
+
+export const getCurrencySymbol = (currency: Currency): string => {
+    switch (currency) {
+        case 'USD':
+            return '$';
+        case 'EUR':
+            return '€';
+        case 'CHF':
+            return 'CHF';
+        default:
+            return '$';
+    }
+};
+
+export const formatPriceWithCurrency = (value: number, currency: Currency): string => {
+    const symbol = getCurrencySymbol(currency);
+    const formatted = formatPrice(value);
+    return `${symbol}${formatted}`;
 };
 
 export const formatDate = (dateStr: string): string => {

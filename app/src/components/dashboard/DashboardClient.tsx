@@ -11,6 +11,8 @@ import {
 } from '@/components/dashboard';
 import PriceChart from '@/components/PriceChart';
 import type { BitcoinMetrics, BitcoinPrice } from '@/lib/schemas';
+import type { Currency } from '@/lib/bitcoin-data-server';
+import { formatPriceWithCurrency } from '@/lib/format-utils';
 
 interface DashboardClientProps {
     initialMetrics: BitcoinMetrics;
@@ -18,12 +20,14 @@ interface DashboardClientProps {
     selectedTime: string;
     startDate: string;
     endDate: string;
+    selectedCurrency: Currency;
 }
 
 export default function DashboardClient({
     initialMetrics,
     initialHistoricalData,
     selectedTime: initialTime,
+    selectedCurrency: initialCurrency,
 }: DashboardClientProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -55,6 +59,12 @@ export default function DashboardClient({
         const params = new URLSearchParams(searchParams.toString());
         params.set(type, value);
         params.set('time', 'custom');
+        router.push(`?${params.toString()}`);
+    };
+
+    const handleCurrencyFilter = (value: Currency) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('currency', value);
         router.push(`?${params.toString()}`);
     };
 
@@ -115,25 +125,41 @@ export default function DashboardClient({
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
-                                    <button
-                                        onClick={() => setChartType('line')}
-                                        className={`p-1.5 rounded-md transition-all ${chartType === 'line' ? 'bg-[#F7931A] text-black' : 'text-gray-400 hover:text-white'}`}
-                                        title="Line Chart"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                        </svg>
-                                    </button>
-                                    <button
-                                        onClick={() => setChartType('candlestick')}
-                                        className={`p-1.5 rounded-md transition-all ${chartType === 'candlestick' ? 'bg-[#F7931A] text-black' : 'text-gray-400 hover:text-white'}`}
-                                        title="Candlestick Chart"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                        </svg>
-                                    </button>
+                                <div className="flex gap-2 items-center">
+                                    <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
+                                        {(['USD', 'CHF', 'EUR'] as const).map((currency) => (
+                                            <button
+                                                key={currency}
+                                                onClick={() => handleCurrencyFilter(currency)}
+                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${initialCurrency === currency
+                                                    ? 'bg-[#F7931A] text-black'
+                                                    : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                {currency}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
+                                        <button
+                                            onClick={() => setChartType('line')}
+                                            className={`p-1.5 rounded-md transition-all ${chartType === 'line' ? 'bg-[#F7931A] text-black' : 'text-gray-400 hover:text-white'}`}
+                                            title="Line Chart"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onClick={() => setChartType('candlestick')}
+                                            className={`p-1.5 rounded-md transition-all ${chartType === 'candlestick' ? 'bg-[#F7931A] text-black' : 'text-gray-400 hover:text-white'}`}
+                                            title="Candlestick Chart"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -152,7 +178,7 @@ export default function DashboardClient({
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                             <StatCard
                                 title="PNL - Daily"
-                                value={`$${initialMetrics.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                                value={formatPriceWithCurrency(initialMetrics.currentPrice, initialCurrency)}
                                 trend={initialMetrics.change24h >= 0 ? 'up' : 'down'}
                                 trendColor={initialMetrics.change24h >= 0 ? 'text-green-400' : 'text-red-400'}
                                 subtitle={`${initialMetrics.change24h >= 0 ? '+' : ''}${initialMetrics.changePercent24h.toFixed(2)}%`}
@@ -166,13 +192,13 @@ export default function DashboardClient({
                             />
                             <StatCard
                                 title={`ATH (${initialTime.toUpperCase()})`}
-                                value={periodStats ? `$${periodStats.high.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '-'}
+                                value={periodStats ? formatPriceWithCurrency(periodStats.high, initialCurrency) : '-'}
                                 trend="neutral"
                                 icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
                             />
                             <StatCard
                                 title={`ATL (${initialTime.toUpperCase()})`}
-                                value={periodStats ? `$${periodStats.low.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '-'}
+                                value={periodStats ? formatPriceWithCurrency(periodStats.low, initialCurrency) : '-'}
                                 trend="neutral"
                                 icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>}
                             />

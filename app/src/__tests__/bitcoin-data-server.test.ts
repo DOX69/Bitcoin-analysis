@@ -32,7 +32,7 @@ describe('Bitcoin API', () => {
 
     describe('getCurrentBitcoinMetrics', () => {
         it('should return current Bitcoin metrics with correct calculations', async () => {
-            // Mock query response
+            // Mock query response (matches the aliases in the query)
             const mockData = [
                 {
                     current_price: 43500,
@@ -72,7 +72,7 @@ describe('Bitcoin API', () => {
         });
 
         it('should throw error when data is insufficient', async () => {
-            (executeQuery as jest.Mock).mockResolvedValue([{ current_price: 43500 }]);
+            (executeQuery as jest.Mock).mockResolvedValue([{ close_usd: 43500 }]);
 
             await expect(getCurrentBitcoinMetrics()).rejects.toThrow('Insufficient data to calculate metrics');
         });
@@ -80,12 +80,12 @@ describe('Bitcoin API', () => {
 
     describe('getHistoricalPrices', () => {
         it('should return historical price data for specified days', async () => {
-            const mockPrices: BitcoinPrice[] = Array.from({ length: 30 }, (_, i) => ({
-                date: `2024-01-${String(i + 1).padStart(2, '0')}`,
-                open: 42000 + i * 100,
-                high: 43000 + i * 100,
-                low: 41000 + i * 100,
-                close: 42500 + i * 100,
+            const mockPrices = Array.from({ length: 30 }, (_, i) => ({
+                date_prices: `2024-01-${String(i + 1).padStart(2, '0')}`,
+                open_usd: 42000 + i * 100,
+                high_usd: 43000 + i * 100,
+                low_usd: 41000 + i * 100,
+                close_usd: 42500 + i * 100,
                 volume: 25000000000,
                 rsi: 50,
                 rsi_status: 'Neutral',
@@ -107,13 +107,13 @@ describe('Bitcoin API', () => {
         });
 
         it('should validate OHLC data integrity', async () => {
-            const mockPrices: BitcoinPrice[] = [
+            const mockPrices = [
                 {
-                    date: '2024-01-01',
-                    open: 42000,
-                    high: 43000,
-                    low: 41000,
-                    close: 42500,
+                    date_prices: '2024-01-01',
+                    open_usd: 42000,
+                    high_usd: 43000,
+                    low_usd: 41000,
+                    close_usd: 42500,
                     volume: 25000000000,
                     rsi: 50,
                     rsi_status: 'Neutral',
@@ -186,7 +186,7 @@ describe('Bitcoin API', () => {
 
     describe('Data validation', () => {
         it('should ensure all prices are positive numbers', async () => {
-            const mockPrices: BitcoinPrice[] = [
+            const mockPrices = [
                 {
                     date: '2024-01-01',
                     open: 42000,
@@ -211,7 +211,7 @@ describe('Bitcoin API', () => {
         });
 
         it('should ensure dates are properly formatted', async () => {
-            const mockPrices: BitcoinPrice[] = [
+            const mockPrices = [
                 {
                     date: '2024-01-15',
                     open: 42000,

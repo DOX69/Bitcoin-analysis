@@ -1,0 +1,23 @@
+models:
+  - name: usd_to_other
+    description: "A table that convert USD to other currencies. Weekends and holidays data are replaced by last rates"
+    columns:
+      - name: date_rates
+        description: "The date of the rate data"
+        data_type: date
+        data_tests:
+          - unique
+          - not_null
+      - name: rate_usd_eur
+        description: "The conversion rate from usd to eur"
+        data_type: double
+        data_tests:
+         - not_null
+         - not_negative
+      - name: rate_usd_chf
+        description: "The conversion rate from usd to chf"
+        data_type: double
+        data_tests:
+         - not_null
+         - not_negative
+

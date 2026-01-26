@@ -1,6 +1,6 @@
 models:
   - name: obt_fact_day_btc
-    description: "A starter dbt model"
+    description: "Daily btc prices in usd, chf, eur"
     columns:
       - name: date_prices
         description: "The date of the price data"
@@ -9,7 +9,7 @@ models:
           - unique
           - not_null
   - name: obt_fact_day_eth
-    description: "A starter dbt model"
+    description: "Daily eth prices in usd, chf, eur"
     columns:
       - name: date_prices
         description: "The date of the price data"

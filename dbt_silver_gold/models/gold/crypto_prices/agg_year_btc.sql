@@ -1,1 +1,1 @@
-{{ create_update_agg(ref("agg_quarter_btc"), 'year')}}
+{{ create_update_agg(ref("agg_week_btc"), 'year')}}

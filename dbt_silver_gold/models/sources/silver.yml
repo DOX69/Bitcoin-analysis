@@ -1,6 +1,11 @@
 sources:
-    - name: silver
+    - name: silver_global
       database: prod
       schema: dlh_silver__global
       tables:
         - name: dim_calendar
+    - name: silver_currency_rate
+      database: prod
+      schema: dlh_silver__currency_rate
+      tables:
+        - name: usd_to_other

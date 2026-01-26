@@ -5,3 +5,5 @@ sources:
       tables:
         - name: btc_usd_ohlcv
         - name: eth_usd_ohlcv
+        - name: usd_chf_rates
+        - name: usd_eur_rates

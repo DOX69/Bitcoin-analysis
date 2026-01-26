@@ -1,4 +1,4 @@
-name: "CI"
+name: "CI/CD Pipeline"
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   test_package:
-    name: "📥 Checkout and Install"
+    name: "📥 Backend Tests"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -37,7 +37,7 @@ jobs:
         run: uv run pytest
 
   test_app:
-    name: "🧪 Test Next.js App"
+    name: "🧪 Frontend Tests"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -60,3 +60,39 @@ jobs:
 
       - name: Run Components Tests
         run: npm test -- --ci --watchAll=false
+
+  deploy:
+    name: "🚀 Deploy to Databricks"
+    runs-on: ubuntu-latest
+    needs: [test_package, test_app]
+    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'staging')
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ./dbx_workflow
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: databricks/setup-cli@main
+
+      - name: 📦 Install uv
+        run: pip install uv
+
+      - name: 🔑 Configure Databricks CLI
+        run: |
+          mkdir -p ~/.databricks
+          cat > ~/.databrickscfg << 'EOF'
+          [PROD]
+          host = ${{ secrets.DATABRICKS_HOST }}
+          token = ${{ secrets.DATABRICKS_TOKEN }}
+          EOF
+
+      - name: ✅ Validate bundle syntax
+        run: databricks bundle validate -t prod -p PROD
+
+      - name: 🚀 Deploy to PROD
+        run: databricks bundle deploy -t prod -p PROD
+
+      - name: 🏃‍♀️‍➡️ Run databricks master job
+        run: databricks bundle run -t prod -p PROD master_orchestrator_job

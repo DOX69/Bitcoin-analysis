@@ -1,14 +1,14 @@
-﻿name: "Deploy to prod Databricks"
+name: "CI/CD Pipeline"
 
-#Deploy to PROD databricks on every push to main branch
 on:
   push:
     branches:
-      - main
+      - '**'
+  pull_request:
 
 jobs:
   test_package:
-    name: "📥 Checkout and Install"
+    name: "📥 Backend Tests"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -37,7 +37,7 @@ jobs:
         run: uv run pytest
 
   test_app:
-    name: "🧪 Test Next.js App"
+    name: "🧪 Frontend Tests"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -62,11 +62,10 @@ jobs:
         run: npm test -- --ci --watchAll=false
 
   deploy:
-    name: "🚀 Deploy bundle"
+    name: "🚀 Deploy to Databricks"
     runs-on: ubuntu-latest
-    needs:
-      - test_package
-      - test_app
+    needs: [test_package, test_app]
+    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'staging')
     timeout-minutes: 15
     defaults:
       run:
@@ -77,17 +76,12 @@ jobs:
 
       - uses: databricks/setup-cli@main
 
-      - name: 📦 Install uv for uv build --wheel
+      - name: 📦 Install uv
         run: pip install uv
 
-      # Les secrets sont injectés SEULEMENT ici, dans le contexte du step
-      - name: 🔑 Configure Databricks CLI (.databrickscfg)
+      - name: 🔑 Configure Databricks CLI
         run: |
-          # Créer le répertoire
           mkdir -p ~/.databricks
-          
-          # Créer le fichier de configuration
-          # Les secrets sont déchiffrés et injectés ICI SEULEMENT
           cat > ~/.databrickscfg << 'EOF'
           [PROD]
           host = ${{ secrets.DATABRICKS_HOST }}
@@ -95,15 +89,10 @@ jobs:
           EOF
 
       - name: ✅ Validate bundle syntax
-        run: |
-          databricks bundle validate -t prod -p PROD
-          echo "✅ Bundle syntax valid"
+        run: databricks bundle validate -t prod -p PROD
 
       - name: 🚀 Deploy to PROD
-        run: |
-          databricks bundle deploy -t prod -p PROD
-          echo "✅ Bundle deployed"
+        run: databricks bundle deploy -t prod -p PROD
 
       - name: 🏃‍♀️‍➡️ Run databricks master job
-        run: |
-          databricks bundle run -t prod -p PROD master_orchestrator_job
+        run: databricks bundle run -t prod -p PROD master_orchestrator_job

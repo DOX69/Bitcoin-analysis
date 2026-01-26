@@ -10,7 +10,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -224,7 +223,6 @@ __pycache__/
 env/
 venv/
 *.egg-info/
-dist/
 build/
 
 # Databricks
@@ -246,6 +244,9 @@ Thumbs.db
 # dbt
 target/
 dbt_packages/
+<<<<<<< HEAD
+logs/
+=======
 logs/
 
 # Agent
@@ -255,3 +256,4 @@ init_agent.md
 # screenshot
 screenshot/
 *.png
+>>>>>>> main

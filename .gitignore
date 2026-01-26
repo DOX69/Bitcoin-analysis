@@ -10,7 +10,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -224,7 +223,6 @@ __pycache__/
 env/
 venv/
 *.egg-info/
-dist/
 build/
 
 # Databricks

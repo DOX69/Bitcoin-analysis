@@ -1,0 +1,1 @@
+{{ create_update_obt_fact_day_crypto('bronze', 'btc_usd_ohlcv') }}

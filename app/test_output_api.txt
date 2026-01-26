@@ -1,0 +1,151 @@
+  console.error
+    Failed to fetch Bitcoin metrics: Error: Connection failed
+        at Object.<anonymous> (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\src\__tests__\bitcoin-api.test.ts:66:59)
+        at Promise.finally.completed (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+        at _callCircusTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1007:40)
+        at _runTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:947:3)
+        at C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+        at run (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+        at runAndTransformResultsToJestFormat (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+        at jestAdapter (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\runner.js:101:19)
+        at runTestInternal (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-runner\build\index.js:275:16)
+        at runTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-runner\build\index.js:343:7)
+
+    [0m [90m 73 |[39m         }[33m;[39m
+     [90m 74 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 75 |[39m         console[33m.[39merror([32m'Failed to fetch Bitcoin metrics:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 76 |[39m
+     [90m 77 |[39m         [90m// Return mock data if Databricks is not configured[39m
+     [90m 78 |[39m         [36mreturn[39m {[0m
+
+      at error (src/lib/bitcoin-api.ts:75:17)
+      at Object.<anonymous> (src/__tests__/bitcoin-api.test.ts:68:28)
+
+  console.error
+    Failed to fetch Bitcoin metrics: Error: Insufficient data to calculate metrics
+        at getCurrentBitcoinMetrics (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\src\lib\bitcoin-api.ts:56:19)
+        at Object.<anonymous> (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\src\__tests__\bitcoin-api.test.ts:78:28)
+
+    [0m [90m 73 |[39m         }[33m;[39m
+     [90m 74 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 75 |[39m         console[33m.[39merror([32m'Failed to fetch Bitcoin metrics:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 76 |[39m
+     [90m 77 |[39m         [90m// Return mock data if Databricks is not configured[39m
+     [90m 78 |[39m         [36mreturn[39m {[0m
+
+      at error (src/lib/bitcoin-api.ts:75:17)
+      at Object.<anonymous> (src/__tests__/bitcoin-api.test.ts:78:28)
+
+  console.error
+    Failed to fetch historical prices: Error: Query failed
+        at Object.<anonymous> (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\src\__tests__\bitcoin-api.test.ts:134:59)
+        at Promise.finally.completed (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+        at _callCircusTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1007:40)
+        at _runTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:947:3)
+        at C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+        at run (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+        at runAndTransformResultsToJestFormat (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+        at jestAdapter (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\runner.js:101:19)
+        at runTestInternal (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-runner\build\index.js:275:16)
+        at runTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-runner\build\index.js:343:7)
+
+    [0m [90m 115 |[39m         [36mreturn[39m results[33m;[39m
+     [90m 116 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 117 |[39m         console[33m.[39merror([32m'Failed to fetch historical prices:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 118 |[39m
+     [90m 119 |[39m         [90m// Return mock data[39m
+     [90m 120 |[39m         [36mreturn[39m generateMockPriceData(days)[33m;[39m[0m
+
+      at error (src/lib/bitcoin-api.ts:117:17)
+      at Object.<anonymous> (src/__tests__/bitcoin-api.test.ts:136:28)
+
+  console.error
+    Failed to fetch aggregated data: Error: Table not found
+        at Object.<anonymous> (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\src\__tests__\bitcoin-api.test.ts:187:59)
+        at Promise.finally.completed (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+        at _callCircusTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1007:40)
+        at _runTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:947:3)
+        at C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+        at _runTestsForDescribeBlock (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+        at run (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+        at runAndTransformResultsToJestFormat (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+        at jestAdapter (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-circus\build\runner.js:101:19)
+        at runTestInternal (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-runner\build\index.js:275:16)
+        at runTest (C:\Users\ggrft\PycharmProjects\Bitcoin-analysis\app\node_modules\jest-runner\build\index.js:343:7)
+
+    [0m [90m 150 |[39m         [36mreturn[39m results[33m;[39m
+     [90m 151 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 152 |[39m         console[33m.[39merror([32m'Failed to fetch aggregated data:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 153 |[39m         [36mreturn[39m [][33m;[39m
+     [90m 154 |[39m     }
+     [90m 155 |[39m }[0m
+
+      at error (src/lib/bitcoin-api.ts:152:17)
+      at Object.<anonymous> (src/__tests__/bitcoin-api.test.ts:189:28)
+
+FAIL src/__tests__/bitcoin-api.test.ts
+  Bitcoin API
+    getCurrentBitcoinMetrics
+      √ should return current Bitcoin metrics with correct calculations (2 ms)
+      √ should return mock data when query fails (24 ms)
+      √ should handle insufficient data gracefully (4 ms)
+    getHistoricalPrices
+      √ should return historical price data for specified days (1 ms)
+      √ should validate OHLC data integrity
+      √ should return mock data when query fails (2 ms)
+    getAggregatedData
+      × should return weekly aggregated data (3 ms)
+      √ should handle different aggregation periods (1 ms)
+      √ should return empty array on error (2 ms)
+    Data validation
+      √ should ensure all prices are positive numbers (1 ms)
+      √ should ensure dates are properly formatted
+
+  ● Bitcoin API › getAggregatedData › should return weekly aggregated data
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 4
+    + Received  + 0
+
+      Object {
+    -   "avgPrice": 42500,
+    -   "maxPrice": 44000,
+    -   "minPrice": 41000,
+        "period": "2024-W01",
+    -   "totalVolume": 175000000000,
+      }
+
+    [0m [90m 159 |[39m
+     [90m 160 |[39m             expect(result)[33m.[39mtoHaveLength([35m1[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 161 |[39m             expect(result[[35m0[39m])[33m.[39mtoMatchObject({
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 162 |[39m                 period[33m:[39m [32m'2024-W01'[39m[33m,[39m
+     [90m 163 |[39m                 avgPrice[33m:[39m [35m42500[39m[33m,[39m
+     [90m 164 |[39m                 maxPrice[33m:[39m [35m44000[39m[33m,[39m[0m
+
+      at Object.toMatchObject (src/__tests__/bitcoin-api.test.ts:161:31)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 10 passed, 11 total
+Snapshots:   0 total
+Time:        0.866 s, estimated 1 s
+Ran all test suites matching src/__tests__/bitcoin-api.test.ts.

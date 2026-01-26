@@ -1,0 +1,5 @@
+profiles.yml
+target/
+dbt_packages/
+logs/
+analyses/error.md

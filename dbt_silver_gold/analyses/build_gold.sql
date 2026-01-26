@@ -1,0 +1,1 @@
+{{ create_update_agg(ref("agg_week_btc"), 'month')}}

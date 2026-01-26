@@ -1,0 +1,29 @@
+{
+    "primary": {
+        "orange": "#FF6B35",
+        "dark": "#1A1A1A",
+        "light": "#FFFFFF"
+    },
+    "secondary": {
+        "black": "#000000",
+        "charcoal": "#2C2C2C",
+        "gray": "#666666"
+    },
+    "accents": {
+        "success": "#22C55E",
+        "error": "#EF4444",
+        "warning": "#F59E0B",
+        "info": "#3B82F6"
+    },
+    "backgrounds": {
+        "primary": "#FFFFFF",
+        "secondary": "#F5F5F5",
+        "dark": "#1A1A1A",
+        "gradient_landing": "linear-gradient(135deg, #FF6B35 0%, #1A1A1A 100%)"
+    },
+    "text": {
+        "primary": "#1A1A1A",
+        "secondary": "#666666",
+        "light": "#FFFFFF"
+    }
+}

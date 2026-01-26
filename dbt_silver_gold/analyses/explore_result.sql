@@ -1,0 +1,1 @@
+select * from {{ ref("agg_year_btc")}} order by 1 desc limit 1000;

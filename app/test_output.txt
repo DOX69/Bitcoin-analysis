@@ -1,0 +1,31 @@
+FAIL src/__tests__/databricks.test.ts
+  ● Test suite failed to run
+
+    ReferenceError: TextDecoder is not defined
+
+    [0m [90m 24 |[39m         [36mconst[39m connection [33m=[39m [36mawait[39m client[33m.[39mconnect({
+     [90m 25 |[39m             host[33m:[39m config[33m.[39mhost[33m,[39m
+    [31m[1m>[22m[39m[90m 26 |[39m             path[33m:[39m config[33m.[39mhttpPath[33m,[39m
+     [90m    |[39m              [31m[1m^[22m[39m
+     [90m 27 |[39m             token[33m:[39m config[33m.[39mtoken[33m,[39m
+     [90m 28 |[39m         })[33m;[39m
+     [90m 29 |[39m[0m
+
+      at Object.<anonymous> (node_modules/apache-arrow/src/util/utf8.ts:18:17)
+      at Object.<anonymous> (node_modules/apache-arrow/src/util/buffer.ts:18:1)
+      at Object.<anonymous> (node_modules/apache-arrow/src/io/adapters.ts:18:1)
+      at Object.<anonymous> (node_modules/apache-arrow/src/Arrow.node.ts:18:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/result/utils.ts:2:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/result/RowSetProvider.ts:6:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/DBSQLOperation.ts:27:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/DBSQLSession.ts:31:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/DBSQLClient.ts:12:1)
+      at Object.<anonymous> (node_modules/@databricks/sql/lib/index.ts:7:1)
+      at Object.<anonymous> (src/lib/databricks.ts:26:14)
+      at Object.<anonymous> (src/__tests__/databricks.test.ts:7:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        0.967 s
+Ran all test suites matching src/__tests__/databricks.test.ts.

@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+echo "=========================================="
+echo "Running ALL Tests"
+echo "=========================================="
+
+echo ""
+echo "[1/2] Running Backend Tests (pytest)..."
+echo "------------------------------------------"
+uv run pytest
+
+echo ""
+echo "[2/2] Running Frontend Tests (npm test)..."
+echo "------------------------------------------"
+cd app
+npm test -- --watchAll=false
+cd ..
+
+echo ""
+echo "=========================================="
+echo "[SUCCESS] All tests passed!"
+echo "=========================================="

@@ -252,6 +252,7 @@ logs/
 # Agent
 .agent/
 init_agent.md
+social_post.md
 
 # screenshot
 screenshot/

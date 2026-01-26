@@ -11,7 +11,10 @@ export default function Hero({ onStart }: HeroProps) {
     return (
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4 pt-20">
             {/* Announcement Banner */}
-            <div
+            <Link
+                href="https://github.com/DOX69/Bitcoin-analysis/blob/main/README.md"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 backdrop-blur-sm cursor-pointer hover:scale-105 transition-transform"
                 style={{
                     background: 'rgba(255, 107, 53, 0.1)',
@@ -25,7 +28,7 @@ export default function Hero({ onStart }: HeroProps) {
                 >
                     Read more →
                 </span>
-            </div>
+            </Link>
 
             {/* Main Headline */}
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 tracking-tight leading-tight">

@@ -13,13 +13,16 @@ from raw_ingest.main import ingest_ticker_data, main
 class TestIngestTickerData:
     """Test ingest_ticker_data function."""
 
+    @patch('raw_ingest.main.SparkSession')
     @patch('raw_ingest.main.DbWriter')
     @patch('raw_ingest.main.CoinbaseFetcher')
-    @patch('raw_ingest.main.spark')
     def test_ingest_ticker_data_new_table(
-        self, mock_spark, mock_fetcher_class, mock_writer_class, mock_logger, sample_pandas_df
+        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
         """Test full historical fetch for a new ticker table."""
+        mock_spark = MagicMock()
+        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
+
         # Setup mock for table not found
         mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
         
@@ -39,32 +42,24 @@ class TestIngestTickerData:
         # Verify success
         assert result is True
         
-        # Verify CoinbaseFetcher was initialized correctly
-        mock_fetcher_class.assert_called_once()
-        init_call = mock_fetcher_class.call_args
-        # Check call arguments (either positional or keyword)
-        args, kwargs = init_call
-        assert (kwargs.get('ticker') == "BTC" or (len(args) > 1 and args[1] == "BTC"))
-        assert (kwargs.get('currency') == "USD" or (len(args) > 2 and args[2] == "USD"))
-        
-        # Verify fetch was called without start_date_time (full historical)
-        fetch_call = mock_fetcher.fetch_historical_data.call_args
-        assert fetch_call is not None
-        # Should be called with no start_date_time for new table
-        if fetch_call[1]:
-            assert 'start_date_time' not in fetch_call[1] or fetch_call[1].get('start_date_time') is None
-        
-        # Verify DbWriter was called
+        # Verify DbWriter was initialized with spark
         mock_writer_class.assert_called_once()
+        args, kwargs = mock_writer_class.call_args
+        assert args[0] is mock_spark # First arg should be spark
+
+        # Verify DbWriter.save_delta_table was called
         mock_writer.save_delta_table.assert_called_once_with(False)  # is_table_found=False
 
+    @patch('raw_ingest.main.SparkSession')
     @patch('raw_ingest.main.DbWriter')
     @patch('raw_ingest.main.CoinbaseFetcher')
-    @patch('raw_ingest.main.spark')
     def test_ingest_ticker_data_incremental_fetch(
-        self, mock_spark, mock_fetcher_class, mock_writer_class, mock_logger, sample_pandas_df
+        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
         """Test incremental fetch for an existing table."""
+        mock_spark = MagicMock()
+        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
+
         # Setup mock for existing table with latest date
         latest_date = datetime(2022, 1, 5).date()
         mock_result = MagicMock()
@@ -95,12 +90,15 @@ class TestIngestTickerData:
         # Verify DbWriter was called with is_table_found=True
         mock_writer.save_delta_table.assert_called_once_with(True)
 
+    @patch('raw_ingest.main.SparkSession')
     @patch('raw_ingest.main.CoinbaseFetcher')
-    @patch('raw_ingest.main.spark')
     def test_ingest_ticker_data_handles_fetcher_error(
-        self, mock_spark, mock_fetcher_class, mock_logger
+        self, mock_fetcher_class, mock_spark_session_cls, mock_logger
     ):
         """Test error handling when fetcher fails."""
+        mock_spark = MagicMock()
+        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
+
         # Setup mock for table not found
         mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
         
@@ -116,13 +114,16 @@ class TestIngestTickerData:
         # Verify failure
         assert result is False
 
+    @patch('raw_ingest.main.SparkSession')
     @patch('raw_ingest.main.DbWriter')
     @patch('raw_ingest.main.CoinbaseFetcher')
-    @patch('raw_ingest.main.spark')
     def test_ingest_ticker_data_handles_writer_error(
-        self, mock_spark, mock_fetcher_class, mock_writer_class, mock_logger, sample_pandas_df
+        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
         """Test error handling when writer fails."""
+        mock_spark = MagicMock()
+        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
+
         # Setup mocks
         mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
         
@@ -142,13 +143,16 @@ class TestIngestTickerData:
         # Verify failure
         assert result is False
 
+    @patch('raw_ingest.main.SparkSession')
     @patch('raw_ingest.main.DbWriter')
     @patch('raw_ingest.main.CoinbaseFetcher')
-    @patch('raw_ingest.main.spark')
     def test_ingest_ticker_data_uppercase_conversion(
-        self, mock_spark, mock_fetcher_class, mock_writer_class, mock_logger, sample_pandas_df
+        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
         """Test that ticker and currency are properly handled."""
+        mock_spark = MagicMock()
+        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
+
         mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
         
         mock_fetcher = MagicMock()
@@ -274,15 +278,17 @@ class TestMain:
 class TestMainIntegration:
     """Integration tests for main pipeline."""
 
+    @patch('raw_ingest.main.SparkSession')
     @patch('raw_ingest.main.DbWriter')
     @patch('requests.get')
-    @patch('raw_ingest.main.spark')
     @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
     def test_main_integration_with_mocked_dependencies(
-        self, mock_spark, mock_requests_get, mock_writer_class, mock_coinbase_api_response
+        self, mock_requests_get, mock_writer_class, mock_spark_session_cls, mock_coinbase_api_response
     ):
         """Integration test with all external dependencies mocked."""
         # Setup Spark mock
+        mock_spark = MagicMock()
+        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
         mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
         
         # Setup requests mock

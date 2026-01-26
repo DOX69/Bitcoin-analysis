@@ -1,7 +1,7 @@
 import pandas as pd
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, current_timestamp
-from databricks.sdk.runtime import spark
+
 
 def overwrite_replace_where(
         spark_df: DataFrame,
@@ -28,10 +28,12 @@ def overwrite_replace_where(
 class DbWriter:
     def __init__(
             self,
+            spark,
             logger,
             full_path_table_name : str,
             pandas_df: pd.DataFrame
     ):
+        self.spark = spark
         self.logger = logger
         self.full_path_table_name = full_path_table_name
         self.pandas_df = pandas_df
@@ -47,7 +49,7 @@ class DbWriter:
             Delta table saved
         """
         spark_df = (
-                    spark.createDataFrame(self.pandas_df)
+                    self.spark.createDataFrame(self.pandas_df)
                     .withColumn("date",col("time").cast("date"))
                     .withColumn("ingest_date_time",current_timestamp())
                     )

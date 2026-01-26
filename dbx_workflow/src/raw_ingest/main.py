@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
-from databricks.sdk.runtime import spark
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from raw_ingest.CoinbaseFetcher import CoinbaseFetcher
 from raw_ingest.FrankfurterFetcher import FrankfurterFetcher
@@ -53,6 +53,7 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
     À appeler tous les jours
     """
     try:
+        spark = SparkSession.builder.getOrCreate()
         # Initialiser fetcher
         fetcher = get_fetcher(ticker, currency, catalog, schema)
         
@@ -78,7 +79,7 @@ def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> 
 
         # Save delta table
         if not fetched_pandas_df.empty:
-            DbWriter(logger, full_path_table_name, fetched_pandas_df).save_delta_table(is_table_found)
+            DbWriter(spark, logger, full_path_table_name, fetched_pandas_df).save_delta_table(is_table_found)
         else:
             logger.warning("No new data fetched.")
 

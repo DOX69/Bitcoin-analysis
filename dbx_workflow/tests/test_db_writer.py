@@ -66,7 +66,9 @@ class TestDbWriterInit:
 
     def test_init_sets_attributes(self, mock_logger, sample_pandas_df):
         """Test that initialization sets attributes correctly."""
+        mock_spark = MagicMock()
         writer = DbWriter(
+            spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="catalog.schema.table",
             pandas_df=sample_pandas_df
@@ -75,10 +77,13 @@ class TestDbWriterInit:
         assert writer.full_path_table_name == "catalog.schema.table"
         assert writer.pandas_df is sample_pandas_df
         assert writer.logger is mock_logger
+        assert writer.spark is mock_spark
 
     def test_init_logs_initialization(self, mock_logger, sample_pandas_df):
         """Test that initialization logs the table name."""
+        mock_spark = MagicMock()
         writer = DbWriter(
+            spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="dev.bronze.btc_usd_ohlcv",
             pandas_df=sample_pandas_df
@@ -92,9 +97,9 @@ class TestDbWriterInit:
 class TestDbWriterSaveDeltaTable:
     """Test DbWriter.save_delta_table method."""
 
-    @patch('raw_ingest.DbWriter.spark')
-    def test_save_delta_table_creates_new_table(self, mock_spark, mock_logger, sample_pandas_df):
+    def test_save_delta_table_creates_new_table(self, mock_logger, sample_pandas_df):
         """Test creating a new table with partitioning."""
+        mock_spark = MagicMock()
         # Setup mock Spark DataFrame
         mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
@@ -112,6 +117,7 @@ class TestDbWriterSaveDeltaTable:
 
         # Create writer and save
         writer = DbWriter(
+            spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="test.bronze.btc_usd",
             pandas_df=sample_pandas_df
@@ -129,9 +135,9 @@ class TestDbWriterSaveDeltaTable:
         mock_writer.mode.assert_called_once_with("overwrite")
         mock_writer.option.assert_called_once_with("mergeSchema", "true")
 
-    @patch('raw_ingest.DbWriter.spark')
-    def test_save_delta_table_appends_to_existing_table(self, mock_spark, mock_logger, sample_pandas_df):
+    def test_save_delta_table_appends_to_existing_table(self, mock_logger, sample_pandas_df):
         """Test appending to an existing table."""
+        mock_spark = MagicMock()
         # Setup mock Spark DataFrame
         mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
@@ -147,6 +153,7 @@ class TestDbWriterSaveDeltaTable:
 
         # Create writer and save
         writer = DbWriter(
+            spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="test.bronze.btc_usd",
             pandas_df=sample_pandas_df
@@ -157,9 +164,9 @@ class TestDbWriterSaveDeltaTable:
         mock_writer.mode.assert_called_once_with("append")
         mock_writer.saveAsTable.assert_called_once_with("test.bronze.btc_usd")
 
-    @patch('raw_ingest.DbWriter.spark')
-    def test_save_delta_table_adds_date_column(self, mock_spark, mock_logger, sample_pandas_df):
+    def test_save_delta_table_adds_date_column(self, mock_logger, sample_pandas_df):
         """Test that date column is added from time column."""
+        mock_spark = MagicMock()
         # Setup mock Spark DataFrame
         mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
@@ -180,6 +187,7 @@ class TestDbWriterSaveDeltaTable:
 
         # Create writer and save
         writer = DbWriter(
+            spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="test.bronze.btc_usd",
             pandas_df=sample_pandas_df
@@ -190,9 +198,9 @@ class TestDbWriterSaveDeltaTable:
         assert "date" in with_column_calls
         assert "ingest_date_time" in with_column_calls
 
-    @patch('raw_ingest.DbWriter.spark')
-    def test_save_delta_table_handles_exceptions(self, mock_spark, mock_logger, sample_pandas_df):
+    def test_save_delta_table_handles_exceptions(self, mock_logger, sample_pandas_df):
         """Test exception handling during save."""
+        mock_spark = MagicMock()
         # Setup mock to raise exception
         mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
@@ -205,6 +213,7 @@ class TestDbWriterSaveDeltaTable:
         mock_writer.saveAsTable.side_effect = Exception("Database connection failed")
 
         writer = DbWriter(
+            spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="test.bronze.btc_usd",
             pandas_df=sample_pandas_df
@@ -218,9 +227,9 @@ class TestDbWriterSaveDeltaTable:
         error_calls = [call for call in mock_logger.method_calls if 'error' in str(call)]
         assert len(error_calls) > 0
 
-    @patch('raw_ingest.DbWriter.spark')
-    def test_save_delta_table_logs_row_count(self, mock_spark, mock_logger, sample_pandas_df):
+    def test_save_delta_table_logs_row_count(self, mock_logger, sample_pandas_df):
         """Test that row count is logged."""
+        mock_spark = MagicMock()
         # Setup mock Spark DataFrame
         mock_spark_df = MagicMock()
         mock_spark.createDataFrame.return_value = mock_spark_df
@@ -234,6 +243,7 @@ class TestDbWriterSaveDeltaTable:
         mock_writer.mode.return_value = mock_writer
 
         writer = DbWriter(
+            spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="test.bronze.btc_usd",
             pandas_df=sample_pandas_df

@@ -46,13 +46,13 @@ export default function Header() {
                     {/* Auth Buttons */}
                     <div className="flex items-center gap-3">
                         <Link
-                            href="/auth/login"
+                            href="/login"
                             className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
                         >
                             Sign in
                         </Link>
                         <Link
-                            href="/auth/register"
+                            href="/signup"
                             className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-all hover:scale-105"
                             style={{
                                 background: `linear-gradient(135deg, ${theme.colors.primary.orange} 0%, #d85a2b 100%)`,

@@ -42,14 +42,15 @@ interface PriceChartProps {
     loading?: boolean;
     showRsi?: boolean;
     type?: 'line' | 'candlestick';
+    currencySymbol?: string;
 }
 
-const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi = false, type = 'line' }) => {
+const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi = false, type = 'line', currencySymbol = '$' }) => {
     const chartData = {
         datasets: [
             ...(type === 'line' ? [{
                 type: 'line' as const,
-                label: 'Bitcoin Price (USD)',
+                label: `Bitcoin Price (${currencySymbol})`,
                 data: data.map((item) => ({
                     x: new Date(item.date).getTime(),
                     y: item.close
@@ -74,7 +75,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 yAxisID: 'y',
             }] : [{
                 type: 'candlestick' as const,
-                label: 'Bitcoin Price (USD)',
+                label: `Bitcoin Price (${currencySymbol})`,
                 data: data.map((item) => ({
                     x: new Date(item.date).getTime(),
                     o: item.open,
@@ -178,13 +179,13 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                         if (context.dataset.type === 'candlestick') {
                             const raw = context.raw;
                             return [
-                                `O: ${formatPrice(raw.o)}`,
-                                `H: ${formatPrice(raw.h)}`,
-                                `L: ${formatPrice(raw.l)}`,
-                                `C: ${formatPrice(raw.c)}`
+                                `O: ${currencySymbol}${formatPrice(raw.o)}`,
+                                `H: ${currencySymbol}${formatPrice(raw.h)}`,
+                                `L: ${currencySymbol}${formatPrice(raw.l)}`,
+                                `C: ${currencySymbol}${formatPrice(raw.c)}`
                             ];
                         }
-                        return '$' + formatPrice(context.parsed.y);
+                        return currencySymbol + formatPrice(context.parsed.y);
                     },
                 },
             },
@@ -228,7 +229,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                         size: 11,
                     },
                     callback: function (value: any) {
-                        return formatPrice(value);
+                        return currencySymbol + formatPrice(value);
                     },
                 },
             },

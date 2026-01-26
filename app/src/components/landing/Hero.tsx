@@ -45,7 +45,7 @@ export default function Hero({ onStart }: HeroProps) {
 
             {/* CTA Button */}
             <Link
-                href="/dashboard"
+                href="/login"
                 className="group relative px-8 py-4 rounded-lg font-semibold text-white transition-all hover:scale-105"
                 style={{
                     background: `linear-gradient(135deg, ${theme.colors.primary.orange} 0%, #d85a2b 100%)`,

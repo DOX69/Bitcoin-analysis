@@ -17,10 +17,10 @@ console.log('DATACENTER SERVER LOADED - ENV HOST:', env?.DATABRICKS_HOST ? 'SET'
 export const getCurrentBitcoinMetrics = cache(async () => {
     try {
         const query = `
-      SELECT 
-        close as current_price,
-        high as high_24h,
-        low as low_24h,
+      SELECT
+        close_usd as current_price,
+        high_usd as high_24h,
+        low_usd as low_24h,
         volume as volume_24h,
         rsi as rsi
       FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
@@ -74,12 +74,12 @@ export const getHistoricalPrices = cache(async (
         }
 
         const query = `
-      SELECT 
+      SELECT
         date_prices as date,
-        open as open,
-        high as high,
-        low as low,
-        close as close,
+        open_usd as open,
+        high_usd as high,
+        low_usd as low,
+        close_usd as close,
         volume,
         rsi,
         rsi_status
@@ -115,11 +115,11 @@ export const getAggregatedData = cache(async (
                     : 'iso_week_start_date';
 
         const query = `
-      SELECT 
+      SELECT
         ${dateCol} as period,
-        close as avgPrice,
-        high as maxPrice,
-        low as minPrice,
+        close_usd as avgPrice,
+        high_usd as maxPrice,
+        low_usd as minPrice,
         0 as totalVolume
       FROM ${tableName}
       ORDER BY ${dateCol} DESC

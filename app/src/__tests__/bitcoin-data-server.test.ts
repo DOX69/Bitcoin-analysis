@@ -28,6 +28,12 @@ import { executeQuery } from '@/lib/databricks';
 describe('Bitcoin API', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // Suppress console.error during tests to keep output clean
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
     });
 
     describe('getCurrentBitcoinMetrics', () => {

@@ -171,6 +171,12 @@ export default function DashboardClient({
                                 loading={false}
                                 showRsi={showRsi}
                                 type={chartType}
+                                currencySymbol={{
+                                    'USD': '$',
+                                    'EUR': '€',
+                                    'GBP': '£',
+                                    'CHF': 'Fr'
+                                }[initialCurrency] || '$'}
                             />
                         </div>
 

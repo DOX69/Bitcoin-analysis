@@ -395,5 +395,5 @@ Next step: development of an interactive React JS web application to visualize B
 ## Run Checks (Development)
 
 Run all tests before checking in code:
-- **Windows**: `.\check-all.bat`
+- **Windows**: `./check-all.bat`
 - **Linux/Mac**: `./check-all`

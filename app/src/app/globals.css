@@ -14,25 +14,26 @@
   --color-primary-orange: #FF6B35;
   --color-primary-black: #1A1A1A;
   --color-text-primary: #1A1A1A;
+  --color-text-primary: #1A1A1A;
   --color-bg-landing-gradient: linear-gradient(135deg, #FF6B35 0%, #1A1A1A 100%);
 }
 
-@layer base {
-  * {
-    @apply border-gray-800;
-  }
-
-  body {
-    @apply bg-black text-white;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-}
-
 @layer utilities {
+  .bg-primary-orange {
+    background-color: var(--color-primary-orange);
+  }
+
+  .text-primary-orange {
+    color: var(--color-primary-orange);
+  }
+
+  .hover\:bg-orange-600:hover {
+    background-color: #ea580c;
+  }
+
+  .focus\:ring-primary-orange:focus {
+    --tw-ring-color: var(--color-primary-orange);
+  }
 
   /* Glassmorphism card effect */
   .glass-card {

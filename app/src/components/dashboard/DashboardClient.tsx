@@ -10,13 +10,15 @@ import {
     DatePicker
 } from '@/components/dashboard';
 import PriceChart from '@/components/PriceChart';
-import type { BitcoinMetrics, BitcoinPrice } from '@/lib/schemas';
+import type { BitcoinMetrics, BitcoinPrice, BitcoinForecast } from '@/lib/schemas';
 import type { Currency } from '@/lib/bitcoin-data-server';
 import { formatPriceWithCurrency } from '@/lib/format-utils';
+import { getForecastSlice } from '@/lib/forecast-utils';
 
 interface DashboardClientProps {
     initialMetrics: BitcoinMetrics;
     initialHistoricalData: BitcoinPrice[];
+    initialForecastData: BitcoinForecast[];
     selectedTime: string;
     startDate: string;
     endDate: string;
@@ -26,6 +28,7 @@ interface DashboardClientProps {
 export default function DashboardClient({
     initialMetrics,
     initialHistoricalData,
+    initialForecastData,
     selectedTime: initialTime,
     selectedCurrency: initialCurrency,
 }: DashboardClientProps) {
@@ -34,6 +37,7 @@ export default function DashboardClient({
 
     // States that don't necessarily need to be in URL (UI preferences)
     const [showRsi, setShowRsi] = useState(false);
+    const [showForecast, setShowForecast] = useState(true);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
 
@@ -76,6 +80,8 @@ export default function DashboardClient({
         { label: 'YTD', value: 'ytd' },
         { label: 'ALL', value: 'all' },
     ];
+
+    const visibleForecastData = getForecastSlice(initialForecastData, initialTime);
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans flex flex-col">
@@ -124,6 +130,33 @@ export default function DashboardClient({
                                             />
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-2 ml-2">
+                                        <span className="text-xs text-gray-400">Forecast</span>
+                                        <div
+                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showForecast && chartType !== 'candlestick' ? 'bg-[#F7931A]' : 'bg-gray-700'} ${chartType === 'candlestick' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            onClick={() => {
+                                                if (chartType !== 'candlestick') {
+                                                    setShowForecast(!showForecast);
+                                                }
+                                            }}
+                                        >
+                                            <div
+                                                className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${showForecast && chartType !== 'candlestick' ? 'right-1' : 'left-1'}`}
+                                            />
+                                        </div>
+                                        <div className="group relative">
+                                            <div className="cursor-help text-gray-400 hover:text-white border border-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</div>
+                                            <div className="absolute top-full right-0 mt-2 w-80 p-4 bg-[#1c1c1c] border border-gray-700 rounded-xl shadow-xl z-50 text-xs text-gray-300 hidden group-hover:block">
+                                                <h4 className="text-white font-bold mb-2">BTC Price Forecast</h4>
+                                                <p className="mb-2">Using Databricks MLflow predictive model.</p>
+                                                <div className="bg-gray-800/50 p-2 rounded mb-2 text-[11px] text-gray-300 leading-relaxed">
+                                                    This forecast uses the DeepAR algorithm to analyze historical price patterns and project future trends. The dashed lines show the expected price range (confidence intervals) for the selected period.
+                                                </div>
+                                                <p>Shows prediction with upper and lower confidence intervals.</p>
+                                                <p className="mt-1 text-gray-500 italic">Historical performance does not guarantee future results.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2 items-center">
                                     <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
@@ -164,6 +197,9 @@ export default function DashboardClient({
                             </div>
                         </div>
 
+
+
+
                         {/* Chart Container */}
                         <div className="h-[420px] dashboard-chart-container relative mb-6">
                             <PriceChart
@@ -177,6 +213,8 @@ export default function DashboardClient({
                                     'GBP': '£',
                                     'CHF': 'Fr'
                                 }[initialCurrency] || '$'}
+                                forecastData={visibleForecastData}
+                                showForecast={showForecast}
                             />
                         </div>
 

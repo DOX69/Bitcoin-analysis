@@ -1,6 +1,6 @@
 
-import { BitcoinMetrics, BitcoinPrice, AggregatedData } from '@/lib/schemas';
-export type { BitcoinMetrics, BitcoinPrice, AggregatedData };
+import { BitcoinMetrics, BitcoinPrice, AggregatedData, BitcoinForecast } from '@/lib/schemas';
+export type { BitcoinMetrics, BitcoinPrice, AggregatedData, BitcoinForecast };
 
 export async function getCurrentBitcoinMetrics(): Promise<BitcoinMetrics> {
     const response = await fetch('/api/bitcoin?type=metrics');
@@ -27,5 +27,11 @@ export async function getAggregatedData(
 ): Promise<AggregatedData[]> {
     const response = await fetch(`/api/bitcoin?type=aggregated&period=${period}`);
     if (!response.ok) throw new Error('Failed to fetch aggregated data');
+    return response.json();
+}
+
+export async function getForecastData(): Promise<BitcoinForecast[]> {
+    const response = await fetch('/api/bitcoin?type=forecast');
+    if (!response.ok) throw new Error('Failed to fetch forecast data');
     return response.json();
 }

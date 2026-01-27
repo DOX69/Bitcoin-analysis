@@ -13,15 +13,15 @@ export const getForecastSlice = (
     if (initialTime === 'all') {
         // Monthly aggregation: filtered to 1st of each month (approx)
         const monthlyData: BitcoinForecast[] = [];
-        let lastMonth = -1;
+        const seenMonths = new Set<string>();
 
         initialForecastData.forEach(item => {
             const date = new Date(item.date_prices);
-            const currentMonth = date.getMonth();
+            const key = `${date.getFullYear()}-${date.getMonth()}`; // e.g. "2026-2"
 
-            if (currentMonth !== lastMonth) {
+            if (!seenMonths.has(key)) {
                 monthlyData.push(item);
-                lastMonth = currentMonth;
+                seenMonths.add(key);
             }
         });
         return monthlyData;

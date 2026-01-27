@@ -250,13 +250,24 @@ export const getAggregatedData = cache(async (
 export const getForecastData = cache(async (currency: Currency = 'USD') => {
     try {
         const query = `
+      WITH ranked AS (
+        SELECT
+          date_prices,
+          predicted_close_usd,
+          predicted_close_usd_lower,
+          predicted_close_usd_upper,
+          predicted_at,
+          ROW_NUMBER() OVER (PARTITION BY date_prices ORDER BY predicted_at DESC) as rn
+        FROM prod.dlh_silver__crypto_prices.forcast_btc_price
+      )
       SELECT
         date_prices,
         predicted_close_usd,
         predicted_close_usd_lower,
         predicted_close_usd_upper,
         predicted_at
-      FROM prod.dlh_silver__crypto_prices.forcast_btc_price
+      FROM ranked
+      WHERE rn = 1
       ORDER BY date_prices ASC
       LIMIT 365
     `;

@@ -227,6 +227,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 bodyColor: '#9ca3af',
                 borderColor: 'rgba(255, 165, 0, 0.3)',
                 borderWidth: 1,
+                filter: function (tooltipItem: any, index: number, tooltipItems: any[]) {
+                    // Deduplicate: only show first item for each dataset label
+                    const label = tooltipItem.dataset.label;
+                    const firstIndex = tooltipItems.findIndex((item: any) => item.dataset.label === label);
+                    return index === firstIndex;
+                },
                 callbacks: {
                     title: function (context: any) {
                         const raw = context[0].raw;

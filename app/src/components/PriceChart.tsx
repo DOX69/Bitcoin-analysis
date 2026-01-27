@@ -13,7 +13,9 @@ import {
     Legend,
     Filler,
     TimeScale,
-    TimeSeriesScale
+
+    TimeSeriesScale,
+    LogarithmicScale
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { BitcoinPrice, BitcoinForecast } from '@/lib/schemas';
@@ -34,7 +36,9 @@ ChartJS.register(
     CandlestickController,
     CandlestickElement,
     TimeScale,
-    TimeSeriesScale
+    TimeScale,
+    TimeSeriesScale,
+    LogarithmicScale
 );
 
 interface PriceChartProps {
@@ -45,6 +49,7 @@ interface PriceChartProps {
     currencySymbol?: string;
     forecastData?: BitcoinForecast[];
     showForecast?: boolean;
+    scaleType?: 'linear' | 'logarithmic';
 }
 
 const PriceChart: React.FC<PriceChartProps> = ({
@@ -54,14 +59,29 @@ const PriceChart: React.FC<PriceChartProps> = ({
     type = 'line',
     currencySymbol = '$',
     forecastData = [],
-    showForecast = false
+    showForecast = false,
+    scaleType = 'linear'
 }) => {
+    // Sanitize data to handle outliers (e.g., Low = 0 causes issues with Logarithmic scale)
+    const sanitizedData = data.map(item => {
+        // Check for 0 or negative values, or the specific problematic date in 2017
+        const isProblematic = item.low <= 0 || (new Date(item.date).getFullYear() === 2017 && new Date(item.date).getMonth() === 3 && new Date(item.date).getDate() === 1 && item.low < 100);
+
+        if (isProblematic) {
+            // Replace invalid low with median of Open, High, Close
+            const values = [item.open, item.high, item.close].sort((a, b) => a - b);
+            const median = values[1];
+            return { ...item, low: median };
+        }
+        return item;
+    });
+
     const chartData = {
         datasets: [
             ...(type === 'line' ? [{
                 type: 'line' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
-                data: data.map((item) => ({
+                data: sanitizedData.map((item) => ({
                     x: new Date(item.date).getTime(),
                     y: item.close
                 })),
@@ -86,7 +106,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
             }] : [{
                 type: 'candlestick' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
-                data: data.map((item) => ({
+                data: sanitizedData.map((item) => ({
                     x: new Date(item.date).getTime(),
                     o: item.open,
                     h: item.high,
@@ -113,7 +133,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
             ...(showRsi ? [{
                 type: 'line' as const,
                 label: 'RSI',
-                data: data.map((item) => ({
+                data: sanitizedData.map((item) => ({
                     x: new Date(item.date).getTime(),
                     y: item.rsi || 50
                 })),
@@ -287,7 +307,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
             },
             y: {
-                type: 'linear' as const,
+                type: scaleType,
                 display: true,
                 position: 'right' as const,
                 stack: 'demo',

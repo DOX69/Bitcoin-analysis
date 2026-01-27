@@ -40,6 +40,7 @@ export default function DashboardClient({
     const [showForecast, setShowForecast] = useState(true);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
+    const [scaleType, setScaleType] = useState<'linear' | 'logarithmic'>('linear');
 
     // Stats calculated from data
     const periodStats = initialHistoricalData.length > 0 ? {
@@ -152,13 +153,41 @@ export default function DashboardClient({
                                                 <div className="bg-gray-800/50 p-2 rounded mb-2 text-[11px] text-gray-300 leading-relaxed">
                                                     This forecast uses the DeepAR algorithm to analyze historical price patterns and project future trends. The dashed lines show the expected price range (confidence intervals) for the selected period.
                                                 </div>
-                                                <p>Shows prediction with upper and lower confidence intervals.</p>
+                                                <p>Shows prediction with upper and lower confidence intervals. And only available for line chart.</p>
                                                 <p className="mt-1 text-gray-500 italic">Historical performance does not guarantee future results.</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex gap-2 items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
+                                            <button
+                                                onClick={() => setScaleType('linear')}
+                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${scaleType === 'linear'
+                                                    ? 'bg-[#F7931A] text-black'
+                                                    : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Linear
+                                            </button>
+                                            <button
+                                                onClick={() => setScaleType('logarithmic')}
+                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${scaleType === 'logarithmic'
+                                                    ? 'bg-[#F7931A] text-black'
+                                                    : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Log
+                                            </button>
+                                        </div>
+                                        <div className="group relative">
+                                            <div className="cursor-help text-gray-400 hover:text-white border border-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</div>
+                                            <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-[#1c1c1c] border border-gray-700 rounded-xl shadow-xl z-50 text-xs text-gray-300 hidden group-hover:block">
+                                                <p>Useful for viewing long-term growth where percentage changes matter more than dollar amounts.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
                                         {(['USD', 'CHF', 'EUR'] as const).map((currency) => (
                                             <button
@@ -215,6 +244,7 @@ export default function DashboardClient({
                                 }[initialCurrency] || '$'}
                                 forecastData={visibleForecastData}
                                 showForecast={showForecast}
+                                scaleType={scaleType}
                             />
                         </div>
 

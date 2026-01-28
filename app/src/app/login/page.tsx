@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AuthKPIs from '../../components/AuthKPIs';
+import { AuthKPIs } from '@/components/dashboard';
 import EnergyBeam from '../../components/landing/EnergyBeam';
 import EnergyGraph from '../../components/landing/EnergyGraph';
 

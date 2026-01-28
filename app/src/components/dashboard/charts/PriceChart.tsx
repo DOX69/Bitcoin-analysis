@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -62,19 +62,59 @@ const PriceChart: React.FC<PriceChartProps> = ({
     showForecast = false,
     scaleType = 'linear'
 }) => {
-    // Sanitize data to handle outliers (e.g., Low = 0 causes issues with Logarithmic scale)
-    const sanitizedData = data.map(item => {
-        // Check for 0 or negative values, or the specific problematic date in 2017
-        const isProblematic = item.low <= 0 || (new Date(item.date).getFullYear() === 2017 && new Date(item.date).getMonth() === 3 && new Date(item.date).getDate() === 1 && item.low < 100);
+    const { sanitizedData, shouldSmooth } = useMemo(() => {
+        const sanitized = data.map((item: BitcoinPrice) => {
+            const isProblematic = item.low <= 0 || (new Date(item.date).getFullYear() === 2017 && new Date(item.date).getMonth() === 3 && new Date(item.date).getDate() === 1 && item.low < 100);
 
-        if (isProblematic) {
-            // Replace invalid low with median of Open, High, Close
-            const values = [item.open, item.high, item.close].sort((a, b) => a - b);
-            const median = values[1];
-            return { ...item, low: median };
+            if (isProblematic) {
+                const values = [item.open, item.high, item.close].sort((a, b) => a - b);
+                const median = values[1];
+                return { ...item, low: median };
+            }
+            return item;
+        });
+
+        let smooth = false;
+        if (data.length > 1) {
+            const start = new Date(data[0].date);
+            const end = new Date(data[data.length - 1].date);
+            const yearsDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365);
+            smooth = yearsDiff >= 2;
         }
-        return item;
-    });
+
+        return { sanitizedData: sanitized, shouldSmooth: smooth };
+    }, [data]);
+
+    const rsiPoints = useMemo(() => {
+        if (!shouldSmooth) {
+            return sanitizedData.map((item: BitcoinPrice) => ({
+                x: new Date(item.date).getTime(),
+                y: item.rsi || 50
+            }));
+        }
+
+        const monthlyGroups: Record<string, { sum: number, count: number, date: number }> = {};
+        sanitizedData.forEach((item: BitcoinPrice) => {
+            const d = new Date(item.date);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (!monthlyGroups[key]) {
+                monthlyGroups[key] = {
+                    sum: 0,
+                    count: 0,
+                    date: new Date(d.getFullYear(), d.getMonth(), 15).getTime()
+                };
+            }
+            monthlyGroups[key].sum += (item.rsi || 50);
+            monthlyGroups[key].count += 1;
+        });
+
+        return Object.values(monthlyGroups)
+            .sort((a, b) => a.date - b.date)
+            .map(m => ({
+                x: m.date,
+                y: m.sum / m.count
+            }));
+    }, [sanitizedData, shouldSmooth]);
 
     const chartData = {
         datasets: [
@@ -133,10 +173,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
             ...(showRsi ? [{
                 type: 'line' as const,
                 label: 'RSI',
-                data: sanitizedData.map((item) => ({
-                    x: new Date(item.date).getTime(),
-                    y: item.rsi || 50
-                })),
+                data: rsiPoints,
                 borderColor: '#ffffff',
                 borderWidth: 1.5,
                 backgroundColor: (context: any) => {
@@ -287,9 +324,10 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 type: 'timeseries',
                 offset: true,
                 time: {
-                    unit: 'day',
+                    unit: shouldSmooth ? 'month' : 'day',
                     displayFormats: {
-                        day: 'MMM d'
+                        day: 'MMM d',
+                        month: 'MMM yyyy'
                     },
                     tooltipFormat: 'MMM d, yyyy'
                 },

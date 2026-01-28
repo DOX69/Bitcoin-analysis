@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import MetricsCard from '@/components/MetricsCard';
+import MetricsCard from '@/components/dashboard/cards/MetricsCard'; // Direct import from new location for unit test
 
 describe('MetricsCard Component', () => {
     it('should render title and value correctly', () => {

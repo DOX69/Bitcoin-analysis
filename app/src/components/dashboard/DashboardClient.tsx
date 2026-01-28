@@ -1,15 +1,15 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     DashboardHeader,
     StatsPanel,
     StatCard,
-    DatePicker
+    DateRangePicker,
+    PriceChart
 } from '@/components/dashboard';
-import PriceChart from '@/components/PriceChart';
 import type { BitcoinMetrics, BitcoinPrice, BitcoinForecast } from '@/lib/schemas';
 import type { Currency } from '@/lib/bitcoin-data-server';
 import { formatPriceWithCurrency } from '@/lib/format-utils';
@@ -60,10 +60,11 @@ export default function DashboardClient({
         router.push(`?${params.toString()}`);
     };
 
-    const handleDateChange = (type: 'start' | 'end', value: string) => {
+    const handleRangeChange = (start: string, end: string) => {
         const params = new URLSearchParams(searchParams.toString());
-        params.set(type, value);
-        params.set('time', 'custom');
+        if (start) params.set('start', start); else params.delete('start');
+        if (end) params.set('end', end); else params.delete('end');
+        if (start && end) params.set('time', 'custom');
         router.push(`?${params.toString()}`);
     };
 
@@ -82,7 +83,23 @@ export default function DashboardClient({
         { label: 'ALL', value: 'all' },
     ];
 
-    const visibleForecastData = getForecastSlice(initialForecastData, initialTime);
+    const isForecastPossible = useMemo(() => {
+        if (chartType === 'candlestick') return false;
+        if (initialTime !== 'custom') return true;
+
+        const endDateParam = searchParams.get('end');
+        if (!endDateParam) return true;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endDate = new Date(endDateParam);
+
+        return endDate >= today;
+    }, [initialTime, searchParams, chartType]);
+
+    const visibleForecastData = isForecastPossible
+        ? getForecastSlice(initialForecastData, initialTime)
+        : [];
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans flex flex-col">
@@ -108,17 +125,12 @@ export default function DashboardClient({
                                         </button>
                                     ))}
                                 </div>
+
                                 <div className="flex gap-2 items-center">
-                                    <DatePicker
-                                        label="Start Date"
-                                        value={searchParams.get('start') || ''}
-                                        onChange={(val) => handleDateChange('start', val)}
-                                    />
-                                    <span className="text-gray-500">→</span>
-                                    <DatePicker
-                                        label="End Date"
-                                        value={searchParams.get('end') || ''}
-                                        onChange={(val) => handleDateChange('end', val)}
+                                    <DateRangePicker
+                                        startDate={searchParams.get('start') || ''}
+                                        endDate={searchParams.get('end') || ''}
+                                        onChange={handleRangeChange}
                                     />
                                     <div className="flex items-center gap-2 ml-4">
                                         <span className="text-xs text-gray-400">RSI</span>
@@ -134,15 +146,15 @@ export default function DashboardClient({
                                     <div className="flex items-center gap-2 ml-2">
                                         <span className="text-xs text-gray-400">Forecast</span>
                                         <div
-                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showForecast && chartType !== 'candlestick' ? 'bg-[#F7931A]' : 'bg-gray-700'} ${chartType === 'candlestick' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showForecast && isForecastPossible ? 'bg-[#F7931A]' : 'bg-gray-700'} ${!isForecastPossible ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             onClick={() => {
-                                                if (chartType !== 'candlestick') {
+                                                if (isForecastPossible) {
                                                     setShowForecast(!showForecast);
                                                 }
                                             }}
                                         >
                                             <div
-                                                className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${showForecast && chartType !== 'candlestick' ? 'right-1' : 'left-1'}`}
+                                                className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${showForecast && isForecastPossible ? 'right-1' : 'left-1'}`}
                                             />
                                         </div>
                                         <div className="group relative">
@@ -153,7 +165,7 @@ export default function DashboardClient({
                                                 <div className="bg-gray-800/50 p-2 rounded mb-2 text-[11px] text-gray-300 leading-relaxed">
                                                     This forecast uses the DeepAR algorithm to analyze historical price patterns and project future trends. The dashed lines show the expected price range (confidence intervals) for the selected period.
                                                 </div>
-                                                <p>Shows prediction with upper and lower confidence intervals. And only available for line chart.</p>
+                                                <p>Shows prediction with upper and lower confidence intervals. Available for line chart when the viewing period includes the current date.</p>
                                                 <p className="mt-1 text-gray-500 italic">Historical performance does not guarantee future results.</p>
                                             </div>
                                         </div>
@@ -298,7 +310,7 @@ export default function DashboardClient({
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

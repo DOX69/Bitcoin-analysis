@@ -35,6 +35,83 @@ Bitcoin-analysis est un projet de pipeline de données pour l'analyse des prix d
 - **CI/CD Intégré** : Déploiement continu via GitHub Actions vers les environnements Databricks.
 - **Application Web (En cours)** : Interface React/Next.js immersive pour la visualisation et l'analyse.
 
+## Stack Technique
+
+<table>
+  <tr>
+    <td valign="top" width="50%">
+      <h3>Backend & Data Engineering</h3>
+      <table>
+        <tr>
+          <th>Technologie</th>
+          <th>Usage</th>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" /></td>
+          <td>Langage principal pour le traitement des données et l'orchestration</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white" alt="Databricks" /></td>
+          <td>Plateforme unifiée pour l'exécution Spark, le stockage Delta Lake et les jobs</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white" alt="dbt" /></td>
+          <td>Transformation des données (ELT) et gestion des modèles Bronze/Silver/Gold</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas" /></td>
+          <td>Manipulation et analyse de données pour les datasets en mémoire</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest" /></td>
+          <td>Framework robuste pour les tests unitaires et d'intégration</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/uv-Astral-purple?style=for-the-badge" alt="uv" /></td>
+          <td>Gestionnaire de paquets et de dépendances Python ultra-rapide</td>
+        </tr>
+      </table>
+    </td>
+    <td valign="top" width="50%">
+      <h3>Frontend</h3>
+      <table>
+        <tr>
+          <th>Technologie</th>
+          <th>Usage</th>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></td>
+          <td>Framework React pour le rendu côté serveur et la génération statique</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></td>
+          <td>Bibliothèque JavaScript pour la construction d'interfaces utilisateur interactives</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></td>
+          <td>Sur-ensemble typé de JavaScript pour un code plus fiable et maintenable</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" /></td>
+          <td>Framework CSS utilitaire pour un design rapide et responsive</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Chart.js-F5788D?style=for-the-badge&logo=chart.js&logoColor=white" alt="Chart.js" /></td>
+          <td>Bibliothèque de visualisation de données pour des graphiques dynamiques</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white" alt="Jest" /></td>
+          <td>Framework de test complet pour l'application Frontend</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" /></td>
+          <td>Validation de schémas TypeScript-first pour les formulaires et l'API</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
 ## Tutoriel : Pour Commencer
 
 ### Prérequis
@@ -220,6 +297,83 @@ Bitcoin-analysis is a data pipeline project for analyzing Bitcoin and other cryp
 - **Multi-Currency Support**: Analysis of BTC/USD, BTC/EUR, ETH/USD, ETH/EUR, ETH/BTC, AAVE/USD pairs.
 - **Integrated CI/CD**: Continuous deployment via GitHub Actions to Databricks environments.
 - **Web Application (In Progress)**: Immersive React/Next.js interface for visualization and analysis.
+
+## Technical Stack
+
+<table>
+  <tr>
+    <td valign="top" width="50%">
+      <h3>Backend & Data Engineering</h3>
+      <table>
+        <tr>
+          <th>Technology</th>
+          <th>Usage</th>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" /></td>
+          <td>Core language for data processing, scripting, and orchestration</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white" alt="Databricks" /></td>
+          <td>Unified Cloud Platform for Spark execution, Delta Lake storage, and jobs</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white" alt="dbt" /></td>
+          <td>Data transformation workflow (ELT) and medallion architecture management</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas" /></td>
+          <td>Data manipulation and analysis library for in-memory datasets</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest" /></td>
+          <td>Robust framework for unit and integration testing of data pipelines</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/uv-Astral-purple?style=for-the-badge" alt="uv" /></td>
+          <td>Extremely fast Python package installer and dependency manager</td>
+        </tr>
+      </table>
+    </td>
+    <td valign="top" width="50%">
+      <h3>Frontend</h3>
+      <table>
+        <tr>
+          <th>Technology</th>
+          <th>Usage</th>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></td>
+          <td>React framework for server-side rendering, SSG, and fullstack features</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></td>
+          <td>JavaScript library for building interactive user interfaces and components</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></td>
+          <td>Superset of JavaScript adding static typing for better code quality</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" /></td>
+          <td>Utility-first CSS framework for rapid, responsive UI styling</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Chart.js-F5788D?style=for-the-badge&logo=chart.js&logoColor=white" alt="Chart.js" /></td>
+          <td>Data visualization library for creating responsive and interactive charts</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white" alt="Jest" /></td>
+          <td>Comprehensive testing framework for Frontend logic and components</td>
+        </tr>
+        <tr>
+          <td><img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" /></td>
+          <td>TypeScript-first schema declaration and validation library</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
 ## Tutorial: Getting Started
 

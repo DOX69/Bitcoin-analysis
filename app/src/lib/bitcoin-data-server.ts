@@ -1,11 +1,13 @@
 
 import { executeQuery } from './databricks';
 import { cache } from 'react';
+import { z } from 'zod';
 import { env } from './env';
 import {
     BitcoinMetricsSchema,
     BitcoinHistorySchema,
-    AggregatedDataListSchema
+    AggregatedDataListSchema,
+    BitcoinForecastSchema
 } from './schemas';
 
 export type Currency = 'USD' | 'CHF' | 'EUR';
@@ -127,8 +129,8 @@ export const getHistoricalPrices = cache(async (
     currency: Currency = 'USD'
 ) => {
     try {
-        // Check if we should use monthly aggregation (for 'All' filter / > 5 years)
-        const useMonthlyAgg = days >= 1800; // 5 years
+        // Check if we should use monthly aggregation (for 'All' filter / > 1 years)
+        const useMonthlyAgg = days >= 1800; // 1 years
 
         let query;
 
@@ -238,6 +240,66 @@ export const getAggregatedData = cache(async (
         return AggregatedDataListSchema.parse(results);
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch aggregated data:', error);
+        throw error;
+    }
+});
+
+/**
+ * Get forecast data (1 years)
+ */
+export const getForecastData = cache(async (currency: Currency = 'USD') => {
+    try {
+        const query = `
+      WITH ranked AS (
+        SELECT
+          date_prices,
+          predicted_close_usd,
+          predicted_close_usd_lower,
+          predicted_close_usd_upper,
+          predicted_at,
+          ROW_NUMBER() OVER (PARTITION BY date_prices ORDER BY predicted_at DESC) as rn
+        FROM prod.dlh_silver__crypto_prices.forcast_btc_price
+      )
+      SELECT
+        date_prices,
+        predicted_close_usd,
+        predicted_close_usd_lower,
+        predicted_close_usd_upper,
+        predicted_at
+      FROM ranked
+      WHERE rn = 1
+      ORDER BY date_prices ASC
+      LIMIT 365
+    `;
+
+        const results = await executeQuery<any>(query);
+
+        // Deduplicate results by date_prices (keep the first one found if duplicates exist)
+        // Adjust logic if specific 'predicted_at' priority is needed.
+        const uniqueResults = Object.values(
+            results.reduce((acc: any, item: any) => {
+                const dateKey = new Date(item.date_prices).toISOString().split('T')[0];
+                if (!acc[dateKey]) {
+                    acc[dateKey] = item;
+                }
+                return acc;
+            }, {})
+        );
+
+        if (currency !== 'USD') {
+            const rates = await getCurrencyRates();
+            const convertedResults = uniqueResults.map((item: any) => ({
+                ...item,
+                predicted_close_usd: convertPrice(item.predicted_close_usd, currency, rates),
+                predicted_close_usd_lower: convertPrice(item.predicted_close_usd_lower, currency, rates),
+                predicted_close_usd_upper: convertPrice(item.predicted_close_usd_upper, currency, rates),
+            }));
+            return z.array(BitcoinForecastSchema).parse(convertedResults);
+        }
+
+        return z.array(BitcoinForecastSchema).parse(uniqueResults);
+    } catch (error) {
+        console.error('DB_ERROR: Failed to fetch forecast data:', error);
         throw error;
     }
 });

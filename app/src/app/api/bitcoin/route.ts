@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import {
     getCurrentBitcoinMetrics,
     getHistoricalPrices,
-    getAggregatedData
+    getAggregatedData,
+    getForecastData
 } from '@/lib/bitcoin-data-server';
 import { BitcoinSearchParamsSchema } from '@/lib/schemas';
 import { z } from 'zod';
@@ -31,6 +32,10 @@ export async function GET(request: Request) {
             }
             case 'aggregated': {
                 const data = await getAggregatedData(params.period);
+                return NextResponse.json(data);
+            }
+            case 'forecast': {
+                const data = await getForecastData();
                 return NextResponse.json(data);
             }
             default:

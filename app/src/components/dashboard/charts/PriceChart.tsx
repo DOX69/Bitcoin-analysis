@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -13,10 +13,12 @@ import {
     Legend,
     Filler,
     TimeScale,
-    TimeSeriesScale
+
+    TimeSeriesScale,
+    LogarithmicScale
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
-import { BitcoinPrice } from '@/lib/schemas';
+import { BitcoinPrice, BitcoinForecast } from '@/lib/schemas';
 import { formatPrice, formatDate, formatTooltipTime } from '@/lib/format-utils';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns'; // Import date adapter for potential time scale usage
@@ -34,7 +36,9 @@ ChartJS.register(
     CandlestickController,
     CandlestickElement,
     TimeScale,
-    TimeSeriesScale
+    TimeScale,
+    TimeSeriesScale,
+    LogarithmicScale
 );
 
 interface PriceChartProps {
@@ -43,15 +47,81 @@ interface PriceChartProps {
     showRsi?: boolean;
     type?: 'line' | 'candlestick';
     currencySymbol?: string;
+    forecastData?: BitcoinForecast[];
+    showForecast?: boolean;
+    scaleType?: 'linear' | 'logarithmic';
 }
 
-const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi = false, type = 'line', currencySymbol = '$' }) => {
+const PriceChart: React.FC<PriceChartProps> = ({
+    data,
+    loading = false,
+    showRsi = false,
+    type = 'line',
+    currencySymbol = '$',
+    forecastData = [],
+    showForecast = false,
+    scaleType = 'linear'
+}) => {
+    const { sanitizedData, shouldSmooth } = useMemo(() => {
+        const sanitized = data.map((item: BitcoinPrice) => {
+            const isProblematic = item.low <= 0 || (new Date(item.date).getFullYear() === 2017 && new Date(item.date).getMonth() === 3 && new Date(item.date).getDate() === 1 && item.low < 100);
+
+            if (isProblematic) {
+                const values = [item.open, item.high, item.close].sort((a, b) => a - b);
+                const median = values[1];
+                return { ...item, low: median };
+            }
+            return item;
+        });
+
+        let smooth = false;
+        if (data.length > 1) {
+            const start = new Date(data[0].date);
+            const end = new Date(data[data.length - 1].date);
+            const yearsDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365);
+            smooth = yearsDiff >= 2;
+        }
+
+        return { sanitizedData: sanitized, shouldSmooth: smooth };
+    }, [data]);
+
+    const rsiPoints = useMemo(() => {
+        if (!shouldSmooth) {
+            return sanitizedData.map((item: BitcoinPrice) => ({
+                x: new Date(item.date).getTime(),
+                y: item.rsi || 50
+            }));
+        }
+
+        const monthlyGroups: Record<string, { sum: number, count: number, date: number }> = {};
+        sanitizedData.forEach((item: BitcoinPrice) => {
+            const d = new Date(item.date);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (!monthlyGroups[key]) {
+                monthlyGroups[key] = {
+                    sum: 0,
+                    count: 0,
+                    date: new Date(d.getFullYear(), d.getMonth(), 15).getTime()
+                };
+            }
+            monthlyGroups[key].sum += (item.rsi || 50);
+            monthlyGroups[key].count += 1;
+        });
+
+        return Object.values(monthlyGroups)
+            .sort((a, b) => a.date - b.date)
+            .map(m => ({
+                x: m.date,
+                y: m.sum / m.count
+            }));
+    }, [sanitizedData, shouldSmooth]);
+
     const chartData = {
         datasets: [
             ...(type === 'line' ? [{
                 type: 'line' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
-                data: data.map((item) => ({
+                data: sanitizedData.map((item) => ({
                     x: new Date(item.date).getTime(),
                     y: item.close
                 })),
@@ -76,7 +146,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
             }] : [{
                 type: 'candlestick' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
-                data: data.map((item) => ({
+                data: sanitizedData.map((item) => ({
                     x: new Date(item.date).getTime(),
                     o: item.open,
                     h: item.high,
@@ -103,10 +173,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
             ...(showRsi ? [{
                 type: 'line' as const,
                 label: 'RSI',
-                data: data.map((item) => ({
-                    x: new Date(item.date).getTime(),
-                    y: item.rsi || 50
-                })),
+                data: rsiPoints,
                 borderColor: '#ffffff',
                 borderWidth: 1.5,
                 backgroundColor: (context: any) => {
@@ -133,7 +200,60 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 pointHoverRadius: 4,
                 pointHoverBackgroundColor: '#ffffff',
                 yAxisID: 'y1',
-            }] : [])
+            }] : []),
+            ...(type === 'line' && showForecast && forecastData.length > 0 ? [
+                // Forecast - Regular
+                {
+                    type: 'line' as const,
+                    label: 'Forecast',
+                    data: forecastData.map((item) => ({
+                        x: new Date(item.date_prices).getTime(),
+                        y: item.predicted_close_usd
+                    })),
+                    borderColor: 'rgba(255, 107, 53, 1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    pointHitRadius: 20,
+                    yAxisID: 'y',
+                },
+                // Forecast - Upper
+                {
+                    type: 'line' as const,
+                    label: 'Forecast Upper',
+                    data: forecastData.map((item) => ({
+                        x: new Date(item.date_prices).getTime(),
+                        y: item.predicted_close_usd_upper
+                    })),
+                    borderColor: 'rgba(255, 255, 255, 0.5)', // White with opacity for bounds
+                    borderWidth: 1,
+                    borderDash: [3, 3],
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    pointHitRadius: 20,
+                    yAxisID: 'y',
+                },
+                // Forecast - Lower
+                {
+                    type: 'line' as const,
+                    label: 'Forecast Lower',
+                    data: forecastData.map((item) => ({
+                        x: new Date(item.date_prices).getTime(),
+                        y: item.predicted_close_usd_lower
+                    })),
+                    borderColor: 'rgba(255, 255, 255, 0.5)', // White with opacity for bounds
+                    borderWidth: 1,
+                    borderDash: [3, 3],
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    pointHitRadius: 20,
+                    yAxisID: 'y',
+                }
+            ] : [])
         ],
     };
 
@@ -145,7 +265,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 display: false,
             },
             tooltip: {
-                mode: 'index' as const,
+                mode: 'x' as const,
                 intersect: false,
                 backgroundColor: 'rgba(28, 28, 28, 0.95)',
                 padding: 15,
@@ -164,6 +284,12 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 bodyColor: '#9ca3af',
                 borderColor: 'rgba(255, 165, 0, 0.3)',
                 borderWidth: 1,
+                filter: function (tooltipItem: any, index: number, tooltipItems: any[]) {
+                    // Deduplicate: only show first item for each dataset label
+                    const label = tooltipItem.dataset.label;
+                    const firstIndex = tooltipItems.findIndex((item: any) => item.dataset.label === label);
+                    return index === firstIndex;
+                },
                 callbacks: {
                     title: function (context: any) {
                         const raw = context[0].raw;
@@ -185,6 +311,9 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                                 `C: ${currencySymbol}${formatPrice(raw.c)}`
                             ];
                         }
+                        if (context.dataset.label && context.dataset.label.includes('Forecast')) {
+                            return `${context.dataset.label.replace('Forecast', '').trim() || 'Forecast'}: ${currencySymbol}${formatPrice(context.parsed.y)}`;
+                        }
                         return currencySymbol + formatPrice(context.parsed.y);
                     },
                 },
@@ -195,9 +324,10 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 type: 'timeseries',
                 offset: true,
                 time: {
-                    unit: 'day',
+                    unit: shouldSmooth ? 'month' : 'day',
                     displayFormats: {
-                        day: 'MMM d'
+                        day: 'MMM d',
+                        month: 'MMM yyyy'
                     },
                     tooltipFormat: 'MMM d, yyyy'
                 },
@@ -215,7 +345,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
                 },
             },
             y: {
-                type: 'linear' as const,
+                type: scaleType,
                 display: true,
                 position: 'right' as const,
                 stack: 'demo',
@@ -259,7 +389,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, loading = false, showRsi 
             } : {})
         },
         interaction: {
-            mode: 'index',
+            mode: 'x',
             intersect: false,
         },
     };

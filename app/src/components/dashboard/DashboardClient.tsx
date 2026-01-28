@@ -1,22 +1,24 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     DashboardHeader,
     StatsPanel,
     StatCard,
-    DatePicker
+    DateRangePicker,
+    PriceChart
 } from '@/components/dashboard';
-import PriceChart from '@/components/PriceChart';
-import type { BitcoinMetrics, BitcoinPrice } from '@/lib/schemas';
+import type { BitcoinMetrics, BitcoinPrice, BitcoinForecast } from '@/lib/schemas';
 import type { Currency } from '@/lib/bitcoin-data-server';
 import { formatPriceWithCurrency } from '@/lib/format-utils';
+import { getForecastSlice } from '@/lib/forecast-utils';
 
 interface DashboardClientProps {
     initialMetrics: BitcoinMetrics;
     initialHistoricalData: BitcoinPrice[];
+    initialForecastData: BitcoinForecast[];
     selectedTime: string;
     startDate: string;
     endDate: string;
@@ -26,6 +28,7 @@ interface DashboardClientProps {
 export default function DashboardClient({
     initialMetrics,
     initialHistoricalData,
+    initialForecastData,
     selectedTime: initialTime,
     selectedCurrency: initialCurrency,
 }: DashboardClientProps) {
@@ -34,8 +37,10 @@ export default function DashboardClient({
 
     // States that don't necessarily need to be in URL (UI preferences)
     const [showRsi, setShowRsi] = useState(false);
+    const [showForecast, setShowForecast] = useState(true);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
+    const [scaleType, setScaleType] = useState<'linear' | 'logarithmic'>('linear');
 
     // Stats calculated from data
     const periodStats = initialHistoricalData.length > 0 ? {
@@ -55,10 +60,11 @@ export default function DashboardClient({
         router.push(`?${params.toString()}`);
     };
 
-    const handleDateChange = (type: 'start' | 'end', value: string) => {
+    const handleRangeChange = (start: string, end: string) => {
         const params = new URLSearchParams(searchParams.toString());
-        params.set(type, value);
-        params.set('time', 'custom');
+        if (start) params.set('start', start); else params.delete('start');
+        if (end) params.set('end', end); else params.delete('end');
+        if (start && end) params.set('time', 'custom');
         router.push(`?${params.toString()}`);
     };
 
@@ -76,6 +82,24 @@ export default function DashboardClient({
         { label: 'YTD', value: 'ytd' },
         { label: 'ALL', value: 'all' },
     ];
+
+    const isForecastPossible = useMemo(() => {
+        if (chartType === 'candlestick') return false;
+        if (initialTime !== 'custom') return true;
+
+        const endDateParam = searchParams.get('end');
+        if (!endDateParam) return true;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endDate = new Date(endDateParam);
+
+        return endDate >= today;
+    }, [initialTime, searchParams, chartType]);
+
+    const visibleForecastData = isForecastPossible
+        ? getForecastSlice(initialForecastData, initialTime)
+        : [];
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans flex flex-col">
@@ -101,17 +125,12 @@ export default function DashboardClient({
                                         </button>
                                     ))}
                                 </div>
+
                                 <div className="flex gap-2 items-center">
-                                    <DatePicker
-                                        label="Start Date"
-                                        value={searchParams.get('start') || ''}
-                                        onChange={(val) => handleDateChange('start', val)}
-                                    />
-                                    <span className="text-gray-500">→</span>
-                                    <DatePicker
-                                        label="End Date"
-                                        value={searchParams.get('end') || ''}
-                                        onChange={(val) => handleDateChange('end', val)}
+                                    <DateRangePicker
+                                        startDate={searchParams.get('start') || ''}
+                                        endDate={searchParams.get('end') || ''}
+                                        onChange={handleRangeChange}
                                     />
                                     <div className="flex items-center gap-2 ml-4">
                                         <span className="text-xs text-gray-400">RSI</span>
@@ -124,8 +143,63 @@ export default function DashboardClient({
                                             />
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-2 ml-2">
+                                        <span className="text-xs text-gray-400">Forecast</span>
+                                        <div
+                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showForecast && isForecastPossible ? 'bg-[#F7931A]' : 'bg-gray-700'} ${!isForecastPossible ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            onClick={() => {
+                                                if (isForecastPossible) {
+                                                    setShowForecast(!showForecast);
+                                                }
+                                            }}
+                                        >
+                                            <div
+                                                className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${showForecast && isForecastPossible ? 'right-1' : 'left-1'}`}
+                                            />
+                                        </div>
+                                        <div className="group relative">
+                                            <div className="cursor-help text-gray-400 hover:text-white border border-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</div>
+                                            <div className="absolute top-full right-0 mt-2 w-80 p-4 bg-[#1c1c1c] border border-gray-700 rounded-xl shadow-xl z-50 text-xs text-gray-300 hidden group-hover:block">
+                                                <h4 className="text-white font-bold mb-2">BTC Price Forecast</h4>
+                                                <p className="mb-2">Using Databricks MLflow predictive model.</p>
+                                                <div className="bg-gray-800/50 p-2 rounded mb-2 text-[11px] text-gray-300 leading-relaxed">
+                                                    This forecast uses the DeepAR algorithm to analyze historical price patterns and project future trends. The dashed lines show the expected price range (confidence intervals) for the selected period.
+                                                </div>
+                                                <p>Shows prediction with upper and lower confidence intervals. Available for line chart when the viewing period includes the current date.</p>
+                                                <p className="mt-1 text-gray-500 italic">Historical performance does not guarantee future results.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="flex gap-2 items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
+                                            <button
+                                                onClick={() => setScaleType('linear')}
+                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${scaleType === 'linear'
+                                                    ? 'bg-[#F7931A] text-black'
+                                                    : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Linear
+                                            </button>
+                                            <button
+                                                onClick={() => setScaleType('logarithmic')}
+                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${scaleType === 'logarithmic'
+                                                    ? 'bg-[#F7931A] text-black'
+                                                    : 'text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Log
+                                            </button>
+                                        </div>
+                                        <div className="group relative">
+                                            <div className="cursor-help text-gray-400 hover:text-white border border-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</div>
+                                            <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-[#1c1c1c] border border-gray-700 rounded-xl shadow-xl z-50 text-xs text-gray-300 hidden group-hover:block">
+                                                <p>Useful for viewing long-term growth where percentage changes matter more than dollar amounts.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
                                         {(['USD', 'CHF', 'EUR'] as const).map((currency) => (
                                             <button
@@ -164,6 +238,9 @@ export default function DashboardClient({
                             </div>
                         </div>
 
+
+
+
                         {/* Chart Container */}
                         <div className="h-[420px] dashboard-chart-container relative mb-6">
                             <PriceChart
@@ -177,6 +254,9 @@ export default function DashboardClient({
                                     'GBP': '£',
                                     'CHF': 'Fr'
                                 }[initialCurrency] || '$'}
+                                forecastData={visibleForecastData}
+                                showForecast={showForecast}
+                                scaleType={scaleType}
                             />
                         </div>
 
@@ -230,7 +310,7 @@ export default function DashboardClient({
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

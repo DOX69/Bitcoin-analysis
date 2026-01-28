@@ -35,6 +35,29 @@ Bitcoin-analysis est un projet de pipeline de données pour l'analyse des prix d
 - **CI/CD Intégré** : Déploiement continu via GitHub Actions vers les environnements Databricks.
 - **Application Web (En cours)** : Interface React/Next.js immersive pour la visualisation et l'analyse.
 
+## Stack Technique
+
+### Backend & Data Engineering
+| Technologie | Badge | Usage |
+|-------------|-------|-------|
+| **Python** | ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) | Langage principal |
+| **Databricks** | ![Databricks](https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white) | Plateforme Cloud, Orchestration & Compute |
+| **dbt** | ![dbt](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white) | Transformation de données (ELT) |
+| **Pandas** | ![Pandas](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white) | Manipulation de données |
+| **Pytest** | ![Pytest](https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white) | Tests unitaires et d'intégration |
+| **uv** | ![uv](https://img.shields.io/badge/uv-Astral-purple?style=for-the-badge) | Gestionnaire de dépendances Python rapide |
+
+### Frontend
+| Technologie | Badge | Usage |
+|-------------|-------|-------|
+| **Next.js** | ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white) | Framework React Fullstack |
+| **React** | ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) | Bibliothèque UI |
+| **TypeScript** | ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) | Typage statique |
+| **Tailwind CSS** | ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white) | Framework CSS utilitaire |
+| **Chart.js** | ![Chart.js](https://img.shields.io/badge/Chart.js-F5788D?style=for-the-badge&logo=chart.js&logoColor=white) | Visualisation de données |
+| **Jest** | ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white) | Tests Frontend |
+| **Zod** | ![Zod](https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white) | Validation de schéma |
+
 ## Tutoriel : Pour Commencer
 
 ### Prérequis
@@ -220,6 +243,29 @@ Bitcoin-analysis is a data pipeline project for analyzing Bitcoin and other cryp
 - **Multi-Currency Support**: Analysis of BTC/USD, BTC/EUR, ETH/USD, ETH/EUR, ETH/BTC, AAVE/USD pairs.
 - **Integrated CI/CD**: Continuous deployment via GitHub Actions to Databricks environments.
 - **Web Application (In Progress)**: Immersive React/Next.js interface for visualization and analysis.
+
+## Technical Stack
+
+### Backend & Data Engineering
+| Technology | Badge | Usage |
+|------------|-------|-------|
+| **Python** | ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) | Main Language |
+| **Databricks** | ![Databricks](https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white) | Cloud Platform, Orchestration & Compute |
+| **dbt** | ![dbt](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white) | Data Transformation (ELT) |
+| **Pandas** | ![Pandas](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white) | Data Manipulation |
+| **Pytest** | ![Pytest](https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white) | Unit & Integration Testing |
+| **uv** | ![uv](https://img.shields.io/badge/uv-Astral-purple?style=for-the-badge) | Fast Python Package Manager |
+
+### Frontend
+| Technology | Badge | Usage |
+|------------|-------|-------|
+| **Next.js** | ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white) | Fullstack React Framework |
+| **React** | ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) | UI Library |
+| **TypeScript** | ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) | Static Typing |
+| **Tailwind CSS** | ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white) | Utility-first CSS Framework |
+| **Chart.js** | ![Chart.js](https://img.shields.io/badge/Chart.js-F5788D?style=for-the-badge&logo=chart.js&logoColor=white) | Data Visualization |
+| **Jest** | ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white) | Frontend Testing |
+| **Zod** | ![Zod](https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white) | Schema Validation |
 
 ## Tutorial: Getting Started
 

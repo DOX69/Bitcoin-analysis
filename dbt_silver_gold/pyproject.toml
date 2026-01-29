@@ -7,6 +7,4 @@ requires-python = ">=3.11"
 dependencies = [
     "dbt-core>=1.7.19",
     "dbt-databricks>=1.7.3",
-    "openai>=1.0.0",
-    "ruamel.yaml>=0.17.0",
 ]

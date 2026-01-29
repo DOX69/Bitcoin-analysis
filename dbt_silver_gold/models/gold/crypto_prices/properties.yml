@@ -1,0 +1,158 @@
+version: 2
+
+models:
+  - name: agg_week_btc
+    description: "Weekly aggregated BTC prices with OHLC for USD, CHF, EUR and RSI indicator."
+    columns:
+      - name: iso_week_start_date
+        description: "The start date of the ISO week."
+      - name: month_start_date
+        description: "The start date of the month."
+      - name: quarter_start_date
+        description: "The start date of the quarter."
+      - name: year_start_date
+        description: "The start date of the year."
+      - name: low_usd
+        description: "Lowest price in USD during the period."
+      - name: high_usd
+        description: "Highest price in USD during the period."
+      - name: open_usd
+        description: "Opening price in USD for the period."
+      - name: close_usd
+        description: "Closing price in USD for the period."
+      - name: low_chf
+        description: "Lowest price in CHF during the period."
+      - name: high_chf
+        description: "Highest price in CHF during the period."
+      - name: open_chf
+        description: "Opening price in CHF for the period."
+      - name: close_chf
+        description: "Closing price in CHF for the period."
+      - name: low_eur
+        description: "Lowest price in EUR during the period."
+      - name: high_eur
+        description: "Highest price in EUR during the period."
+      - name: open_eur
+        description: "Opening price in EUR for the period."
+      - name: close_eur
+        description: "Closing price in EUR for the period."
+      - name: rsi_14
+        description: "Relative Strength Index (14 periods) calculated on close_usd."
+      - name: ingest_date_time
+        description: "Timestamp when the data was ingested."
+      - name: dbt_batch_id
+        description: "The dbt batch ID for the run."
+
+  - name: agg_month_btc
+    description: "Monthly aggregated BTC prices with OHLC for USD, CHF, EUR and RSI indicator."
+    columns:
+      - name: month_start_date
+        description: "The start date of the month."
+      - name: quarter_start_date
+        description: "The start date of the quarter."
+      - name: year_start_date
+        description: "The start date of the year."
+      - name: low_usd
+        description: "Lowest price in USD during the period."
+      - name: high_usd
+        description: "Highest price in USD during the period."
+      - name: open_usd
+        description: "Opening price in USD for the period."
+      - name: close_usd
+        description: "Closing price in USD for the period."
+      - name: low_chf
+        description: "Lowest price in CHF during the period."
+      - name: high_chf
+        description: "Highest price in CHF during the period."
+      - name: open_chf
+        description: "Opening price in CHF for the period."
+      - name: close_chf
+        description: "Closing price in CHF for the period."
+      - name: low_eur
+        description: "Lowest price in EUR during the period."
+      - name: high_eur
+        description: "Highest price in EUR during the period."
+      - name: open_eur
+        description: "Opening price in EUR for the period."
+      - name: close_eur
+        description: "Closing price in EUR for the period."
+      - name: rsi_14
+        description: "Relative Strength Index (14 periods) calculated on close_usd."
+      - name: ingest_date_time
+        description: "Timestamp when the data was ingested."
+      - name: dbt_batch_id
+        description: "The dbt batch ID for the run."
+
+  - name: agg_quarter_btc
+    description: "Quarterly aggregated BTC prices with OHLC for USD, CHF, EUR and RSI indicator."
+    columns:
+      - name: quarter_start_date
+        description: "The start date of the quarter."
+      - name: year_start_date
+        description: "The start date of the year."
+      - name: low_usd
+        description: "Lowest price in USD during the period."
+      - name: high_usd
+        description: "Highest price in USD during the period."
+      - name: open_usd
+        description: "Opening price in USD for the period."
+      - name: close_usd
+        description: "Closing price in USD for the period."
+      - name: low_chf
+        description: "Lowest price in CHF during the period."
+      - name: high_chf
+        description: "Highest price in CHF during the period."
+      - name: open_chf
+        description: "Opening price in CHF for the period."
+      - name: close_chf
+        description: "Closing price in CHF for the period."
+      - name: low_eur
+        description: "Lowest price in EUR during the period."
+      - name: high_eur
+        description: "Highest price in EUR during the period."
+      - name: open_eur
+        description: "Opening price in EUR for the period."
+      - name: close_eur
+        description: "Closing price in EUR for the period."
+      - name: rsi_14
+        description: "Relative Strength Index (14 periods) calculated on close_usd."
+      - name: ingest_date_time
+        description: "Timestamp when the data was ingested."
+      - name: dbt_batch_id
+        description: "The dbt batch ID for the run."
+
+  - name: agg_year_btc
+    description: "Yearly aggregated BTC prices with OHLC for USD, CHF, EUR and RSI indicator."
+    columns:
+      - name: year_start_date
+        description: "The start date of the year."
+      - name: low_usd
+        description: "Lowest price in USD during the period."
+      - name: high_usd
+        description: "Highest price in USD during the period."
+      - name: open_usd
+        description: "Opening price in USD for the period."
+      - name: close_usd
+        description: "Closing price in USD for the period."
+      - name: low_chf
+        description: "Lowest price in CHF during the period."
+      - name: high_chf
+        description: "Highest price in CHF during the period."
+      - name: open_chf
+        description: "Opening price in CHF for the period."
+      - name: close_chf
+        description: "Closing price in CHF for the period."
+      - name: low_eur
+        description: "Lowest price in EUR during the period."
+      - name: high_eur
+        description: "Highest price in EUR during the period."
+      - name: open_eur
+        description: "Opening price in EUR for the period."
+      - name: close_eur
+        description: "Closing price in EUR for the period."
+      - name: rsi_14
+        description: "Relative Strength Index (14 periods) calculated on close_usd."
+      - name: ingest_date_time
+        description: "Timestamp when the data was ingested."
+      - name: dbt_batch_id
+        description: "The dbt batch ID for the run."

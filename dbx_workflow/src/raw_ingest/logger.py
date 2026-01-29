@@ -26,12 +26,13 @@ class CustomFormatter(logging.Formatter):
         
         # Logique de couleur
         message = record.getMessage()
+        message_upper = message.upper()
         is_warning_or_higher = record.levelno >= logging.WARNING
-        is_error = any(word in message.upper() for word in self.ERROR_KEYWORDS)
+        is_error = any(word in message_upper for word in self.ERROR_KEYWORDS)
 
-        if any(word in message.upper() for word in self.BEGIN_KEYWORDS):
+        if any(word in message_upper for word in self.BEGIN_KEYWORDS):
             color = self.BLUE
-        elif any(word in message.upper() for word in self.SUCCESS_KEYWORDS):
+        elif any(word in message_upper for word in self.SUCCESS_KEYWORDS):
             color = self.GREEN
         elif is_error:
             color = self.RED

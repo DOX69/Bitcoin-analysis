@@ -1,0 +1,10 @@
+version: 2
+
+macros:
+  - name: create_update_obt_fact_day_crypto
+    description: "Generates an incremental model for daily crypto fact tables. It handles deduplication, currency conversion (USD to CHF/EUR), and RSI calculation."
+    arguments:
+      - name: source_schema_name
+        description: "The schema name of the source table (e.g., 'bronze')."
+      - name: source_table_name
+        description: "The name of the source table (e.g., 'btc_usd_ohlcv')."

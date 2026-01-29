@@ -8,6 +8,45 @@ models:
         data_tests:
           - unique
           - not_null
+      - name: low_usd
+        description: "Lowest price in USD"
+      - name: high_usd
+        description: "Highest price in USD"
+      - name: open_usd
+        description: "Opening price in USD"
+      - name: close_usd
+        description: "Closing price in USD"
+      - name: volume
+        description: "Trading volume"
+      - name: rsi
+        description: "Relative Strength Index (RSI)"
+      - name: rsi_status
+        description: "RSI Status (e.g., Overbought, Oversold)"
+      - name: rate_usd_chf
+        description: "Exchange rate from USD to CHF"
+      - name: rate_usd_eur
+        description: "Exchange rate from USD to EUR"
+      - name: low_chf
+        description: "Lowest price in CHF"
+      - name: high_chf
+        description: "Highest price in CHF"
+      - name: open_chf
+        description: "Opening price in CHF"
+      - name: close_chf
+        description: "Closing price in CHF"
+      - name: low_eur
+        description: "Lowest price in EUR"
+      - name: high_eur
+        description: "Highest price in EUR"
+      - name: open_eur
+        description: "Opening price in EUR"
+      - name: close_eur
+        description: "Closing price in EUR"
+      - name: ingest_date_time
+        description: "Timestamp of ingestion"
+      - name: dbt_batch_id
+        description: "Batch ID of the dbt run"
+
   - name: obt_fact_day_eth
     description: "Daily eth prices in usd, chf, eur"
     columns:
@@ -17,3 +56,41 @@ models:
         data_tests:
           - unique
           - not_null
+      - name: low_usd
+        description: "Lowest price in USD"
+      - name: high_usd
+        description: "Highest price in USD"
+      - name: open_usd
+        description: "Opening price in USD"
+      - name: close_usd
+        description: "Closing price in USD"
+      - name: volume
+        description: "Trading volume"
+      - name: rsi
+        description: "Relative Strength Index (RSI)"
+      - name: rsi_status
+        description: "RSI Status (e.g., Overbought, Oversold)"
+      - name: rate_usd_chf
+        description: "Exchange rate from USD to CHF"
+      - name: rate_usd_eur
+        description: "Exchange rate from USD to EUR"
+      - name: low_chf
+        description: "Lowest price in CHF"
+      - name: high_chf
+        description: "Highest price in CHF"
+      - name: open_chf
+        description: "Opening price in CHF"
+      - name: close_chf
+        description: "Closing price in CHF"
+      - name: low_eur
+        description: "Lowest price in EUR"
+      - name: high_eur
+        description: "Highest price in EUR"
+      - name: open_eur
+        description: "Opening price in EUR"
+      - name: close_eur
+        description: "Closing price in EUR"
+      - name: ingest_date_time
+        description: "Timestamp of ingestion"
+      - name: dbt_batch_id
+        description: "Batch ID of the dbt run"

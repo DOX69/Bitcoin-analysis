@@ -100,13 +100,7 @@ class FrankfurterFetcher(BaseFetcher):
                         # date_str is YYYY-MM-DD
                         val = rate_dict.get(self.currency.upper())
                         if val is not None:
-                            # Convert date to unix timestamp (midnight)
-                            # DbWriter expects 'time' as long/int (seconds?) or timestamp?
-                            # CoinbaseFetcher used int(row[0]). row[0] was unix timestamp.
-                            # So we produce unix timestamp.
-                            dt = datetime.strptime(date_str, "%Y-%m-%d")
-                            ts = int(dt.timestamp())
-                            all_data.append([ts, float(val)])
+                            all_data.append([date_str, float(val)])
                             
                 elif response.status_code == 404:
                     self.logger.warning(f"No data for range {s_str}..{e_str}")
@@ -128,7 +122,7 @@ class FrankfurterFetcher(BaseFetcher):
             columns = ["time", "rate"]
             df = pd.DataFrame(all_data, columns=columns)
             if not df.empty:
-                df["time"] = pd.to_datetime(df["time"], unit="s")
+                df["time"] = pd.to_datetime(df["time"])
 
             self.logger.info(f"✓ Fetching {len(df)} rows of data succeeded")
             if not df.empty:

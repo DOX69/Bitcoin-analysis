@@ -10,16 +10,29 @@ models:
           - not_null
       - name: low_usd
         description: "Lowest price in USD"
+        data_tests:
+          - positive_value
       - name: high_usd
         description: "Highest price in USD"
+        data_tests:
+          - positive_value
       - name: open_usd
         description: "Opening price in USD"
+        data_tests:
+          - positive_value
       - name: close_usd
         description: "Closing price in USD"
+        data_tests:
+          - not_null
+          - positive_value
       - name: volume
         description: "Trading volume"
+        data_tests:
+          - not_null
       - name: rsi
         description: "Relative Strength Index (RSI)"
+        data_tests:
+          - percentage_range
       - name: rsi_status
         description: "RSI Status (e.g., Overbought, Oversold)"
       - name: rate_usd_chf
@@ -58,16 +71,29 @@ models:
           - not_null
       - name: low_usd
         description: "Lowest price in USD"
+        data_tests:
+          - positive_value
       - name: high_usd
         description: "Highest price in USD"
+        data_tests:
+          - positive_value
       - name: open_usd
         description: "Opening price in USD"
+        data_tests:
+          - positive_value
       - name: close_usd
         description: "Closing price in USD"
+        data_tests:
+          - not_null
+          - positive_value
       - name: volume
         description: "Trading volume"
+        data_tests:
+          - not_null
       - name: rsi
         description: "Relative Strength Index (RSI)"
+        data_tests:
+          - percentage_range
       - name: rsi_status
         description: "RSI Status (e.g., Overbought, Oversold)"
       - name: rate_usd_chf

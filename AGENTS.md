@@ -28,4 +28,14 @@ If you create or modify a macro in the `macros/` directory:
     *   `description`: What the macro does.
     *   `arguments`: A list of arguments with descriptions.
 
+## Data Quality
+
+**Goal:** Ensure data integrity through comprehensive testing.
+
+**Instructions for Agents:**
+1.  **Primary Keys:** Always add `unique` and `not_null` tests for primary keys (e.g., `date`, `id`).
+2.  **Financial Data:** Apply `positive_value` tests to price, revenue, or cost columns.
+3.  **Completeness:** Add `not_null` tests for critical columns (e.g., foreign keys, timestamps).
+4.  **Ranges:** Use `percentage_range` (0-100) for ratios or indices like RSI.
+
 **Note:** This replaces the need for automated scripts. Use your internal capabilities to generate high-quality, context-aware descriptions.

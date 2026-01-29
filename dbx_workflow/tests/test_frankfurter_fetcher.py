@@ -30,15 +30,22 @@ class TestFrankfurterFetcherFetchHistoricalData:
     @patch('requests.get')
     def test_fetch_historical_data_success(self, mock_get, mock_logger):
         """Test successful historical data fetch."""
-        # Setup mock response
+        # Setup mock response with dynamic dates relative to now
+        # This ensures request range and response data overlap semantically.
+        start_date = datetime.now() - pd.Timedelta(days=5)
+
+        # Generate dates within the requested range
+        date1 = (start_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+        date2 = (start_date + pd.Timedelta(days=2)).strftime("%Y-%m-%d")
+
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "amount": 1.0,
             "base": "USD",
             "rates": {
-                "2020-01-02": {"EUR": 0.90},
-                "2020-01-03": {"EUR": 0.91}
+                date1: {"EUR": 0.90},
+                date2: {"EUR": 0.91}
             }
         }
         mock_get.return_value = mock_response
@@ -51,41 +58,6 @@ class TestFrankfurterFetcherFetchHistoricalData:
             schema="bronze"
         )
 
-        # Mock datetime logic inside the method is tricky without patching datetime.
-        # But we can pass a start_date close to now to limit loops?
-        # Or patch datetime.
-        
-        # Here we choose to patch the datetime used in the module or rely on 'now'
-        # To avoid infinite loops or large ranges if defaults are used, provide start_date.
-        # But if we want deterministic loop count (1 pass), ensure start_date is < now < start_date + 365.
-        
-        # Let's patch datetime in the fetcher module to have a fixed 'now'
-        with patch('raw_ingest.FrankfurterFetcher.datetime') as mock_dt:
-            mock_dt.now.return_value = datetime(2020, 1, 5)
-            mock_dt.strptime = datetime.strptime # keep strptime working
-            
-            # Since we pass start_date_time, that type matters.
-            # If we pass a real datetime object, and the code compares it with mock_dt.now().
-            
-            # Code: end_date = datetime.now()
-            # If mock_dt is a MagicMock, it might fail comparison with real datetime.
-            # Solution: make mock_dt inherit from datetime or use side_effect.
-            # Easier: Just rely on short range start_date.
-            pass
-        
-        # Simpler approach: Set start_date such that it only runs one loop iteration
-        # End date is "now".
-        # If we set start_date to "now - 2 days", it will run 1 loop.
-        
-        start_date = datetime.now() - pd.Timedelta(days=5)
-        
-        # IMPORTANT: Fix the mock response dates to match our dynamic start date?
-        # actually the code doesn't check if returned dates match request range strictly.
-        # It just parses what is returned.
-        
-        # Need to re-setup mock response to be generic or just ignore dates logic for this test?
-        # The fetcher parses the keys in "rates".
-        
         df = fetcher.fetch_historical_data(start_date_time=start_date)
 
         assert not df.empty
@@ -93,8 +65,11 @@ class TestFrankfurterFetcherFetchHistoricalData:
         assert list(df.columns) == ["time", "rate"]
         
         # Verify values
-        # 2020-01-02
-        ts1 = datetime(2020, 1, 2).timestamp()
+        ts1 = datetime.strptime(date1, "%Y-%m-%d").timestamp()
+
+        # Note: fetcher produces rows in order of rates keys or insertion.
+        # Since rates is dict, order is insertion order in recent python.
+        # Check first row matches date1
         assert df.iloc[0]["time"].timestamp() == ts1
         assert df.iloc[0]["rate"] == 0.90
 

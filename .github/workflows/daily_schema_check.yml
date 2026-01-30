@@ -27,13 +27,12 @@ jobs:
       - name: Install dependencies and Run Check Script
         working-directory: dbx_workflow
         run: |
-          uv sync --extra dev
-          uv run --extra dev python scripts/check_api_schemas.py
+          uv sync
+          uv run --with datamodel-code-generator python scripts/check_api_schemas.py
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
-          # GITHUB_TOKEN is automatically provided by GitHub Actions (no need to set it in repo secrets)
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: update API schemas"
           title: "chore: update API schemas"

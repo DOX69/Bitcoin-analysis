@@ -3,14 +3,11 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class CurrencyRates(BaseModel):
+class Rates(BaseModel):
     EUR: float
-
-
-Rates = dict[str, CurrencyRates]
 
 
 class FrankfurterResponse(BaseModel):
@@ -18,4 +15,4 @@ class FrankfurterResponse(BaseModel):
     base: str
     start_date: str
     end_date: str
-    rates: Rates
+    rates: dict[str, Rates]

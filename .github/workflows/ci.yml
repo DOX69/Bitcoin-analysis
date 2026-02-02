@@ -9,7 +9,7 @@ on:
 jobs:
   test_package:
     name: "📥 Backend Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     defaults:
       run:
@@ -38,7 +38,7 @@ jobs:
 
   test_app:
     name: "🧪 Frontend Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     defaults:
       run:
@@ -63,7 +63,7 @@ jobs:
 
   deploy:
     name: "🚀 Deploy to Databricks"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: [test_package, test_app]
     if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'staging')
     timeout-minutes: 15

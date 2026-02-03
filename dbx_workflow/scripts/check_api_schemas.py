@@ -5,6 +5,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta
 import requests
+from genson import SchemaBuilder
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,11 +18,18 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "src", "raw_ingest", "api_models")
 def ensure_output_dir():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
-        # Create __init__.py
-        init_file = os.path.join(OUTPUT_DIR, "__init__.py")
-        if not os.path.exists(init_file):
-            with open(init_file, "w") as f:
-                f.write("")
+
+    # Create __init__.py if not exists
+    init_file = os.path.join(OUTPUT_DIR, "__init__.py")
+    if not os.path.exists(init_file):
+        with open(init_file, "w") as f:
+            f.write("")
+
+    # Create README.md if not exists
+    readme_file = os.path.join(OUTPUT_DIR, "README.md")
+    if not os.path.exists(readme_file):
+        with open(readme_file, "w") as f:
+            f.write("# API Models\n\nThis directory contains auto-generated Pydantic models. Do not edit manually.")
 
 def fetch_json(url, params=None):
     try:
@@ -32,26 +40,18 @@ def fetch_json(url, params=None):
         logger.error(f"Failed to fetch data from {url}: {e}")
         sys.exit(1)
 
-def generate_model(json_data, output_file, class_name):
-    # Save JSON to temp file
-    temp_json = f"temp_{class_name}.json"
-    with open(temp_json, "w") as f:
-        json.dump(json_data, f)
-
+def run_codegen(input_file, output_file, class_name, input_type="json"):
     try:
         # Determine executable path
-        # Assuming we are running in a venv where datamodel-codegen is alongside python
         bin_dir = os.path.dirname(sys.executable)
         codegen_cmd = os.path.join(bin_dir, "datamodel-codegen")
-
-        # If not found (e.g. windows or different structure), try just the command
         if not os.path.exists(codegen_cmd):
             codegen_cmd = "datamodel-codegen"
 
         cmd = [
             codegen_cmd,
-            "--input", temp_json,
-            "--input-file-type", "json",
+            "--input", input_file,
+            "--input-file-type", input_type,
             "--output", output_file,
             "--class-name", class_name,
             "--output-model-type", "pydantic_v2.BaseModel",
@@ -69,21 +69,27 @@ def generate_model(json_data, output_file, class_name):
         logger.info(f"Successfully generated model for {class_name} at {output_file}")
 
     finally:
-        if os.path.exists(temp_json):
-            os.remove(temp_json)
+        pass
 
-def main():
-    ensure_output_dir()
-
-    # 1. Coinbase
+def process_coinbase():
     logger.info("Processing Coinbase schema...")
     # Fetching candles as it's the main data used
     cb_url = "https://api.exchange.coinbase.com/products/BTC-USD/candles"
     cb_data = fetch_json(cb_url, params={"granularity": 86400})
 
-    generate_model(cb_data, os.path.join(OUTPUT_DIR, "coinbase.py"), "CoinbaseCandleResponse")
+    # Save temp json
+    temp_json = "temp_coinbase.json"
+    with open(temp_json, "w") as f:
+        json.dump(cb_data, f)
 
-    # 2. Frankfurter
+    try:
+        generate_to = os.path.join(OUTPUT_DIR, "coinbase.py")
+        run_codegen(temp_json, generate_to, "CoinbaseCandleResponse", input_type="json")
+    finally:
+        if os.path.exists(temp_json):
+            os.remove(temp_json)
+
+def process_frankfurter():
     logger.info("Processing Frankfurter schema...")
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)
@@ -91,38 +97,64 @@ def main():
 
     f_data = fetch_json(f_url, params={"base": "USD", "symbols": "EUR"})
 
-    # Normalize rates to avoid daily diffs due to changing dates
-    # We replace the specific dates with a generic key to encourage Dict generation or a stable single field
-    if "rates" in f_data and isinstance(f_data["rates"], dict) and f_data["rates"]:
-        first_key = next(iter(f_data["rates"]))
-        first_val = f_data["rates"][first_key]
-        # We use a fixed key so the schema remains stable
-        f_data["rates"] = {"CurrencyRates": first_val}
+    # Validate structure
+    if "rates" not in f_data or not isinstance(f_data["rates"], dict):
+        logger.error("Frankfurter response missing 'rates' dict")
+        sys.exit(1)
 
-    f_model_path = os.path.join(OUTPUT_DIR, "frankfurter.py")
-    generate_model(f_data, f_model_path, "FrankfurterResponse")
+    if not f_data["rates"]:
+        logger.warning("Frankfurter response 'rates' dict is empty. Skipping schema update.")
+        return
 
-    # Post-process Frankfurter model to use Dict for rates
-    # We want Rates to be a Dict[str, CurrencyRates] instead of a class with a single field
-    with open(f_model_path, "r") as f:
-        content = f.read()
+    # 1. Generate schema for the inner rate object (CurrencyRates)
+    # Take the first available rate object as sample
+    first_key = next(iter(f_data["rates"]))
+    sample_rate_obj = f_data["rates"][first_key]
 
-    import re
-    # Replace the Rates class definition with a type alias
-    # Expecting: class Rates(BaseModel):\n    CurrencyRates: CurrencyRates = Field(..., alias="CurrencyRates")
-    # Note: datamodel-codegen might use CurrencyRates_1 if there is a conflict, but usually not with CamelCase if logic allows.
-    # We use a regex that is slightly flexible on the field name part just in case.
-    pattern = r"class Rates\(BaseModel\):\n\s+CurrencyRates(_\d+)?: CurrencyRates = Field\(..., alias=\"CurrencyRates\"\)"
-    replacement = "Rates = dict[str, CurrencyRates]"
+    builder = SchemaBuilder()
+    builder.add_object(sample_rate_obj)
+    inner_schema = builder.to_schema()
 
-    new_content = re.sub(pattern, replacement, content)
+    # 2. Construct the full schema with additionalProperties for rates
+    # We remove rates temporarily to build the base schema without the dynamic keys
+    rates_backup = f_data.pop("rates")
+    outer_builder = SchemaBuilder()
+    outer_builder.add_object(f_data)
+    full_schema = outer_builder.to_schema()
 
-    if new_content != content:
-        with open(f_model_path, "w") as f:
-            f.write(new_content)
-        logger.info("Successfully post-processed Frankfurter model to use Dict for Rates")
-    else:
-        logger.warning("Could not find Rates class to replace in Frankfurter model")
+    # Inject rates back into schema
+    # We want rates to be Dict[str, inner_schema]
+    # In JSON Schema: "rates": {"type": "object", "additionalProperties": inner_schema}
+
+    if "properties" not in full_schema:
+        full_schema["properties"] = {}
+
+    full_schema["properties"]["rates"] = {
+        "type": "object",
+        "additionalProperties": inner_schema
+    }
+    # Ensure 'rates' is required if it was in the original data
+    if "required" not in full_schema:
+        full_schema["required"] = []
+    if "rates" not in full_schema["required"]:
+        full_schema["required"].append("rates")
+
+    # Save temp schema
+    temp_schema = "temp_frankfurter_schema.json"
+    with open(temp_schema, "w") as f:
+        json.dump(full_schema, f, indent=2)
+
+    try:
+        generate_to = os.path.join(OUTPUT_DIR, "frankfurter.py")
+        run_codegen(temp_schema, generate_to, "FrankfurterResponse", input_type="jsonschema")
+    finally:
+        if os.path.exists(temp_schema):
+            os.remove(temp_schema)
+
+def main():
+    ensure_output_dir()
+    process_coinbase()
+    process_frankfurter()
 
 if __name__ == "__main__":
     main()

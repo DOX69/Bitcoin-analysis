@@ -26,6 +26,7 @@ dev = [
     "databricks-dlt",
     "databricks-connect>=15.4,<15.5",
     "datamodel-code-generator[http]>=0.25.0",
+    "genson>=1.2.0",
 ]
 
 # Le package est dans src/, pas à la racine

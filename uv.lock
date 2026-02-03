@@ -1646,6 +1646,7 @@ dev = [
     { name = "databricks-connect" },
     { name = "databricks-dlt" },
     { name = "datamodel-code-generator", extra = ["http"] },
+    { name = "genson" },
     { name = "pytest" },
 ]
 
@@ -1657,6 +1658,7 @@ requires-dist = [
     { name = "databricks-dlt", marker = "extra == 'dev'" },
     { name = "datamodel-code-generator", extras = ["http"], marker = "extra == 'dev'", specifier = ">=0.25.0" },
     { name = "dotenv" },
+    { name = "genson", marker = "extra == 'dev'", specifier = ">=1.2.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest", marker = "extra == 'dev'" },

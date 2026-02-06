@@ -12,8 +12,6 @@ import {
 
 export type Currency = 'USD' | 'CHF' | 'EUR';
 
-console.log('DATACENTER SERVER LOADED - ENV HOST:', env?.DATABRICKS_HOST ? 'SET' : 'UNSET');
-
 /**
  * Get currency exchange rates (USD to CHF and EUR)
  * Cached for efficiency

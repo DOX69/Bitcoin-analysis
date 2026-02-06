@@ -17,8 +17,6 @@ const host = env['DATABRICKS_HOST'] || env['NEXT_PUBLIC_DATABRICKS_HOST'];
 const token = env['DATABRICKS_TOKEN'] || env['NEXT_PUBLIC_DATABRICKS_TOKEN'];
 const httpPath = env['DATABRICKS_HTTP_PATH'] || env['NEXT_PUBLIC_DATABRICKS_HTTP_PATH'];
 
-console.log('Connecting to:', host, httpPath);
-
 const client = new DBSQLClient();
 
 async function run() {
@@ -30,14 +28,11 @@ async function run() {
         });
 
         const session = await client.openSession();
-        console.log('Session opened');
 
         const query = "SELECT * FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc LIMIT 1";
-        console.log('Executing:', query);
 
         const result = await session.executeStatement(query, { runAsync: true });
         const data = await result.fetchAll();
-        console.log('Success! Data:', data);
 
         await session.close();
         await client.close();

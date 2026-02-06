@@ -31,7 +31,6 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({
             script.onload = () => {
                 scriptLoadedRef.current = true;
                 if (window.UnicornStudio && containerRef.current) {
-                    console.log('Unicorn Studio loaded, initializing project...');
                     // Initialize the Unicorn Studio project
                     window.UnicornStudio.init();
                 }

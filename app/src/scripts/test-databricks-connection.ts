@@ -46,16 +46,10 @@ const TABLES_TO_TEST = [
 
 async function testTable(tableName: string, fullName: string, query: string): Promise<TestResult> {
     try {
-        console.log(`\n📊 Testing: ${tableName}`);
-        console.log(`   Table: ${fullName}`);
-
         const results = await executeQuery(query);
 
         // Get column names from first row
         const columns = results.length > 0 ? Object.keys(results[0]) : [];
-
-        console.log(`   ✅ Success - Retrieved ${results.length} rows`);
-        console.log(`   📋 Columns: ${columns.join(', ')}`);
 
         return {
             tableName,
@@ -75,9 +69,6 @@ async function testTable(tableName: string, fullName: string, query: string): Pr
 }
 
 async function main() {
-    console.log('🚀 Starting Databricks Connection Tests\n');
-    console.log('='.repeat(60));
-
     const config = getDatabricksConfig();
 
     // Validate config
@@ -90,62 +81,29 @@ async function main() {
         process.exit(1);
     }
 
-    console.log('📡 Databricks Configuration:');
-    console.log(`   Host: ${config.host}`);
-    console.log(`   Path: ${config.httpPath}`);
-    console.log(`   Token: ${config.token.substring(0, 10)}...`);
-
     try {
         // Initialize connection
-        console.log('\n🔌 Initializing Databricks connection...');
         await initDatabricksConnection();
-        console.log('✅ Connection established\n');
-
-        console.log('='.repeat(60));
 
         // Test each table
         const results: TestResult[] = [];
         for (const table of TABLES_TO_TEST) {
             const result = await testTable(table.name, table.fullName, table.query);
             results.push(result);
-
-            // Show sample data for successful queries
-            if (result.success && result.sampleData && result.sampleData.length > 0) {
-                console.log('\n   Sample row:');
-                const firstRow = result.sampleData[0];
-                Object.entries(firstRow).forEach(([key, value]) => {
-                    // Truncate long values
-                    const displayValue = typeof value === 'string' && value.length > 50
-                        ? value.substring(0, 50) + '...'
-                        : value;
-                    console.log(`     ${key}: ${displayValue}`);
-                });
-            }
         }
 
         // Summary
-        console.log('\n' + '='.repeat(60));
-        console.log('\n📊 Test Summary:\n');
-
-        const successful = results.filter(r => r.success).length;
         const failed = results.filter(r => !r.success).length;
 
-        console.log(`✅ Successful: ${successful}/${results.length}`);
-        console.log(`❌ Failed: ${failed}/${results.length}`);
-
         if (failed > 0) {
-            console.log('\n❌ Failed Tables:');
+            console.error('\n❌ Failed Tables:');
             results.filter(r => !r.success).forEach(r => {
-                console.log(`   - ${r.tableName}: ${r.error}`);
+                console.error(`   - ${r.tableName}: ${r.error}`);
             });
         }
 
-        console.log('\n' + '='.repeat(60));
-
-        if (failed === 0) {
-            console.log('\n🎉 All tables are accessible and working correctly!');
-        } else {
-            console.log('\n⚠️  Some tables failed to connect. Please check the errors above.');
+        if (failed > 0) {
+            console.error('\n⚠️  Some tables failed to connect. Please check the errors above.');
             process.exit(1);
         }
 
@@ -155,7 +113,6 @@ async function main() {
     } finally {
         // Clean up
         await closeDatabricksConnection();
-        console.log('\n🔌 Connection closed');
     }
 }
 

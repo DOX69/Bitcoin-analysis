@@ -7,14 +7,14 @@ requires-python = ">=3.11"
 authors = [{name = "Mickael", email = "mickael.rakotoa@gmail.com"}]
 
 dependencies = [
-    "requests>=2.31.0",           # HTTP requests (pour CoinGecko API)
+    "requests>=2.32.5",           # HTTP requests (pour CoinGecko API)
     "pandas>=2.1.0",              # Data manipulation
     "python-dotenv>=1.0.0",       # Manage .env variables
     "pytz>=2023.3",               # Timezone handling
     "databricks>=0.2",
     "databricks-sdk>=0.20.0",
-    "dbt-core>=1.7.19",
-    "dbt-databricks>=1.7.3",
+    "dbt-core>=1.7.19,<1.8",
+    "dbt-databricks>=1.7.3,<1.8",
     "pip>=25.3",
 ]
 

@@ -3,14 +3,40 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class CurrencyRates(BaseModel):
-    EUR: float
-
-
-Rates = dict[str, CurrencyRates]
+class Rates(BaseModel):
+    AUD: float
+    BGN: float
+    BRL: float
+    CAD: float
+    CHF: float
+    CNY: float
+    CZK: float
+    DKK: float
+    GBP: float
+    HKD: float
+    HUF: float
+    IDR: float
+    ILS: float
+    INR: float
+    ISK: float
+    JPY: float
+    KRW: float
+    MXN: float
+    MYR: float
+    NOK: float
+    NZD: float
+    PHP: float
+    PLN: float
+    RON: float
+    SEK: float
+    SGD: float
+    THB: float
+    TRY: float
+    USD: float
+    ZAR: float
 
 
 class FrankfurterResponse(BaseModel):
@@ -18,4 +44,4 @@ class FrankfurterResponse(BaseModel):
     base: str
     start_date: str
     end_date: str
-    rates: Rates
+    rates: dict[str, Rates]

@@ -14,7 +14,7 @@ authors = [{name = "Mickael", email = "mickael.rakotoa@gmail.com"}]
 dependencies = [
     "databricks>=0.2",
     "databricks-connect>=15.4.17",
-    "dotenv",
+    "python-dotenv",
     "pytest>=9.0.2",
     "pydantic>=2.0.0",
     "requests>=2.0.0",
@@ -26,6 +26,7 @@ dev = [
     "databricks-dlt",
     "databricks-connect>=15.4,<15.5",
     "datamodel-code-generator[http]>=0.25.0",
+    "genson",
 ]
 
 # Le package est dans src/, pas à la racine

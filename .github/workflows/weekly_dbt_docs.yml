@@ -1,0 +1,59 @@
+name: Weekly dbt Documentation
+
+on:
+  schedule:
+    # Thursdays at 9:00 AM UTC
+    - cron: '0 9 * * 4'
+  workflow_dispatch:  # Allow manual trigger for testing
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Install dbt packages
+        run: uv run dbt deps --project-dir dbt_silver_gold
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+
+      - name: Generate and Update Documentation
+        run: |
+          uv run --with ruamel.yaml --with openai python dbt_silver_gold/scripts/generate_docs.py
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "docs: Update dbt column descriptions"
+          title: "docs: Update dbt column descriptions"
+          body: |
+            Automated update of dbt column descriptions.
+
+            This PR adds missing columns to `properties.yml` and generates descriptions using OpenAI (if available).
+          branch: "docs/update-dbt-descriptions"
+          delete-branch: true
+          base: main

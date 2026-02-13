@@ -275,7 +275,10 @@ export const getForecastData = cache(async (currency: Currency = 'USD') => {
       LIMIT 365
     `;
 
-        const results = await executeQuery<any>(query);
+        const queryPromise = executeQuery<any>(query);
+        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
+
+        const [results, rates] = await Promise.all([queryPromise, ratesPromise]);
 
         // Deduplicate results by date_prices (keep the first one found if duplicates exist)
         // Adjust logic if specific 'predicted_at' priority is needed.
@@ -289,8 +292,7 @@ export const getForecastData = cache(async (currency: Currency = 'USD') => {
             }, {})
         );
 
-        if (currency !== 'USD') {
-            const rates = await getCurrencyRates();
+        if (currency !== 'USD' && rates) {
             const convertedResults = uniqueResults.map((item: any) => ({
                 ...item,
                 predicted_close_usd: convertPrice(item.predicted_close_usd, currency, rates),

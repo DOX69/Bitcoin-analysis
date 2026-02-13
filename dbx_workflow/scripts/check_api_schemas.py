@@ -1,128 +1,160 @@
 import json
-import logging
-import os
 import subprocess
 import sys
-from datetime import datetime, timedelta
 import requests
-
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from pathlib import Path
+from datetime import datetime, timedelta
+from genson import Schema
 
 # Constants
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUTPUT_DIR = os.path.join(BASE_DIR, "src", "raw_ingest", "api_models")
+COINBASE_URL = "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400"
+FRANKFURTER_BASE_URL = "https://api.frankfurter.dev/v1"
 
-def ensure_output_dir():
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-        # Create __init__.py
-        init_file = os.path.join(OUTPUT_DIR, "__init__.py")
-        if not os.path.exists(init_file):
-            with open(init_file, "w") as f:
-                f.write("")
+# Paths
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+API_MODELS_DIR = PROJECT_ROOT / "src" / "raw_ingest" / "api_models"
 
-def fetch_json(url, params=None):
+def fetch_coinbase_data():
+    """Fetches a sample of Coinbase candle data."""
+    # We fetch only a few candles to get the structure
     try:
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(COINBASE_URL, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        # Take a slice to keep it small but representative
+        return data[:5] if isinstance(data, list) else data
+    except Exception as e:
+        print(f"Error fetching Coinbase data: {e}")
+        sys.exit(1)
+
+def fetch_frankfurter_data():
+    """Fetches a sample of Frankfurter rates data."""
+    # Dynamic date range: last 30 days to ensure we get multiple dates
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=30)
+
+    # If system date is way in the future (test env), cap it
+    if start_date.year > 2025:
+        start_date = datetime(2024, 1, 1)
+        end_date = datetime(2024, 1, 31)
+
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    url = f"{FRANKFURTER_BASE_URL}/{start_str}..{end_str}?base=USD&symbols=EUR"
+
+    try:
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
     except Exception as e:
-        logger.error(f"Failed to fetch data from {url}: {e}")
+        print(f"Error fetching Frankfurter data: {e}")
         sys.exit(1)
 
-def generate_model(json_data, output_file, class_name):
-    # Save JSON to temp file
-    temp_json = f"temp_{class_name}.json"
-    with open(temp_json, "w") as f:
-        json.dump(json_data, f)
+def generate_json_schema(data):
+    """Generates a JSON Schema from data using Genson."""
+    schema_builder = Schema()
+    schema_builder.add_object(data)
+    return schema_builder.to_dict()
+
+def generate_frankfurter_smart_schema(data):
+    """
+    Generates a schema for Frankfurter response where 'rates' is treated as a Dict[str, Inner].
+    This prevents generating specific fields for each date.
+    """
+    # 1. Generate the full schema first to get outer structure
+    builder = Schema()
+    builder.add_object(data)
+    schema = builder.to_dict()
+
+    # 2. Fix 'rates' to use additionalProperties instead of specific properties
+    props = schema.get('properties', {})
+    if 'rates' in props:
+        rates_schema = props['rates']
+
+        # Build a schema for the inner values (the daily rates)
+        inner_builder = Schema()
+        for val in data.get('rates', {}).values():
+            inner_builder.add_object(val)
+
+        # Replace specific date properties with generic additionalProperties
+        rates_schema.pop('properties', None)
+        rates_schema.pop('required', None)
+        rates_schema['additionalProperties'] = inner_builder.to_dict()
+
+    return schema
+
+def run_datamodel_codegen(input_file: Path, output_file: Path, class_name: str, input_type: str = "json"):
+    """Runs datamodel-code-generator."""
+    cmd = [
+        sys.executable, "-m", "datamodel_code_generator",
+        "--input", str(input_file),
+        "--output", str(output_file),
+        "--class-name", class_name,
+        "--input-file-type", input_type,
+        "--output-model-type", "pydantic_v2.BaseModel",
+        "--disable-timestamp"  # Avoid noise in diffs
+    ]
 
     try:
-        # Determine executable path
-        # Assuming we are running in a venv where datamodel-codegen is alongside python
-        bin_dir = os.path.dirname(sys.executable)
-        codegen_cmd = os.path.join(bin_dir, "datamodel-codegen")
-
-        # If not found (e.g. windows or different structure), try just the command
-        if not os.path.exists(codegen_cmd):
-            codegen_cmd = "datamodel-codegen"
-
-        cmd = [
-            codegen_cmd,
-            "--input", temp_json,
-            "--input-file-type", "json",
-            "--output", output_file,
-            "--class-name", class_name,
-            "--output-model-type", "pydantic_v2.BaseModel",
-            "--use-double-quotes",
-            "--disable-timestamp"
-        ]
-
-        logger.info(f"Running: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            logger.error(f"datamodel-codegen failed: {result.stderr}")
-            sys.exit(1)
-
-        logger.info(f"Successfully generated model for {class_name} at {output_file}")
-
-    finally:
-        if os.path.exists(temp_json):
-            os.remove(temp_json)
+        subprocess.check_call(cmd)
+        print(f"Generated {output_file.name}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error generating model for {class_name}: {e}")
+        sys.exit(1)
 
 def main():
-    ensure_output_dir()
+    print("Starting API schema check...")
 
-    # 1. Coinbase
-    logger.info("Processing Coinbase schema...")
-    # Fetching candles as it's the main data used
-    cb_url = "https://api.exchange.coinbase.com/products/BTC-USD/candles"
-    cb_data = fetch_json(cb_url, params={"granularity": 86400})
+    # Ensure output directory exists
+    API_MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-    generate_model(cb_data, os.path.join(OUTPUT_DIR, "coinbase.py"), "CoinbaseCandleResponse")
+    # --- Coinbase ---
+    print("Fetching Coinbase data...")
+    coinbase_data = fetch_coinbase_data()
+    temp_coinbase = SCRIPT_DIR / "temp_coinbase.json"
+    with open(temp_coinbase, "w") as f:
+        json.dump(coinbase_data, f)
 
-    # 2. Frankfurter
-    logger.info("Processing Frankfurter schema...")
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=7)
-    f_url = f"https://api.frankfurter.dev/v1/{start_date.strftime('%Y-%m-%d')}..{end_date.strftime('%Y-%m-%d')}"
+    print("Generating Coinbase model...")
+    run_datamodel_codegen(
+        temp_coinbase,
+        API_MODELS_DIR / "coinbase.py",
+        "CoinbaseCandleResponse",
+        input_type="json"
+    )
 
-    f_data = fetch_json(f_url, params={"base": "USD", "symbols": "EUR"})
+    # --- Frankfurter ---
+    print("Fetching Frankfurter data...")
+    frankfurter_data = fetch_frankfurter_data()
 
-    # Normalize rates to avoid daily diffs due to changing dates
-    # We replace the specific dates with a generic key to encourage Dict generation or a stable single field
-    if "rates" in f_data and isinstance(f_data["rates"], dict) and f_data["rates"]:
-        first_key = next(iter(f_data["rates"]))
-        first_val = f_data["rates"][first_key]
-        # We use a fixed key so the schema remains stable
-        f_data["rates"] = {"CurrencyRates": first_val}
+    # Generate Schema using Genson to handle dynamic date keys in 'rates'
+    # Genson will see {"rates": {"2023-01-01": {...}, "2023-01-02": {...}}}
+    # and generalize it to "rates": {"patternProperties": {".*": {...}}} or similar structure
+    # which datamodel-code-generator interprets as Dict[str, ...]
+    print("Generating Frankfurter schema...")
+    # Use smart schema generation to handle dynamic dates
+    frankfurter_schema = generate_frankfurter_smart_schema(frankfurter_data)
+    temp_frankfurter_schema = SCRIPT_DIR / "temp_frankfurter_schema.json"
+    with open(temp_frankfurter_schema, "w") as f:
+        json.dump(frankfurter_schema, f)
 
-    f_model_path = os.path.join(OUTPUT_DIR, "frankfurter.py")
-    generate_model(f_data, f_model_path, "FrankfurterResponse")
+    print("Generating Frankfurter model...")
+    run_datamodel_codegen(
+        temp_frankfurter_schema,
+        API_MODELS_DIR / "frankfurter.py",
+        "FrankfurterResponse",
+        input_type="jsonschema"
+    )
 
-    # Post-process Frankfurter model to use Dict for rates
-    # We want Rates to be a Dict[str, CurrencyRates] instead of a class with a single field
-    with open(f_model_path, "r") as f:
-        content = f.read()
+    # Cleanup
+    if temp_coinbase.exists():
+        temp_coinbase.unlink()
+    if temp_frankfurter_schema.exists():
+        temp_frankfurter_schema.unlink()
 
-    import re
-    # Replace the Rates class definition with a type alias
-    # Expecting: class Rates(BaseModel):\n    CurrencyRates: CurrencyRates = Field(..., alias="CurrencyRates")
-    # Note: datamodel-codegen might use CurrencyRates_1 if there is a conflict, but usually not with CamelCase if logic allows.
-    # We use a regex that is slightly flexible on the field name part just in case.
-    pattern = r"class Rates\(BaseModel\):\n\s+CurrencyRates(_\d+)?: CurrencyRates = Field\(..., alias=\"CurrencyRates\"\)"
-    replacement = "Rates = dict[str, CurrencyRates]"
-
-    new_content = re.sub(pattern, replacement, content)
-
-    if new_content != content:
-        with open(f_model_path, "w") as f:
-            f.write(new_content)
-        logger.info("Successfully post-processed Frankfurter model to use Dict for Rates")
-    else:
-        logger.warning("Could not find Rates class to replace in Frankfurter model")
+    print("Schema check complete.")
 
 if __name__ == "__main__":
     main()

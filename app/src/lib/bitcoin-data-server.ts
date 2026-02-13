@@ -182,11 +182,16 @@ export const getHistoricalPrices = cache(async (
             `;
         }
 
-        const results = await executeQuery<any>(query);
+        // Start fetching currency rates early if needed
+        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
+
+        const [results, rates] = await Promise.all([
+            executeQuery<any>(query),
+            ratesPromise
+        ]);
 
         // Convert prices if currency is not USD
-        if (currency !== 'USD') {
-            const rates = await getCurrencyRates();
+        if (currency !== 'USD' && rates) {
             const convertedResults = results.map((item: any) => ({
                 ...item,
                 open: convertPrice(item.open, currency, rates),

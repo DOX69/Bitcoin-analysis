@@ -64,13 +64,9 @@ class TestFrankfurterFetcherFetchHistoricalData:
         assert len(df) == 2
         assert list(df.columns) == ["time", "rate"]
         
-        # Verify values
-        ts1 = datetime.strptime(date1, "%Y-%m-%d").timestamp()
-
-        # Note: fetcher produces rows in order of rates keys or insertion.
-        # Since rates is dict, order is insertion order in recent python.
-        # Check first row matches date1
-        assert df.iloc[0]["time"].timestamp() == ts1
+        # Verify values — compare date strings to avoid timezone offset issues
+        # Note: fetcher produces rows in order of rates keys (insertion order in Python 3.7+)
+        assert df.iloc[0]["time"].strftime("%Y-%m-%d") == date1
         assert df.iloc[0]["rate"] == 0.90
 
     @patch('requests.get')

@@ -12,8 +12,6 @@ import {
 
 export type Currency = 'USD' | 'CHF' | 'EUR';
 
-console.log('DATACENTER SERVER LOADED - ENV HOST:', env?.DATABRICKS_HOST ? 'SET' : 'UNSET');
-
 /**
  * Get currency exchange rates (USD to CHF and EUR)
  * Cached for efficiency
@@ -184,11 +182,16 @@ export const getHistoricalPrices = cache(async (
             `;
         }
 
-        const results = await executeQuery<any>(query);
+        // Start fetching currency rates early if needed
+        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
+
+        const [results, rates] = await Promise.all([
+            executeQuery<any>(query),
+            ratesPromise
+        ]);
 
         // Convert prices if currency is not USD
-        if (currency !== 'USD') {
-            const rates = await getCurrencyRates();
+        if (currency !== 'USD' && rates) {
             const convertedResults = results.map((item: any) => ({
                 ...item,
                 open: convertPrice(item.open, currency, rates),
@@ -272,7 +275,10 @@ export const getForecastData = cache(async (currency: Currency = 'USD') => {
       LIMIT 365
     `;
 
-        const results = await executeQuery<any>(query);
+        const queryPromise = executeQuery<any>(query);
+        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
+
+        const [results, rates] = await Promise.all([queryPromise, ratesPromise]);
 
         // Deduplicate results by date_prices (keep the first one found if duplicates exist)
         // Adjust logic if specific 'predicted_at' priority is needed.
@@ -286,8 +292,7 @@ export const getForecastData = cache(async (currency: Currency = 'USD') => {
             }, {})
         );
 
-        if (currency !== 'USD') {
-            const rates = await getCurrencyRates();
+        if (currency !== 'USD' && rates) {
             const convertedResults = uniqueResults.map((item: any) => ({
                 ...item,
                 predicted_close_usd: convertPrice(item.predicted_close_usd, currency, rates),

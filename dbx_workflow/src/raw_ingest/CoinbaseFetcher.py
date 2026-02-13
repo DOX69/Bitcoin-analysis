@@ -83,20 +83,7 @@ class CoinbaseFetcher(BaseFetcher):
 
                 if response.status_code == 200:
                     data = response.json()
-                    # Ensure all values are cast to the correct type
-                    for row in data:
-                        # Coinbase returns: [ time, low, high, open, close, volume ]
-                        def safe_float(val):
-                            return float(val) if val is not None else None
-                            
-                        all_data.append([
-                            int(row[0]) if row[0] is not None else None,
-                            safe_float(row[1]),       # low
-                            safe_float(row[2]),       # high
-                            safe_float(row[3]),       # open
-                            safe_float(row[4]),       # close
-                            safe_float(row[5])        # volume
-                        ])
+                    all_data.extend(data)
                 else:
                     self.logger.error(f"Error: {response.status_code} - {response.text}")
                     break
@@ -105,6 +92,15 @@ class CoinbaseFetcher(BaseFetcher):
 
             columns = ["time", "low", "high", "open", "close", "volume"]
             df = pd.DataFrame(all_data, columns=columns)
+
+            # Convert numeric columns safely
+            numeric_cols = ["low", "high", "open", "close", "volume"]
+            for col in numeric_cols:
+                # errors='coerce' turns None/invalid into NaN
+                df[col] = pd.to_numeric(df[col], errors='coerce').astype('float64')
+
+            # Convert time column
+            df["time"] = pd.to_numeric(df["time"], errors='coerce')
             df["time"] = pd.to_datetime(df["time"], unit="s")
 
             # Vérifier données nulles

@@ -4,12 +4,12 @@ This file is in the root since it can be used for tests in any place in this
 project, including tests under resources/.
 """
 
-import os, sys, pathlib
+import os
+import sys
+import pathlib
+import pandas as pd
 from contextlib import contextmanager
 from unittest.mock import MagicMock
-
-
-
 from dotenv import load_dotenv
 
 # Load .env from project root
@@ -128,9 +128,6 @@ def pytest_configure(config: pytest.Config):
 
 
 # Additional fixtures for testing raw_ingest modules
-from datetime import datetime
-import pandas as pd
-import logging
 
 
 @pytest.fixture()

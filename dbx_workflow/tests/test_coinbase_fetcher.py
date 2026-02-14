@@ -1,8 +1,8 @@
 """Tests for CoinbaseFetcher class."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
+from datetime import datetime
 import pandas as pd
 import requests
 
@@ -109,7 +109,7 @@ class TestCoinbaseFetcherFetchHistoricalData:
         )
 
         start_date = datetime(2022, 1, 1)
-        df = fetcher.fetch_historical_data(start_date_time=start_date)
+        fetcher.fetch_historical_data(start_date_time=start_date)
 
         # Verify API was called with a start date (the exact format might vary slightly)
         assert mock_get.called
@@ -136,7 +136,7 @@ class TestCoinbaseFetcherFetchHistoricalData:
         )
 
         # Fetch 400 days (should trigger pagination - 2 calls with 200-day chunks)
-        df = fetcher.fetch_historical_data(days=400)
+        fetcher.fetch_historical_data(days=400)
 
         # Verify multiple API calls were made (at least 2 for 400 days)
         assert mock_get.call_count >= 2
@@ -267,7 +267,7 @@ class TestCoinbaseFetcherFetchHistoricalData:
         )
 
         # This should not raise but should log a warning
-        df = fetcher.fetch_historical_data(days=1)
+        fetcher.fetch_historical_data(days=1)
         
         # Check that logger.warning was called for null values
         warning_calls = [call for call in mock_logger.method_calls if 'warning' in str(call)]

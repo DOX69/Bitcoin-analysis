@@ -1,10 +1,7 @@
 """Tests for DbWriter class and overwrite_replace_where function."""
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
-import pandas as pd
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import col, current_timestamp
+from unittest.mock import MagicMock, call
 
 from raw_ingest.DbWriter import DbWriter, overwrite_replace_where
 
@@ -82,7 +79,7 @@ class TestDbWriterInit:
     def test_init_logs_initialization(self, mock_logger, sample_pandas_df):
         """Test that initialization logs the table name."""
         mock_spark = MagicMock()
-        writer = DbWriter(
+        DbWriter(
             spark=mock_spark,
             logger=mock_logger,
             full_path_table_name="dev.bronze.btc_usd_ohlcv",

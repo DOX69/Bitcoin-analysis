@@ -1,11 +1,8 @@
 """Tests for main pipeline orchestration."""
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch, call
-import sys
-import argparse
+from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
-import pandas as pd
 
 from raw_ingest.main import ingest_ticker_data, main
 

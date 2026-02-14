@@ -51,8 +51,6 @@ describe('Performance Benchmark', () => {
         const endTime = Date.now();
         const duration = endTime - startTime;
 
-        console.log(`Execution time: ${duration}ms`);
-
         // Optimized expectation: around 100ms (max(100, 50)) + overhead
         // Should be significantly less than 150ms
         expect(duration).toBeLessThan(140);

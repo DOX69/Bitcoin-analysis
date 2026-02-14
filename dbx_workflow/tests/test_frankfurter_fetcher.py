@@ -1,7 +1,6 @@
 """Tests for FrankfurterFetcher class."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import datetime
 import pandas as pd
 from raw_ingest.FrankfurterFetcher import FrankfurterFetcher

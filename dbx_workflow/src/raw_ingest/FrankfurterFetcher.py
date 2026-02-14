@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
-import time
 from raw_ingest.BaseFetcher import BaseFetcher
 
 class FrankfurterFetcher(BaseFetcher):

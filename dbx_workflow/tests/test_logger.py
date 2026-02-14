@@ -1,9 +1,6 @@
 """Tests for CustomFormatter logger class."""
 
-import pytest
 import logging
-from pathlib import Path
-from unittest.mock import MagicMock
 
 from raw_ingest.logger import CustomFormatter
 

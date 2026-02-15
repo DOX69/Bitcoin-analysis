@@ -113,7 +113,7 @@ With join_calendar as (
             {{ rsi('change', period, parition_by_col) }}
         from add_previous_price_change
     )
-    -- EMA Calculation (9/21/55) using recursive CTE
+    -- EMA Calculation (9/21/55/100/150/200) using recursive CTE
     , {{ ema('add_rsi', 'close_usd', parition_by_col) }}
     , add_ema_signals as (
         select *,

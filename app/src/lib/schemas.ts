@@ -11,6 +11,9 @@ export const BitcoinMetricsSchema = z.object({
     ema_9: z.number().nullable().default(null),
     ema_21: z.number().nullable().default(null),
     ema_55: z.number().nullable().default(null),
+    ema_100: z.number().nullable().default(null),
+    ema_150: z.number().nullable().default(null),
+    ema_200: z.number().nullable().default(null),
     ema_status: z.string().default('consolidation'),
     ema_signal: z.string().default('hold'),
 });
@@ -27,6 +30,9 @@ export const BitcoinPriceSchema = z.object({
     ema_9: z.coerce.number().nullable().default(null),
     ema_21: z.coerce.number().nullable().default(null),
     ema_55: z.coerce.number().nullable().default(null),
+    ema_100: z.coerce.number().nullable().default(null),
+    ema_150: z.coerce.number().nullable().default(null),
+    ema_200: z.coerce.number().nullable().default(null),
     ema_status: z.string().default('consolidation'),
     ema_signal: z.string().default('hold'),
 });

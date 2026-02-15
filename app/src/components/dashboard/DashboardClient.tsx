@@ -38,6 +38,7 @@ export default function DashboardClient({
     // States that don't necessarily need to be in URL (UI preferences)
     const [showRsi, setShowRsi] = useState(false);
     const [showEma, setShowEma] = useState(false);
+    const [showEmaLong, setShowEmaLong] = useState(false);
     const [showForecast, setShowForecast] = useState(true);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
@@ -169,6 +170,29 @@ export default function DashboardClient({
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 ml-2">
+                                        <span className="text-xs text-gray-400">LT EMA</span>
+                                        <div
+                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showEmaLong ? 'bg-gradient-to-r from-gray-400 via-orange-500 to-red-600' : 'bg-gray-700'}`}
+                                            onClick={() => setShowEmaLong(!showEmaLong)}
+                                        >
+                                            <div
+                                                className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${showEmaLong ? 'right-1' : 'left-1'}`}
+                                            />
+                                        </div>
+                                        <div className="group relative">
+                                            <div className="cursor-help text-gray-400 hover:text-white border border-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</div>
+                                            <div className="absolute top-full right-0 mt-2 w-72 p-3 bg-[#1c1c1c] border border-gray-700 rounded-xl shadow-xl z-50 text-xs text-gray-300 hidden group-hover:block">
+                                                <h4 className="text-white font-bold mb-2">Long-Term EMA (100/150/200)</h4>
+                                                <p className="mb-2">Institutional trend indicators.</p>
+                                                <div className="space-y-1 mb-2">
+                                                    <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-gray-300 border-dashed border-b border-gray-500 inline-block"></span> <span>EMA 100 — Baseline</span></div>
+                                                    <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-orange-500 inline-block"></span> <span>EMA 150 — Institutional</span></div>
+                                                    <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-red-600 inline-block"></span> <span>EMA 200 — Gold Standard</span></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-2">
                                         <span className="text-xs text-gray-400">Forecast</span>
                                         <div
                                             className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showForecast && isForecastPossible ? 'bg-[#F7931A]' : 'bg-gray-700'} ${!isForecastPossible ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -273,6 +297,7 @@ export default function DashboardClient({
                                 loading={false}
                                 showRsi={showRsi}
                                 showEma={showEma}
+                                showEmaLong={showEmaLong}
                                 type={chartType}
                                 currencySymbol={{
                                     'USD': '$',

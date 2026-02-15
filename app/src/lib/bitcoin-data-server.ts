@@ -74,6 +74,9 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
         ema_9,
         ema_21,
         ema_55,
+        ema_100,
+        ema_150,
+        ema_200,
         ema_status,
         ema_signal
       FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
@@ -115,6 +118,9 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
             ema_9: latest.ema_9 || null,
             ema_21: latest.ema_21 || null,
             ema_55: latest.ema_55 || null,
+            ema_100: latest.ema_100 || null,
+            ema_150: latest.ema_150 || null,
+            ema_200: latest.ema_200 || null,
             ema_status: latest.ema_status || 'consolidation',
             ema_signal: latest.ema_signal || 'hold',
         };
@@ -167,6 +173,9 @@ export const getHistoricalPrices = cache(async (
                 ema_9,
                 ema_21,
                 ema_55,
+                ema_100,
+                ema_150,
+                ema_200,
                 ema_status,
                 ema_signal
               FROM prod.dlh_gold__crypto_prices.agg_month_btc
@@ -194,6 +203,9 @@ export const getHistoricalPrices = cache(async (
                 ema_9,
                 ema_21,
                 ema_55,
+                ema_100,
+                ema_150,
+                ema_200,
                 ema_status,
                 ema_signal
               FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc

@@ -46,6 +46,7 @@ interface PriceChartProps {
     loading?: boolean;
     showRsi?: boolean;
     showEma?: boolean;
+    showEmaLong?: boolean;
     type?: 'line' | 'candlestick';
     currencySymbol?: string;
     forecastData?: BitcoinForecast[];
@@ -58,6 +59,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
     loading = false,
     showRsi = false,
     showEma = false,
+    showEmaLong = false,
     type = 'line',
     currencySymbol = '$',
     forecastData = [],
@@ -118,11 +120,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
             }));
     }, [sanitizedData, shouldSmooth]);
 
+
     // EMA data points (with smoothing for long timeframes)
     const emaPoints = useMemo(() => {
-        if (!showEma) return { ema9: [], ema21: [], ema55: [] };
+        if (!showEma && !showEmaLong) return { ema9: [], ema21: [], ema55: [], ema100: [], ema150: [], ema200: [] };
 
-        const mapEma = (key: 'ema_9' | 'ema_21' | 'ema_55') => {
+        const mapEma = (key: 'ema_9' | 'ema_21' | 'ema_55' | 'ema_100' | 'ema_150' | 'ema_200') => {
             if (!shouldSmooth) {
                 return sanitizedData
                     .filter((item: BitcoinPrice) => item[key] != null)
@@ -150,11 +153,14 @@ const PriceChart: React.FC<PriceChartProps> = ({
         };
 
         return {
-            ema9: mapEma('ema_9'),
-            ema21: mapEma('ema_21'),
-            ema55: mapEma('ema_55'),
+            ema9: showEma ? mapEma('ema_9') : [],
+            ema21: showEma ? mapEma('ema_21') : [],
+            ema55: showEma ? mapEma('ema_55') : [],
+            ema100: showEmaLong ? mapEma('ema_100') : [],
+            ema150: showEmaLong ? mapEma('ema_150') : [],
+            ema200: showEmaLong ? mapEma('ema_200') : [],
         };
-    }, [sanitizedData, shouldSmooth, showEma]);
+    }, [sanitizedData, shouldSmooth, showEma, showEmaLong]);
 
     const chartData = {
         datasets: [
@@ -280,6 +286,49 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     pointRadius: 0,
                     pointHoverRadius: 3,
                     pointHoverBackgroundColor: '#ff69b4',
+                    yAxisID: 'y',
+                },
+            ] : []),
+            // EMA Long-Term Overlay Lines
+            ...(showEmaLong && emaPoints.ema100.length > 0 ? [
+                {
+                    type: 'line' as const,
+                    label: 'EMA 100',
+                    data: emaPoints.ema100,
+                    borderColor: '#e5e7eb', // gray-200
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: '#e5e7eb',
+                    yAxisID: 'y',
+                },
+                {
+                    type: 'line' as const,
+                    label: 'EMA 150',
+                    data: emaPoints.ema150,
+                    borderColor: '#f97316', // orange-500
+                    borderWidth: 1.5,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: '#f97316',
+                    yAxisID: 'y',
+                },
+                {
+                    type: 'line' as const,
+                    label: 'EMA 200',
+                    data: emaPoints.ema200,
+                    borderColor: '#ef4444', // red-500
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: '#ef4444',
                     yAxisID: 'y',
                 },
             ] : []),
@@ -486,7 +535,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     <div className="loading-pulse text-gray-400">Loading chart...</div>
                 </div>
             ) : (
-                <div className="h-full w-full" key={`${type}-${showRsi}-${showEma}-${data.length}`}>
+                <div className="h-full w-full" key={`${type}-${showRsi}-${showEma}-${showEmaLong}-${data.length}`}>
                     <Chart type={type === 'candlestick' ? 'candlestick' : 'line'} data={chartData as any} options={options} />
                 </div>
             )}

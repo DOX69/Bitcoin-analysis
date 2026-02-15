@@ -37,6 +37,7 @@ export default function DashboardClient({
 
     // States that don't necessarily need to be in URL (UI preferences)
     const [showRsi, setShowRsi] = useState(false);
+    const [showEma, setShowEma] = useState(false);
     const [showForecast, setShowForecast] = useState(true);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
@@ -144,6 +145,30 @@ export default function DashboardClient({
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 ml-2">
+                                        <span className="text-xs text-gray-400">EMA</span>
+                                        <div
+                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showEma ? 'bg-gradient-to-r from-[#00d4ff] via-[#ffd700] to-[#ff69b4]' : 'bg-gray-700'}`}
+                                            onClick={() => setShowEma(!showEma)}
+                                        >
+                                            <div
+                                                className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${showEma ? 'right-1' : 'left-1'}`}
+                                            />
+                                        </div>
+                                        <div className="group relative">
+                                            <div className="cursor-help text-gray-400 hover:text-white border border-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</div>
+                                            <div className="absolute top-full right-0 mt-2 w-72 p-3 bg-[#1c1c1c] border border-gray-700 rounded-xl shadow-xl z-50 text-xs text-gray-300 hidden group-hover:block">
+                                                <h4 className="text-white font-bold mb-2">EMA Overlay (9/21/55)</h4>
+                                                <p className="mb-2">Fibonacci-based Exponential Moving Averages optimized for Bitcoin.</p>
+                                                <div className="space-y-1 mb-2">
+                                                    <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-[#00d4ff] inline-block"></span> <span>EMA 9 — Fast (entry trigger)</span></div>
+                                                    <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-[#ffd700] inline-block"></span> <span>EMA 21 — Medium (confirmation)</span></div>
+                                                    <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-[#ff69b4] inline-block"></span> <span>EMA 55 — Slow (trend filter)</span></div>
+                                                </div>
+                                                <p className="text-gray-500 italic">Buy signal when EMA9 crosses above EMA21 with both above EMA55.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-2">
                                         <span className="text-xs text-gray-400">Forecast</span>
                                         <div
                                             className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showForecast && isForecastPossible ? 'bg-[#F7931A]' : 'bg-gray-700'} ${!isForecastPossible ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -247,6 +272,7 @@ export default function DashboardClient({
                                 data={initialHistoricalData}
                                 loading={false}
                                 showRsi={showRsi}
+                                showEma={showEma}
                                 type={chartType}
                                 currencySymbol={{
                                     'USD': '$',
@@ -287,6 +313,19 @@ export default function DashboardClient({
                                 value={periodStats ? formatPriceWithCurrency(periodStats.low, initialCurrency) : '-'}
                                 trend="neutral"
                                 icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>}
+                            />
+                            <StatCard
+                                title="EMA Trend"
+                                value={initialMetrics.ema_status
+                                    ? initialMetrics.ema_status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                                    : 'N/A'}
+                                trend={initialMetrics.ema_status === 'strong_uptrend' || initialMetrics.ema_status === 'bullish_correction' ? 'up'
+                                    : initialMetrics.ema_status === 'strong_downtrend' || initialMetrics.ema_status === 'bearish_correction' ? 'down' : 'neutral'}
+                                trendColor={initialMetrics.ema_status === 'strong_uptrend' ? 'text-green-400'
+                                    : initialMetrics.ema_status === 'strong_downtrend' ? 'text-red-400'
+                                        : 'text-yellow-400'}
+                                subtitle={`Signal: ${(initialMetrics.ema_signal || 'hold').toUpperCase()}`}
+                                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
                             />
                         </div>
                     </div>

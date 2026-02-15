@@ -29,7 +29,7 @@ describe('Bitcoin API', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         // Suppress console.error during tests to keep output clean
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        jest.spyOn(console, 'error').mockImplementation(() => { });
     });
 
     afterEach(() => {
@@ -46,6 +46,11 @@ describe('Bitcoin API', () => {
                     low_24h: 42000,
                     volume_24h: 30000000000,
                     rsi: 65,
+                    ema_9: 43000,
+                    ema_21: 42500,
+                    ema_55: 41000,
+                    ema_status: 'strong_uptrend',
+                    ema_signal: 'buy',
                 },
                 {
                     current_price: 42000,
@@ -53,6 +58,11 @@ describe('Bitcoin API', () => {
                     low_24h: 41500,
                     volume_24h: 28000000000,
                     rsi: 60,
+                    ema_9: 41800,
+                    ema_21: 42200,
+                    ema_55: 40900,
+                    ema_status: 'bullish_correction',
+                    ema_signal: 'hold',
                 },
             ];
 
@@ -68,6 +78,11 @@ describe('Bitcoin API', () => {
                 high24h: 44000,
                 low24h: 42000,
                 rsi: 65,
+                ema_9: 43000,
+                ema_21: 42500,
+                ema_55: 41000,
+                ema_status: 'strong_uptrend',
+                ema_signal: 'buy',
             });
         });
 
@@ -95,6 +110,11 @@ describe('Bitcoin API', () => {
                 volume: 25000000000,
                 rsi: 50,
                 rsi_status: 'Neutral',
+                ema_9: 42500 + i * 100,
+                ema_21: 42400 + i * 100,
+                ema_55: 42000 + i * 100,
+                ema_status: 'strong_uptrend',
+                ema_signal: 'hold',
             }));
 
             (executeQuery as jest.Mock).mockResolvedValue(mockPrices);
@@ -109,6 +129,11 @@ describe('Bitcoin API', () => {
                 low: expect.any(Number),
                 close: expect.any(Number),
                 volume: expect.any(Number),
+                ema_9: expect.any(Number),
+                ema_21: expect.any(Number),
+                ema_55: expect.any(Number),
+                ema_status: expect.stringMatching(/^(strong_uptrend|strong_downtrend|bullish_correction|bearish_correction|consolidation)$/),
+                ema_signal: expect.stringMatching(/^(buy|sell|hold)$/),
             });
         });
 

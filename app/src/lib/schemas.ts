@@ -8,6 +8,11 @@ export const BitcoinMetricsSchema = z.object({
     high24h: z.number(),
     low24h: z.number(),
     rsi: z.number(),
+    ema_9: z.number().nullable().default(null),
+    ema_21: z.number().nullable().default(null),
+    ema_55: z.number().nullable().default(null),
+    ema_status: z.string().default('consolidation'),
+    ema_signal: z.string().default('hold'),
 });
 
 export const BitcoinPriceSchema = z.object({
@@ -19,6 +24,11 @@ export const BitcoinPriceSchema = z.object({
     volume: z.coerce.number().default(0),
     rsi: z.coerce.number().default(50),
     rsi_status: z.string().default('Neutral'),
+    ema_9: z.coerce.number().nullable().default(null),
+    ema_21: z.coerce.number().nullable().default(null),
+    ema_55: z.coerce.number().nullable().default(null),
+    ema_status: z.string().default('consolidation'),
+    ema_signal: z.string().default('hold'),
 });
 
 export const BitcoinHistorySchema = z.array(BitcoinPriceSchema);

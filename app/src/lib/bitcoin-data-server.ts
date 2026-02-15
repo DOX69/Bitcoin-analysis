@@ -70,7 +70,12 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
         high_usd as high_24h,
         low_usd as low_24h,
         volume as volume_24h,
-        rsi as rsi
+        rsi as rsi,
+        ema_9,
+        ema_21,
+        ema_55,
+        ema_status,
+        ema_signal
       FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
       ORDER BY date_prices DESC
       LIMIT 2
@@ -107,6 +112,11 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
             high24h,
             low24h,
             rsi: latest.rsi || 50,
+            ema_9: latest.ema_9 || null,
+            ema_21: latest.ema_21 || null,
+            ema_55: latest.ema_55 || null,
+            ema_status: latest.ema_status || 'consolidation',
+            ema_signal: latest.ema_signal || 'hold',
         };
 
         return BitcoinMetricsSchema.parse(metrics);
@@ -153,7 +163,12 @@ export const getHistoricalPrices = cache(async (
                     WHEN rsi >= 70 THEN 'Overbought'
                     WHEN rsi <= 30 THEN 'Oversold'
                     ELSE 'Neutral'
-                END as rsi_status
+                END as rsi_status,
+                ema_9,
+                ema_21,
+                ema_55,
+                ema_status,
+                ema_signal
               FROM prod.dlh_gold__crypto_prices.agg_month_btc
               WHERE ${whereClause}
               ORDER BY month_start_date ASC
@@ -175,7 +190,12 @@ export const getHistoricalPrices = cache(async (
                 close_usd as close,
                 volume,
                 rsi,
-                rsi_status
+                rsi_status,
+                ema_9,
+                ema_21,
+                ema_55,
+                ema_status,
+                ema_signal
               FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
               WHERE ${whereClause}
               ORDER BY date_prices ASC

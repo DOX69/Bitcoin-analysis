@@ -45,6 +45,7 @@ interface PriceChartProps {
     data: BitcoinPrice[];
     loading?: boolean;
     showRsi?: boolean;
+    showEma?: boolean;
     type?: 'line' | 'candlestick';
     currencySymbol?: string;
     forecastData?: BitcoinForecast[];
@@ -56,6 +57,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
     data,
     loading = false,
     showRsi = false,
+    showEma = false,
     type = 'line',
     currencySymbol = '$',
     forecastData = [],
@@ -115,6 +117,44 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 y: m.sum / m.count
             }));
     }, [sanitizedData, shouldSmooth]);
+
+    // EMA data points (with smoothing for long timeframes)
+    const emaPoints = useMemo(() => {
+        if (!showEma) return { ema9: [], ema21: [], ema55: [] };
+
+        const mapEma = (key: 'ema_9' | 'ema_21' | 'ema_55') => {
+            if (!shouldSmooth) {
+                return sanitizedData
+                    .filter((item: BitcoinPrice) => item[key] != null)
+                    .map((item: BitcoinPrice) => ({
+                        x: new Date(item.date).getTime(),
+                        y: item[key] as number
+                    }));
+            }
+
+            const monthlyGroups: Record<string, { sum: number, count: number, date: number }> = {};
+            sanitizedData.forEach((item: BitcoinPrice) => {
+                if (item[key] == null) return;
+                const d = new Date(item.date);
+                const k = `${d.getFullYear()}-${d.getMonth()}`;
+                if (!monthlyGroups[k]) {
+                    monthlyGroups[k] = { sum: 0, count: 0, date: new Date(d.getFullYear(), d.getMonth(), 15).getTime() };
+                }
+                monthlyGroups[k].sum += (item[key] as number);
+                monthlyGroups[k].count += 1;
+            });
+
+            return Object.values(monthlyGroups)
+                .sort((a, b) => a.date - b.date)
+                .map(m => ({ x: m.date, y: m.sum / m.count }));
+        };
+
+        return {
+            ema9: mapEma('ema_9'),
+            ema21: mapEma('ema_21'),
+            ema55: mapEma('ema_55'),
+        };
+    }, [sanitizedData, shouldSmooth, showEma]);
 
     const chartData = {
         datasets: [
@@ -201,6 +241,48 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 pointHoverBackgroundColor: '#ffffff',
                 yAxisID: 'y1',
             }] : []),
+            // EMA Overlay Lines
+            ...(showEma && emaPoints.ema9.length > 0 ? [
+                {
+                    type: 'line' as const,
+                    label: 'EMA 9',
+                    data: emaPoints.ema9,
+                    borderColor: '#00d4ff',
+                    borderWidth: 1.5,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: '#00d4ff',
+                    yAxisID: 'y',
+                },
+                {
+                    type: 'line' as const,
+                    label: 'EMA 21',
+                    data: emaPoints.ema21,
+                    borderColor: '#ffd700',
+                    borderWidth: 1.5,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: '#ffd700',
+                    yAxisID: 'y',
+                },
+                {
+                    type: 'line' as const,
+                    label: 'EMA 55',
+                    data: emaPoints.ema55,
+                    borderColor: '#ff69b4',
+                    borderWidth: 1.5,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: '#ff69b4',
+                    yAxisID: 'y',
+                },
+            ] : []),
             ...(type === 'line' && showForecast && forecastData.length > 0 ? [
                 // Forecast - Regular
                 {
@@ -302,6 +384,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         if (context.dataset.label === 'RSI') {
                             return `RSI: ${Math.round(context.parsed.y)}`;
                         }
+                        if (context.dataset.label && context.dataset.label.startsWith('EMA')) {
+                            return `${context.dataset.label}: ${currencySymbol}${formatPrice(context.parsed.y)}`;
+                        }
                         if (context.dataset.type === 'candlestick') {
                             const raw = context.raw;
                             return [
@@ -401,7 +486,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     <div className="loading-pulse text-gray-400">Loading chart...</div>
                 </div>
             ) : (
-                <div className="h-full w-full" key={`${type}-${showRsi}-${data.length}`}>
+                <div className="h-full w-full" key={`${type}-${showRsi}-${showEma}-${data.length}`}>
                     <Chart type={type === 'candlestick' ? 'candlestick' : 'line'} data={chartData as any} options={options} />
                 </div>
             )}

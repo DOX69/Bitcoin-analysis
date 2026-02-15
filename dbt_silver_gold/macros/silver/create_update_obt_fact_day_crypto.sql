@@ -31,12 +31,19 @@ with deduplicate_source as (
             {{ rsi('change', period) }}
         from add_previous_price_change
     )
+    -- EMA Calculation (9/21/55) using recursive CTE
+    , {{ ema('add_rsi', 'close', 'date') }}
+    , add_ema_signals as (
+        select *,
+            {{ ema_status('close', 'date') }}
+        from ema_recursive
+    )
     -- Incremental Load Step
     , increment_filter as (
 
         select date as date_prices,
-            * except (date, time,avg_gain, avg_loss, rn, change, rsi_calculated)
-        from add_rsi
+            * except (date, time, avg_gain, avg_loss, rn, change, rsi_calculated, _ema_rn)
+        from add_ema_signals
 
             {% if is_incremental() %}
         where ingest_date_time > (select max(ingest_date_time) from {{ this }})
@@ -57,6 +64,11 @@ from increment_filter
     volume,
     rsi,
     rsi_status,
+    ema_9,
+    ema_21,
+    ema_55,
+    ema_status,
+    ema_signal,
     rate_usd_chf,
     rate_usd_eur,
     round(low * rate_usd_chf, 2) as low_chf,

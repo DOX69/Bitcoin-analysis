@@ -113,13 +113,20 @@ With join_calendar as (
             {{ rsi('change', period, parition_by_col) }}
         from add_previous_price_change
     )
+    -- EMA Calculation (9/21/55) using recursive CTE
+    , {{ ema('add_rsi', 'close_usd', parition_by_col) }}
+    , add_ema_signals as (
+        select *,
+            {{ ema_status('close_usd', parition_by_col) }}
+        from ema_recursive
+    )
     ,increment_data as (
-    select * from add_rsi
+    select * from add_ema_signals
     {% if is_incremental() %}
       where ingest_date_time >= (select max(ingest_date_time) from {{ this }})
     {% endif %}
     )
-    select *  except (ingest_date_time, avg_gain, avg_loss, change, rsi_calculated),
+    select *  except (ingest_date_time, avg_gain, avg_loss, change, rsi_calculated, _ema_rn),
     current_timestamp as ingest_date_time,
     '{{ invocation_id }}' as dbt_batch_id
     from increment_data

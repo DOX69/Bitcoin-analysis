@@ -1,4 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ₿ Bitcoin Analysis Dashboard
+
+## 📋 Variable Catalog (Environments)
+
+This project uses a multi-environment configuration to handle different Databricks workspaces and application settings.
+
+### Available Environments
+- **Development**: Used for local feature development and side branches.
+- **Production**: Used for the final deployment on the `main` branch.
+
+### Local Development
+You can switch between environments locally using specific npm scripts:
+
+- `npm run dev:dev`: Starts the development server with `.env.development` (Default).
+- `npm run dev:prod`: Starts the development server with `.env.production` (Prod emulation).
+
+### CI/CD Methodology
+- **Side Branches**: CI/CD runs tests against the development configuration.
+- **Main Branch**: When merged to `main`, the pipeline automatically builds and deploys using the production configuration.
+
+The current environment is displayed in the dashboard header via the **Environment Badge** (DEV/PROD).
 
 ## Getting Started
 

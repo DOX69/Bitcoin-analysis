@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import EnvironmentBadge from '@/components/dashboard/EnvironmentBadge';
 
 interface DashboardHeaderProps {
     currentPage?: string;
@@ -51,6 +52,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentPage = 'Dashbo
 
                 {/* Right Section */}
                 <div className="flex items-center gap-4">
+                    <EnvironmentBadge />
                     {/* Connection Status */}
                     <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

@@ -76,6 +76,17 @@ jobs:
 
       - uses: databricks/setup-cli@main
 
+      - name: Set Environment
+        id: set_env
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "APP_ENV=production" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_APP_ENV=production" >> $GITHUB_ENV
+          else
+            echo "APP_ENV=development" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_APP_ENV=development" >> $GITHUB_ENV
+          fi
+
       - name: 📦 Install uv
         run: pip install uv
 

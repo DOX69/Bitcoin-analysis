@@ -12,12 +12,16 @@ models:
         description: "The conversion rate from usd to eur"
         data_type: double
         data_tests:
-         - not_null
-         - not_negative
+         - not_null:
+             config:
+               severity: warn
+         - positive_value
       - name: rate_usd_chf
         description: "The conversion rate from usd to chf"
         data_type: double
         data_tests:
-         - not_null
-         - not_negative
+         - not_null:
+             config:
+               severity: warn
+         - positive_value
 

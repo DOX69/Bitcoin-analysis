@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:dev": "next dev",
+    "dev:prod": "next dev --env-file .env.production",
     "build": "next build",
+    "build:dev": "next build",
+    "build:prod": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "jest",

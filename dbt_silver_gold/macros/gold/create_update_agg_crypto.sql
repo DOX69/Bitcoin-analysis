@@ -57,7 +57,7 @@
         ) 
 }}
 
-With join_calendar as (
+With recursive join_calendar as (
         select ingest_date_time,
 
         {{smaller_granularity_ref_col}},

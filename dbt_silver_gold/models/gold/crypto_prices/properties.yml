@@ -47,7 +47,7 @@ models:
         description: "Opening price in EUR for the period."
       - name: close_eur
         description: "Closing price in EUR for the period."
-      - name: rsi_14
+      - name: rsi
         description: "Relative Strength Index (14 periods) calculated on close_usd."
         data_tests:
           - percentage_range
@@ -102,7 +102,7 @@ models:
         description: "Opening price in EUR for the period."
       - name: close_eur
         description: "Closing price in EUR for the period."
-      - name: rsi_14
+      - name: rsi
         description: "Relative Strength Index (14 periods) calculated on close_usd."
         data_tests:
           - percentage_range
@@ -155,7 +155,7 @@ models:
         description: "Opening price in EUR for the period."
       - name: close_eur
         description: "Closing price in EUR for the period."
-      - name: rsi_14
+      - name: rsi
         description: "Relative Strength Index (14 periods) calculated on close_usd."
         data_tests:
           - percentage_range
@@ -206,7 +206,7 @@ models:
         description: "Opening price in EUR for the period."
       - name: close_eur
         description: "Closing price in EUR for the period."
-      - name: rsi_14
+      - name: rsi
         description: "Relative Strength Index (14 periods) calculated on close_usd."
         data_tests:
           - percentage_range

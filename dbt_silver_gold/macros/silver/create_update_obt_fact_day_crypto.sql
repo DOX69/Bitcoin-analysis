@@ -9,7 +9,7 @@
 
 {% set period = 14 %}
 
-with deduplicate_source as (
+with recursive deduplicate_source as (
         select *, row_number() over (partition by date order by ingest_date_time desc) as rn
         from {{ source(source_schema_name, source_table_name) }}
             qualify rn = 1
@@ -31,8 +31,30 @@ with deduplicate_source as (
             {{ rsi('change', period) }}
         from add_previous_price_change
     )
+
+    {% if is_incremental() %}
+    , last_state as (
+        select
+            ema_9, ema_21, ema_55, ema_100, ema_150, ema_200,
+            date_prices as last_date
+        from {{ this }}
+        order by date_prices desc
+        limit 1
+    )
+    , source_to_process as (
+        select s.*
+        from add_rsi s
+        cross join last_state l
+        where s.date > l.last_date
+    )
+    {% else %}
+    , source_to_process as (
+        select * from add_rsi
+    )
+    {% endif %}
+
     -- EMA Calculation (9/21/55) using recursive CTE
-    , {{ ema('add_rsi', 'close', 'date') }}
+    , {{ ema('source_to_process', 'close', 'date', initial_ema_cte='last_state' if is_incremental() else none) }}
     , add_ema_signals as (
         select *,
             {{ ema_status('close', 'date') }}

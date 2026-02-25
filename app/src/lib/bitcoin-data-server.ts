@@ -131,13 +131,19 @@ export const getHistoricalPrices = cache(async (
         const useMonthlyAgg = days >= 1800; // 1 years
 
         let query;
+        const namedParameters: Record<string, any> = {};
 
         if (useMonthlyAgg) {
             // Use aggregated monthly data for long-term views to smooth RSI
-            let whereClause = `month_start_date >= DATEADD(day, -${days}, CURRENT_DATE())`;
+            let whereClause;
 
             if (startDate && endDate) {
-                whereClause = `month_start_date BETWEEN '${startDate}' AND '${endDate}'`;
+                whereClause = `month_start_date BETWEEN :startDate AND :endDate`;
+                namedParameters.startDate = startDate;
+                namedParameters.endDate = endDate;
+            } else {
+                whereClause = `month_start_date >= DATEADD(day, :days, CURRENT_DATE())`;
+                namedParameters.days = -days;
             }
 
             query = `
@@ -160,10 +166,15 @@ export const getHistoricalPrices = cache(async (
             `;
         } else {
             // Use daily data for shorter periods
-            let whereClause = `date_prices >= DATEADD(day, -${days}, CURRENT_DATE())`;
+            let whereClause;
 
             if (startDate && endDate) {
-                whereClause = `date_prices BETWEEN '${startDate}' AND '${endDate}'`;
+                whereClause = `date_prices BETWEEN :startDate AND :endDate`;
+                namedParameters.startDate = startDate;
+                namedParameters.endDate = endDate;
+            } else {
+                whereClause = `date_prices >= DATEADD(day, :days, CURRENT_DATE())`;
+                namedParameters.days = -days;
             }
 
             query = `
@@ -186,7 +197,7 @@ export const getHistoricalPrices = cache(async (
         const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
 
         const [results, rates] = await Promise.all([
-            executeQuery<any>(query),
+            executeQuery<any>(query, namedParameters),
             ratesPromise
         ]);
 

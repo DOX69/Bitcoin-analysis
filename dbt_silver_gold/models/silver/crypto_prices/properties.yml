@@ -29,32 +29,54 @@ models:
         description: "Trading volume"
         data_tests:
           - not_null
+          - positive_value
       - name: rsi
         description: "Relative Strength Index (RSI)"
         data_tests:
           - percentage_range
+          - positive_value
       - name: rsi_status
         description: "RSI Status (e.g., Overbought, Oversold)"
       - name: rate_usd_chf
         description: "Exchange rate from USD to CHF"
+        data_tests:
+          - positive_value
       - name: rate_usd_eur
         description: "Exchange rate from USD to EUR"
+        data_tests:
+          - positive_value
       - name: low_chf
         description: "Lowest price in CHF"
+        data_tests:
+          - positive_value
       - name: high_chf
         description: "Highest price in CHF"
+        data_tests:
+          - positive_value
       - name: open_chf
         description: "Opening price in CHF"
+        data_tests:
+          - positive_value
       - name: close_chf
         description: "Closing price in CHF"
+        data_tests:
+          - positive_value
       - name: low_eur
         description: "Lowest price in EUR"
+        data_tests:
+          - positive_value
       - name: high_eur
         description: "Highest price in EUR"
+        data_tests:
+          - positive_value
       - name: open_eur
         description: "Opening price in EUR"
+        data_tests:
+          - positive_value
       - name: close_eur
         description: "Closing price in EUR"
+        data_tests:
+          - positive_value
       - name: ingest_date_time
         description: "Timestamp of ingestion"
       - name: dbt_batch_id
@@ -90,32 +112,54 @@ models:
         description: "Trading volume"
         data_tests:
           - not_null
+          - positive_value
       - name: rsi
         description: "Relative Strength Index (RSI)"
         data_tests:
           - percentage_range
+          - positive_value
       - name: rsi_status
         description: "RSI Status (e.g., Overbought, Oversold)"
       - name: rate_usd_chf
         description: "Exchange rate from USD to CHF"
+        data_tests:
+          - positive_value
       - name: rate_usd_eur
         description: "Exchange rate from USD to EUR"
+        data_tests:
+          - positive_value
       - name: low_chf
         description: "Lowest price in CHF"
+        data_tests:
+          - positive_value
       - name: high_chf
         description: "Highest price in CHF"
+        data_tests:
+          - positive_value
       - name: open_chf
         description: "Opening price in CHF"
+        data_tests:
+          - positive_value
       - name: close_chf
         description: "Closing price in CHF"
+        data_tests:
+          - positive_value
       - name: low_eur
         description: "Lowest price in EUR"
+        data_tests:
+          - positive_value
       - name: high_eur
         description: "Highest price in EUR"
+        data_tests:
+          - positive_value
       - name: open_eur
         description: "Opening price in EUR"
+        data_tests:
+          - positive_value
       - name: close_eur
         description: "Closing price in EUR"
+        data_tests:
+          - positive_value
       - name: ingest_date_time
         description: "Timestamp of ingestion"
       - name: dbt_batch_id

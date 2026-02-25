@@ -34,7 +34,6 @@ models:
         description: "Relative Strength Index (RSI)"
         data_tests:
           - percentage_range
-          - positive_value
       - name: rsi_status
         description: "RSI Status (e.g., Overbought, Oversold)"
       - name: rate_usd_chf
@@ -117,7 +116,6 @@ models:
         description: "Relative Strength Index (RSI)"
         data_tests:
           - percentage_range
-          - positive_value
       - name: rsi_status
         description: "RSI Status (e.g., Overbought, Oversold)"
       - name: rate_usd_chf

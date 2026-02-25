@@ -51,3 +51,4 @@ where ingest_date_time > (select max(update_date_time) from {{ this }})
     {% endif %}
 )
 select * from increment_data
+where rate_usd_chf is not null and rate_usd_eur is not null

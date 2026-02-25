@@ -13,8 +13,8 @@ dependencies = [
     "pytz>=2023.3",               # Timezone handling
     "databricks>=0.2",
     "databricks-sdk>=0.20.0",
-    "dbt-core>=1.7.19,<1.8",
-    "dbt-databricks>=1.7.3,<1.8",
+    "dbt-core>=1.9.0",
+    "dbt-databricks>=1.9.0",
     "pip>=25.3",
 ]
 
@@ -58,4 +58,5 @@ raw-ingest = { workspace = true }
 
 [tool.pytest.ini_options]
 norecursedirs = ["markdown", "app", "node_modules", ".venv"]
+pythonpath = ["dbx_workflow/src"]
 

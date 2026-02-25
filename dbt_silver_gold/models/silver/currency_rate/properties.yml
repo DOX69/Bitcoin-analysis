@@ -13,11 +13,11 @@ models:
         data_type: double
         data_tests:
          - not_null
-         - not_negative
+         - positive_value
       - name: rate_usd_chf
         description: "The conversion rate from usd to chf"
         data_type: double
         data_tests:
          - not_null
-         - not_negative
+         - positive_value
 

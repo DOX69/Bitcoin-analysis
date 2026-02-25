@@ -47,13 +47,16 @@ describe('Bitcoin API - All Filter Logic', () => {
 
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringContaining('prod.dlh_gold__crypto_prices.agg_month_btc')
+            expect.stringContaining('prod.dlh_gold__crypto_prices.agg_month_btc'),
+            expect.objectContaining({ days: { value: -3650 } })
         );
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringContaining('CASE') // Checks for the RSI status case statement
+            expect.stringContaining('CASE'), // Checks for the RSI status case statement
+            expect.any(Object)
         );
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringContaining("month_start_date as date")
+            expect.stringContaining("month_start_date as date"),
+            expect.any(Object)
         );
     });
 
@@ -78,10 +81,14 @@ describe('Bitcoin API - All Filter Logic', () => {
 
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringContaining('prod.dlh_silver__crypto_prices.obt_fact_day_btc')
+            expect.stringContaining('prod.dlh_silver__crypto_prices.obt_fact_day_btc'),
+            expect.objectContaining({ days: { value: -30 } })
         );
-        expect(executeQuery).not.toHaveBeenCalledWith(
-            expect.stringContaining('agg_month_btc')
+
+        // Ensure agg_month_btc is NEVER queried
+        const aggMonthCalls = (executeQuery as jest.Mock).mock.calls.filter(call =>
+            call[0].includes('agg_month_btc')
         );
+        expect(aggMonthCalls).toHaveLength(0);
     });
 });

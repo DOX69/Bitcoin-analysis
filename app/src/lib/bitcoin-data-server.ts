@@ -76,14 +76,17 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
       LIMIT 2
     `;
 
-        const results = await executeQuery<any>(query);
+        // Start fetching currency rates early if needed
+        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
+
+        const [results, rates] = await Promise.all([
+            executeQuery<any>(query),
+            ratesPromise
+        ]);
 
         if (results.length < 2) {
             throw new Error('Insufficient data to calculate metrics');
         }
-
-        // Get currency rates if needed
-        const rates = currency !== 'USD' ? await getCurrencyRates() : null;
 
         const latest = results[0];
         const previous = results[1];

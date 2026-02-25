@@ -257,7 +257,29 @@ Le projet implémente une architecture médallion pour la gestion des données :
 - `DATABRICKS_HOST` : URL du workspace Databricks.
 - `DATABRICKS_TOKEN` : Token d'accès personnel.
 
-### Points d'API Coinbase
+### Tests et validations
+
+Pour s'assurer que l'intégralité du repo fonctionne correctement avant de commiter, un script de vérification globale est disponible :
+
+- **Windows** : `./check-all.bat`
+- **Linux/Mac** : `./check-all`
+
+### Détail des composants testés :
+
+1. **Frontend (Application React/Next.js)** :
+   - Se place dans le répertoire `app/`.
+   - **Prérequis** : Vous devez avoir exécuté `npm install` au moins une fois pour installer les dépendances.
+   - Le script exécute la commande `npm test`.
+
+2. **Backend (Databricks Workflows - dbx)** :
+   - L'exécution nécessite que l'environnement soit synchronisé avec `uv sync` à la racine du projet.
+   - Les tests sont exécutés via la commande `uv run pytest` (configuré dans `pyproject.toml` avec le chemin `dbx_workflow/src`).
+
+3. **Data Transformations (DBT)** :
+   - Le script va naviguer dans `dbt_silver_gold/` et exécuter en séquence `uv run dbt test -t dev` et `uv run dbt test -t prod`.
+   - *Note* : Si vous rencontrez l'erreur `[DELTA_UNSUPPORTED_DROP_COLUMN]` de façon manuelle lors de run DBT (fréquente lors du changement de schéma Delta), ajoutez le flag `--full-refresh` (ex: `uv run dbt run --full-refresh`) pour forcer la recréation correcte de la table.
+
+## Points d'API Coinbase
 - `GET /products/{ticker}-{currency}/candles` : Récupère données OHLCV historiques (Daily).
 
 ## Roadmap
@@ -546,8 +568,24 @@ Next step: development of an interactive React JS web application to visualize B
 
 ---
 
-## Run Checks (Development)
+## Tests and Validations
 
-Run all tests before checking in code:
+To ensure the entire repository works correctly before committing, a general check script is available:
+
 - **Windows**: `./check-all.bat`
 - **Linux/Mac**: `./check-all`
+
+### Component Testing Details:
+
+1. **Frontend (React/Next.js App)**:
+   - Target directory is `app/`.
+   - **Prerequisite**: You must run `npm install` inside the `app/` folder at least once to install dependencies.
+   - Runs `npm test` automatically.
+
+2. **Backend (Databricks Workflows - dbx)**:
+   - Execution requires synchronizing the Python environment using `uv sync` at the repository root.
+   - Runs `uv run pytest` (configured in `pyproject.toml` to target `dbx_workflow/src`).
+
+3. **Data Transformations (DBT)**:
+   - The script will navigate to the `dbt_silver_gold` directory and sequentially execute `uv run dbt test -t dev` and `uv run dbt test -t prod`.
+   - *Note*: If you run DBT manually and encounter a `[DELTA_UNSUPPORTED_DROP_COLUMN]` error (common during schema evolution), use the `--full-refresh` flag (e.g., `uv run dbt run --full-refresh`) to force the recreation of the Delta table.

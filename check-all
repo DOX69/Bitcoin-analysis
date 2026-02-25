@@ -6,15 +6,25 @@ echo "Running ALL Tests"
 echo "=========================================="
 
 echo ""
-echo "[1/2] Running Backend Tests (pytest)..."
+echo "[1/3] Running Backend Tests (pytest)..."
 echo "------------------------------------------"
 uv run pytest
 
 echo ""
-echo "[2/2] Running Frontend Tests (npm test)..."
+echo "[2/3] Running Frontend Tests (npm test)..."
 echo "------------------------------------------"
 cd app
 npm test -- --watchAll=false
+cd ..
+
+echo ""
+echo "[3/3] Running Data Transformations Tests (DBT)..."
+echo "------------------------------------------"
+cd dbt_silver_gold
+echo "Running dev tests..."
+uv run dbt test -t dev
+echo "Running prod tests..."
+uv run dbt test -t prod
 cd ..
 
 echo ""

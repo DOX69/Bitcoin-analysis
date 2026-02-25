@@ -3,3 +3,4 @@ target/
 dbt_packages/
 logs/
 analyses/error.md
+dbt_internal_packages/

@@ -64,7 +64,14 @@ with this project. It's also possible to interact with it directly using the CLI
    $ databricks bundle run
    ```
 
-5. Finally, to run tests locally, use `pytest`:
-   ```
-   $ uv run pytest
-   ```
+5.### Run unit tests
+
+To run unit tests, ensure you have initialized your Python environment from the repository root:
+```sh
+uv sync
+```
+
+Then, from the root or within this directory, run the tests using:
+```sh
+uv run pytest
+```

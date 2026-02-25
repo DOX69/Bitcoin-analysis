@@ -1,10 +1,18 @@
 Welcome to your new dbt project!
 
-### Using the starter project
+### Development and Testing
 
-Try running the following commands:
-- dbt run
-- dbt test
+Before running DBT commands, make sure your Python environment is synchronized. From the root of the repository, run:
+```bash
+uv sync
+```
+
+Then, from within this `dbt_silver_gold` directory, try running the following commands:
+- `uv run dbt deps`
+- `uv run dbt run`
+- `uv run dbt test`
+
+> **Note**: If `dbt run` fails with `[DELTA_UNSUPPORTED_DROP_COLUMN]`, try using the `--full-refresh` flag (e.g., `uv run dbt run --full-refresh`) to rebuild the tables from scratch.
 
 
 ### Resources:

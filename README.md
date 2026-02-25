@@ -276,10 +276,8 @@ Pour s'assurer que l'intégralité du repo fonctionne correctement avant de comm
    - Les tests sont exécutés via la commande `uv run pytest` (configuré dans `pyproject.toml` avec le chemin `dbx_workflow/src`).
 
 3. **Data Transformations (DBT)** :
-   - *Les tests DBT ne sont pas inclus dans le script pré-cité en raison des prérequis d'exécution cloud.* 
-   - Pour tester la logique DBT, naviguez dans le répertoire `dbt_silver_gold` (`cd dbt_silver_gold`).
-   - Exécutez `uv run dbt deps` pour installer les packages, suivi de `uv run dbt run` et `uv run dbt test`.
-   - *Note* : Si vous rencontrez l'erreur `[DELTA_UNSUPPORTED_DROP_COLUMN]` (fréquente lors du changement de schéma Delta), ajoutez le flag `--full-refresh` (ex: `uv run dbt run --full-refresh`) pour forcer la recréation correcte de la table.
+   - Le script va naviguer dans `dbt_silver_gold/` et exécuter en séquence `uv run dbt test -t dev` et `uv run dbt test -t prod`.
+   - *Note* : Si vous rencontrez l'erreur `[DELTA_UNSUPPORTED_DROP_COLUMN]` de façon manuelle lors de run DBT (fréquente lors du changement de schéma Delta), ajoutez le flag `--full-refresh` (ex: `uv run dbt run --full-refresh`) pour forcer la recréation correcte de la table.
 
 ## Points d'API Coinbase
 - `GET /products/{ticker}-{currency}/candles` : Récupère données OHLCV historiques (Daily).
@@ -589,7 +587,5 @@ To ensure the entire repository works correctly before committing, a general che
    - Runs `uv run pytest` (configured in `pyproject.toml` to target `dbx_workflow/src`).
 
 3. **Data Transformations (DBT)**:
-   - *DBT tests are not included in the generic check script since they run against the cloud data warehouse.*
-   - Navigate to the `dbt_silver_gold` directory (`cd dbt_silver_gold`).
-   - Execute `uv run dbt deps` followed by `uv run dbt run` and `uv run dbt test`.
-   - *Note*: If you encounter a `[DELTA_UNSUPPORTED_DROP_COLUMN]` error when running DBT (common during schema evolution), use the `--full-refresh` flag (e.g., `uv run dbt run --full-refresh`) to force the recreation of the Delta table.
+   - The script will navigate to the `dbt_silver_gold` directory and sequentially execute `uv run dbt test -t dev` and `uv run dbt test -t prod`.
+   - *Note*: If you run DBT manually and encounter a `[DELTA_UNSUPPORTED_DROP_COLUMN]` error (common during schema evolution), use the `--full-refresh` flag (e.g., `uv run dbt run --full-refresh`) to force the recreation of the Delta table.

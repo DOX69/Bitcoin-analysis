@@ -1,61 +1,9 @@
-"""Tests for DbWriter class and overwrite_replace_where function."""
+"""Tests for DbWriter class."""
 
 import pytest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
-from raw_ingest.DbWriter import DbWriter, overwrite_replace_where
-
-
-class TestOverwriteReplaceWhere:
-    """Test overwrite_replace_where function."""
-
-    def test_overwrite_replace_where_calls_write_correctly(self):
-        """Test that overwrite_replace_where writes with correct options."""
-        # Mock the write operations
-        mock_df = MagicMock()
-        mock_writer = MagicMock()
-        mock_df.write = mock_writer
-        
-        # Setup the chain of method calls
-        mock_writer.partitionBy.return_value = mock_writer
-        mock_writer.mode.return_value = mock_writer
-        mock_writer.option.return_value = mock_writer
-
-        # Call the function
-        overwrite_replace_where(
-            spark_df=mock_df,
-            partitioned_cols=["date"],
-            full_path_table_name="test_catalog.test_schema.test_table",
-            replace_where_condition="date >= '2022-01-01'"
-        )
-
-        # Verify the chain of calls
-        mock_writer.partitionBy.assert_called_once_with(["date"])
-        mock_writer.mode.assert_called_once_with("overwrite")
-        
-        # Verify options were set
-        option_calls = mock_writer.option.call_args_list
-        assert call("replaceWhere", "date >= '2022-01-01'") in option_calls
-        assert call("mergeSchema", "true") in option_calls
-
-    def test_overwrite_replace_where_with_multiple_partitions(self):
-        """Test with multiple partition columns."""
-        mock_df = MagicMock()
-        mock_writer = MagicMock()
-        mock_df.write = mock_writer
-        
-        mock_writer.partitionBy.return_value = mock_writer
-        mock_writer.mode.return_value = mock_writer
-        mock_writer.option.return_value = mock_writer
-
-        overwrite_replace_where(
-            spark_df=mock_df,
-            partitioned_cols=["date", "ticker"],
-            full_path_table_name="test.table",
-            replace_where_condition="date >= '2022-01-01'"
-        )
-
-        mock_writer.partitionBy.assert_called_once_with(["date", "ticker"])
+from raw_ingest.DbWriter import DbWriter
 
 
 class TestDbWriterInit:

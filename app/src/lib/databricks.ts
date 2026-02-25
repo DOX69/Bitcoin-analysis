@@ -40,7 +40,7 @@ export async function initDatabricksConnection(): Promise<DBSession> {
     }
 }
 
-export async function executeQuery<T = any>(sql: string): Promise<T[]> {
+export async function executeQuery<T = any>(sql: string, namedParameters?: Record<string, any>): Promise<T[]> {
     try {
         if (!session) {
             await initDatabricksConnection();
@@ -51,6 +51,7 @@ export async function executeQuery<T = any>(sql: string): Promise<T[]> {
         const queryOperation = await session.executeStatement(sql, {
             runAsync: true,
             maxRows: 10000,
+            namedParameters,
         });
 
         const result = await queryOperation.fetchAll();

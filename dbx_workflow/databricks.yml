@@ -8,6 +8,10 @@ include:
   - resources/*.yml
   - resources/*/*.yml
 
+sync:
+  include:
+    - ../dbt_silver_gold/**
+
 artifacts:
   python_artifact:
     type: whl

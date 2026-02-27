@@ -29,7 +29,7 @@ resources:
           depends_on:
             - task_key: raw_ingest_crypto
           dbt_task:
-            project_directory: dbt_silver_gold
+            project_directory: ../../dbt_silver_gold
             commands:
               - dbt build
             schema: ${var.schema}

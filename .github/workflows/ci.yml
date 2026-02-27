@@ -96,3 +96,32 @@ jobs:
 
       - name: 🏃‍♀️‍➡️ Run databricks master job
         run: databricks bundle run -t prod -p PROD master_orchestrator_job
+  deploy_dev:
+    name: "🚀 Deploy to Databricks (dev)"
+    runs-on: ubuntu-latest
+    needs: [test_package, test_app]
+    if: github.event_name == 'push' && !(github.ref_name == 'main' || github.ref_name == 'staging')
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ./dbx_workflow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - name: 📦 Install uv
+        run: pip install uv
+      - name: 🔑 Configure Databricks CLI
+        run: |
+          mkdir -p ~/.databricks
+          cat > ~/.databrickscfg << 'EOF'
+          [DEFAULT]
+          host = ${{ secrets.DATABRICKS_HOST }}
+          token = ${{ secrets.DATABRICKS_TOKEN }}
+          EOF
+      - name: ✅ Validate bundle syntax (dev)
+        run: databricks bundle validate -t dev -p DEFAULT
+      - name: 🚀 Deploy to DEV
+        run: databricks bundle deploy -t dev -p DEFAULT
+      - name: 🏃‍♀️‍➡️ Run databricks master job (dev)
+        run: databricks bundle run -t dev -p DEFAULT master_orchestrator_job
+

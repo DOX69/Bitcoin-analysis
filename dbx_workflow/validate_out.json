@@ -1,0 +1,234 @@
+{
+  "artifacts": {
+    "python_artifact": {
+      "build": "uv build --wheel",
+      "files": [
+        {
+          "source": "C:\\Users\\ggrft\\PycharmProjects\\Bitcoin-analysis\\dbx_workflow\\dist\\*.whl"
+        }
+      ],
+      "path": "C:\\Users\\ggrft\\PycharmProjects\\Bitcoin-analysis\\dbx_workflow",
+      "type": "whl"
+    }
+  },
+  "bundle": {
+    "deployment": {
+      "lock": {
+        "enabled": false
+      }
+    },
+    "environment": "dev",
+    "git": {
+      "actual_branch": "feature/add-bgeometrics-btc-technical-indicators",
+      "branch": "feature/add-bgeometrics-btc-technical-indicators",
+      "bundle_root_path": "dbx_workflow",
+      "commit": "f2d6d15ab0c4604619fb4fa7d77141743241e91b",
+      "origin_url": "https://github.com/DOX69/Bitcoin-analysis.git"
+    },
+    "mode": "development",
+    "name": "master_orchestrator_job",
+    "target": "dev",
+    "uuid": "5a000346-9b36-4da2-acf8-1833b2f56a85"
+  },
+  "include": [
+    "resources\\master_orchestrator_job.yml"
+  ],
+  "presets": {
+    "jobs_max_concurrent_runs": 4,
+    "name_prefix": "[dev ggrftm] ",
+    "pipelines_development": true,
+    "tags": {
+      "dev": "ggrftm"
+    },
+    "trigger_pause_status": "PAUSED"
+  },
+  "resources": {
+    "jobs": {
+      "master_orchestrator_job": {
+        "deployment": {
+          "kind": "BUNDLE",
+          "metadata_file_path": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job/state/metadata.json"
+        },
+        "edit_mode": "UI_LOCKED",
+        "environments": [
+          {
+            "environment_key": "default",
+            "spec": {
+              "dependencies": [
+                "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job/artifacts/.internal/raw_ingest-0.0.1-py3-none-any.whl"
+              ],
+              "environment_version": "4"
+            }
+          },
+          {
+            "environment_key": "dbt-default",
+            "spec": {
+              "dependencies": [
+                "dbt-databricks\u003e=1.0.0,\u003c2.0.0"
+              ],
+              "environment_version": "4"
+            }
+          }
+        ],
+        "format": "MULTI_TASK",
+        "git_source": {
+          "git_branch": "main",
+          "git_provider": "gitHub",
+          "git_url": "https://github.com/DOX69/Bitcoin-analysis"
+        },
+        "max_concurrent_runs": 4,
+        "name": "[dev ggrftm] master_orchestrator_job",
+        "parameters": [
+          {
+            "default": "dev",
+            "name": "catalog"
+          },
+          {
+            "default": "bronze",
+            "name": "schema"
+          }
+        ],
+        "performance_target": "PERFORMANCE_OPTIMIZED",
+        "queue": {
+          "enabled": true
+        },
+        "schedule": {
+          "pause_status": "PAUSED",
+          "quartz_cron_expression": "6 0 3 * * ?",
+          "timezone_id": "Europe/Paris"
+        },
+        "tags": {
+          "dev": "ggrftm"
+        },
+        "tasks": [
+          {
+            "dbt_task": {
+              "catalog": "dev",
+              "commands": [
+                "dbt build"
+              ],
+              "project_directory": "dbt_silver_gold",
+              "schema": "bronze",
+              "source": "GIT",
+              "warehouse_id": "4ec8ed922861dd83"
+            },
+            "depends_on": [
+              {
+                "task_key": "raw_ingest_crypto"
+              },
+              {
+                "task_key": "raw_ingest_technical_indicators"
+              }
+            ],
+            "environment_key": "dbt-default",
+            "task_key": "dbt_silver_gold"
+          },
+          {
+            "environment_key": "default",
+            "python_wheel_task": {
+              "entry_point": "ingest_market_price_data",
+              "package_name": "raw_ingest",
+              "parameters": [
+                "--catalog",
+                "dev",
+                "--schema",
+                "bronze"
+              ]
+            },
+            "task_key": "raw_ingest_crypto"
+          },
+          {
+            "environment_key": "default",
+            "python_wheel_task": {
+              "entry_point": "ingest_technical_indicators",
+              "package_name": "raw_ingest",
+              "parameters": [
+                "--catalog",
+                "dev",
+                "--schema",
+                "bronze"
+              ]
+            },
+            "task_key": "raw_ingest_technical_indicators"
+          }
+        ]
+      }
+    }
+  },
+  "sync": {
+    "paths": [
+      "."
+    ]
+  },
+  "variables": {
+    "catalog": {
+      "default": "dev",
+      "description": "The catalog to use",
+      "value": "dev"
+    },
+    "pauseStatus": {
+      "default": "PAUSED",
+      "description": "Pause status for schedule 'PAUSED/UNPAUSED'",
+      "value": "PAUSED"
+    },
+    "root_path": {
+      "default": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job",
+      "description": "Root path in development/production workspace",
+      "value": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job"
+    },
+    "schema": {
+      "default": "bronze",
+      "description": "The schema to use",
+      "value": "bronze"
+    }
+  },
+  "workspace": {
+    "artifact_path": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job/artifacts",
+    "current_user": {
+      "active": true,
+      "domain_friendly_name": "ggrftm",
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "ggrftm@gmail.com"
+        }
+      ],
+      "entitlements": [
+        {
+          "value": "allow-cluster-create"
+        },
+        {
+          "value": "allow-instance-pool-create"
+        }
+      ],
+      "groups": [
+        {
+          "$ref": "Groups/86263434663899",
+          "display": "users",
+          "type": "direct",
+          "value": "86263434663899"
+        },
+        {
+          "$ref": "Groups/80337251026726",
+          "display": "admins",
+          "type": "direct",
+          "value": "80337251026726"
+        }
+      ],
+      "id": "73896938960468",
+      "schemas": [
+        "urn:ietf:params:scim:schemas:core:2.0:User",
+        "urn:ietf:params:scim:schemas:extension:workspace:2.0:User"
+      ],
+      "short_name": "ggrftm",
+      "userName": "ggrftm@gmail.com"
+    },
+    "file_path": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job/files",
+    "host": "https://dbc-00120f69-4aad.cloud.databricks.com",
+    "profile": "DEFAULT",
+    "resource_path": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job/resources",
+    "root_path": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job",
+    "state_path": "/Workspace/Users/ggrftm@gmail.com/.bundle/dev/master_orchestrator_job/state"
+  }
+}

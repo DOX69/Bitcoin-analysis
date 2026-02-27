@@ -35,7 +35,6 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-00120f69-4aad.cloud.databricks.com
       root_path: ${var.root_path}
     variables:
       catalog: dev
@@ -44,7 +43,6 @@ targets:
   prod:
     mode: production
     workspace:
-      host: https://dbc-00120f69-4aad.cloud.databricks.com
       root_path: ${var.root_path}
     variables:
       catalog: prod

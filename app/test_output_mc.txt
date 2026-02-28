@@ -1,0 +1,92 @@
+FAIL src/__tests__/MetricsCard.test.tsx
+  MetricsCard Component
+    × should render title and value correctly (23 ms)
+    × should display positive change with green color (19 ms)
+    × should display negative change with red color (3 ms)
+    √ should show loading state (30 ms)
+    √ should format numeric values correctly (3 ms)
+    √ should handle string values (1 ms)
+
+  ● MetricsCard Component › should render title and value correctly
+
+    TestingLibraryElementError: Unable to find an element with the text: CURRENT PRICE. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"glass-card rounded-xl p-6 card-hover gradient-border"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-start justify-between mb-4"[39m
+          [36m>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-sm font-medium text-gray-400 uppercase tracking-wide"[39m
+            [36m>[39m
+              [0mCurrent Price[0m
+            [36m</h3>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"text-4xl font-bold gradient-text mb-2 number-animate"[39m
+          [36m>[39m
+            [0m$42,500.00[0m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 16 |[39m         )[33m;[39m
+     [90m 17 |[39m
+    [31m[1m>[22m[39m[90m 18 |[39m         expect(screen[33m.[39mgetByText([32m'CURRENT PRICE'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m    |[39m                       [31m[1m^[22m[39m
+     [90m 19 |[39m         expect(screen[33m.[39mgetByText([32m'$42,500.00'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 20 |[39m     })[33m;[39m
+     [90m 21 |[39m[0m
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.getByText (src/__tests__/MetricsCard.test.tsx:18:23)
+
+  ● MetricsCard Component › should display positive change with green color
+
+    expect(element).toHaveClass("text-green-400")
+
+    Expected the element to have class:
+      text-green-400
+    Received:
+
+    [0m [90m 31 |[39m
+     [90m 32 |[39m         [36mconst[39m changeElement [33m=[39m screen[33m.[39mgetByText([35m/\$500.00/[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 33 |[39m         expect(changeElement)[33m.[39mtoHaveClass([32m'text-green-400'[39m)[33m;[39m
+     [90m    |[39m                               [31m[1m^[22m[39m
+     [90m 34 |[39m         expect(screen[33m.[39mgetByText([35m/\+1.18%/[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 35 |[39m     })[33m;[39m
+     [90m 36 |[39m[0m
+
+      at Object.toHaveClass (src/__tests__/MetricsCard.test.tsx:33:31)
+
+  ● MetricsCard Component › should display negative change with red color
+
+    expect(element).toHaveClass("text-red-400")
+
+    Expected the element to have class:
+      text-red-400
+    Received:
+
+    [0m [90m 46 |[39m
+     [90m 47 |[39m         [36mconst[39m changeElement [33m=[39m screen[33m.[39mgetByText([35m/\$500.00/[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 48 |[39m         expect(changeElement)[33m.[39mtoHaveClass([32m'text-red-400'[39m)[33m;[39m
+     [90m    |[39m                               [31m[1m^[22m[39m
+     [90m 49 |[39m         expect(screen[33m.[39mgetByText([35m/-1.18%/[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 50 |[39m     })[33m;[39m
+     [90m 51 |[39m[0m
+
+      at Object.toHaveClass (src/__tests__/MetricsCard.test.tsx:48:31)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 passed, 6 total
+Snapshots:   0 total
+Time:        1.054 s
+Ran all test suites matching src/__tests__/MetricsCard.test.tsx.

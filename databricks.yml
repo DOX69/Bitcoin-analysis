@@ -5,12 +5,13 @@ bundle:
   uuid: 5a000346-9b36-4da2-acf8-1833b2f56a85
 
 include:
-  - resources/*.yml
-  - resources/*/*.yml
+  - dbx_workflow/resources/*.yml
+  - dbx_workflow/resources/*/*.yml
 
 artifacts:
   python_artifact:
     type: whl
+    path: dbx_workflow
     build: uv build --wheel
 
 # Variable declarations. These variables are assigned in the dev/prod targets below.
@@ -35,7 +36,6 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-00120f69-4aad.cloud.databricks.com
       root_path: ${var.root_path}
     variables:
       catalog: dev
@@ -44,7 +44,6 @@ targets:
   prod:
     mode: production
     workspace:
-      host: https://dbc-00120f69-4aad.cloud.databricks.com
       root_path: ${var.root_path}
     variables:
       catalog: prod

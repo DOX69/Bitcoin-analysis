@@ -66,7 +66,7 @@ resources:
         - environment_key: default
           spec:
               dependencies:
-                - ${var.root_path}/artifacts/.internal/raw_ingest-0.0.1-py3-none-any.whl
+                - ${var.root_path}/artifacts/.internal/raw_ingest-0.0.1-py3-none-any.whl #TODO: find a way to not hardcode the version .whl file
               environment_version: "4"
         - environment_key: dbt-default
           spec:

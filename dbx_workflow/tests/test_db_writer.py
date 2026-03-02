@@ -95,6 +95,7 @@ class TestDbWriterSaveDeltaTable:
         mock_writer = MagicMock()
         mock_spark_df.write = mock_writer
         mock_writer.mode.return_value = mock_writer
+        mock_writer.option.return_value = mock_writer
 
         # Create writer and save
         writer = DbWriter(
@@ -107,6 +108,7 @@ class TestDbWriterSaveDeltaTable:
 
         # Verify append mode was used
         mock_writer.mode.assert_called_once_with("append")
+        mock_writer.option.assert_called_once_with("mergeSchema", "true")
         mock_writer.saveAsTable.assert_called_once_with("test.bronze.btc_usd")
 
     def test_save_delta_table_adds_date_column(self, mock_logger, sample_pandas_df):
@@ -129,6 +131,7 @@ class TestDbWriterSaveDeltaTable:
         mock_writer = MagicMock()
         mock_spark_df.write = mock_writer
         mock_writer.mode.return_value = mock_writer
+        mock_writer.option.return_value = mock_writer
 
         # Create writer and save
         writer = DbWriter(
@@ -155,6 +158,7 @@ class TestDbWriterSaveDeltaTable:
         mock_writer = MagicMock()
         mock_spark_df.write = mock_writer
         mock_writer.mode.return_value = mock_writer
+        mock_writer.option.return_value = mock_writer
         mock_writer.saveAsTable.side_effect = Exception("Database connection failed")
 
         writer = DbWriter(
@@ -186,6 +190,7 @@ class TestDbWriterSaveDeltaTable:
         mock_writer = MagicMock()
         mock_spark_df.write = mock_writer
         mock_writer.mode.return_value = mock_writer
+        mock_writer.option.return_value = mock_writer
 
         writer = DbWriter(
             spark=mock_spark,

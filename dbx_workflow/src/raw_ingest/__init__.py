@@ -1,0 +1,2 @@
+from .ingest_market_price_data import main as ingest_market_price_data
+from .ingest_technical_indicators import main as ingest_technical_indicators

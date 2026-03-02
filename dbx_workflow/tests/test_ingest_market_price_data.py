@@ -4,15 +4,15 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 
-from raw_ingest.main import ingest_ticker_data, main
+from raw_ingest.ingest_market_price_data import ingest_ticker_data, main
 
 
 class TestIngestTickerData:
     """Test ingest_ticker_data function."""
 
-    @patch('raw_ingest.main.SparkSession')
-    @patch('raw_ingest.main.DbWriter')
-    @patch('raw_ingest.main.CoinbaseFetcher')
+    @patch('raw_ingest.ingest_market_price_data.SparkSession')
+    @patch('raw_ingest.ingest_market_price_data.DbWriter')
+    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
     def test_ingest_ticker_data_new_table(
         self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
@@ -47,9 +47,9 @@ class TestIngestTickerData:
         # Verify DbWriter.save_delta_table was called
         mock_writer.save_delta_table.assert_called_once_with(False)  # is_table_found=False
 
-    @patch('raw_ingest.main.SparkSession')
-    @patch('raw_ingest.main.DbWriter')
-    @patch('raw_ingest.main.CoinbaseFetcher')
+    @patch('raw_ingest.ingest_market_price_data.SparkSession')
+    @patch('raw_ingest.ingest_market_price_data.DbWriter')
+    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
     def test_ingest_ticker_data_incremental_fetch(
         self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
@@ -87,8 +87,8 @@ class TestIngestTickerData:
         # Verify DbWriter was called with is_table_found=True
         mock_writer.save_delta_table.assert_called_once_with(True)
 
-    @patch('raw_ingest.main.SparkSession')
-    @patch('raw_ingest.main.CoinbaseFetcher')
+    @patch('raw_ingest.ingest_market_price_data.SparkSession')
+    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
     def test_ingest_ticker_data_handles_fetcher_error(
         self, mock_fetcher_class, mock_spark_session_cls, mock_logger
     ):
@@ -111,9 +111,9 @@ class TestIngestTickerData:
         # Verify failure
         assert result is False
 
-    @patch('raw_ingest.main.SparkSession')
-    @patch('raw_ingest.main.DbWriter')
-    @patch('raw_ingest.main.CoinbaseFetcher')
+    @patch('raw_ingest.ingest_market_price_data.SparkSession')
+    @patch('raw_ingest.ingest_market_price_data.DbWriter')
+    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
     def test_ingest_ticker_data_handles_writer_error(
         self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
@@ -140,9 +140,9 @@ class TestIngestTickerData:
         # Verify failure
         assert result is False
 
-    @patch('raw_ingest.main.SparkSession')
-    @patch('raw_ingest.main.DbWriter')
-    @patch('raw_ingest.main.CoinbaseFetcher')
+    @patch('raw_ingest.ingest_market_price_data.SparkSession')
+    @patch('raw_ingest.ingest_market_price_data.DbWriter')
+    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
     def test_ingest_ticker_data_uppercase_conversion(
         self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
     ):
@@ -169,7 +169,7 @@ class TestIngestTickerData:
 class TestMain:
     """Test main function."""
 
-    @patch('raw_ingest.main.ingest_ticker_data')
+    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
     @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
     def test_main_processes_all_tickers(self, mock_ingest):
         """Test that all ticker pairs are processed."""
@@ -199,7 +199,7 @@ class TestMain:
         for expected in expected_pairs:
             assert expected in actual_calls
 
-    @patch('raw_ingest.main.ingest_ticker_data')
+    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
     @patch('sys.argv', ['main.py', '--catalog', 'prod', '--schema', 'raw'])
     def test_main_command_line_args(self, mock_ingest):
         """Test that command line arguments are parsed correctly."""
@@ -213,7 +213,7 @@ class TestMain:
         assert first_call[0][2] == 'prod'  # catalog
         assert first_call[0][3] == 'raw'   # schema
 
-    @patch('raw_ingest.main.ingest_ticker_data')
+    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
     @patch('sys.exit')
     @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
     def test_main_exits_on_failure(self, mock_exit, mock_ingest):
@@ -232,7 +232,7 @@ class TestMain:
         # Verify processing stopped after failure (only 2 calls made)
         assert mock_ingest.call_count == 2
 
-    @patch('raw_ingest.main.ingest_ticker_data')
+    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
     @patch('sys.argv', ['main.py', '--catalog', 'test_catalog', '--schema', 'test_schema'])
     def test_main_passes_args_to_ingest(self, mock_ingest):
         """Test that main passes catalog and schema to ingest_ticker_data."""
@@ -246,7 +246,7 @@ class TestMain:
             assert call_args[0][2] == 'test_catalog'
             assert call_args[0][3] == 'test_schema'
 
-    @patch('raw_ingest.main.ingest_ticker_data')
+    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
     @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
     def test_main_processes_in_correct_order(self, mock_ingest):
         """Test that tickers are processed in the expected order."""
@@ -275,8 +275,8 @@ class TestMain:
 class TestMainIntegration:
     """Integration tests for main pipeline."""
 
-    @patch('raw_ingest.main.SparkSession')
-    @patch('raw_ingest.main.DbWriter')
+    @patch('raw_ingest.ingest_market_price_data.SparkSession')
+    @patch('raw_ingest.ingest_market_price_data.DbWriter')
     @patch('requests.get')
     @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
     def test_main_integration_with_mocked_dependencies(

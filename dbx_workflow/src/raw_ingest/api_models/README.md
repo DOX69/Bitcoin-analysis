@@ -1,6 +1,6 @@
 # Auto-generated API Models
 
-This directory contains Pydantic models automatically generated from Coinbase and Frankfurter API responses.
+This directory contains Pydantic models automatically generated from Coinbase, Frankfurter, and BGeometrics API responses.
 
 ## Purpose
 
@@ -14,6 +14,6 @@ If changes are detected, a Pull Request is automatically created to notify the t
 
 ## Usage
 
-These models are primarily for monitoring purposes and are not currently used in the main ingestion pipeline (`CoinbaseFetcher`, `FrankfurterFetcher`), which uses manual parsing for performance and robustness.
+These models are primarily for monitoring purposes and are not currently used in the main ingestion pipeline (`CoinbaseFetcher`, `FrankfurterFetcher`, `BGeometricsFetcher`), which uses manual parsing for performance and robustness.
 
 **Do not edit these files manually.** They will be overwritten by the automated process.

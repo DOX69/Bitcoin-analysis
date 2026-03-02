@@ -9,11 +9,23 @@ from genson import Schema
 # Constants
 COINBASE_URL = "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400"
 FRANKFURTER_BASE_URL = "https://api.frankfurter.dev/v1"
+BGEOMETRICS_URL = "https://bitcoin-data.com/api/v1/technical-indicators"
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 API_MODELS_DIR = PROJECT_ROOT / "src" / "raw_ingest" / "api_models"
+
+def fetch_bgeometrics_data():
+    """Fetches a sample of BGeometrics technical indicators data."""
+    try:
+        response = requests.get(BGEOMETRICS_URL, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data[:5] if isinstance(data, list) else data
+    except Exception as e:
+        print(f"Error fetching BGeometrics data: {e}")
+        sys.exit(1)
 
 def fetch_coinbase_data():
     """Fetches a sample of Coinbase candle data."""
@@ -125,6 +137,21 @@ def main():
         input_type="json"
     )
 
+    # --- BGeometrics ---
+    print("Fetching BGeometrics data...")
+    bgeometrics_data = fetch_bgeometrics_data()
+    temp_bgeometrics = SCRIPT_DIR / "temp_bgeometrics.json"
+    with open(temp_bgeometrics, "w") as f:
+        json.dump(bgeometrics_data, f)
+
+    print("Generating BGeometrics model...")
+    run_datamodel_codegen(
+        temp_bgeometrics,
+        API_MODELS_DIR / "bgeometrics.py",
+        "BGeometricsTechnicalIndicatorsResponse",
+        input_type="json"
+    )
+
     # --- Frankfurter ---
     print("Fetching Frankfurter data...")
     frankfurter_data = fetch_frankfurter_data()
@@ -151,6 +178,8 @@ def main():
     # Cleanup
     if temp_coinbase.exists():
         temp_coinbase.unlink()
+    if temp_bgeometrics.exists():
+        temp_bgeometrics.unlink()
     if temp_frankfurter_schema.exists():
         temp_frankfurter_schema.unlink()
 

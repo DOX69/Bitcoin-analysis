@@ -35,7 +35,8 @@ packages = ["src/raw_ingest"]
 
 # Pas de "src." au début du path
 [project.scripts]
-main = "raw_ingest.main:main"
+ingest_market_price_data = "raw_ingest.ingest_market_price_data:main"
+ingest_technical_indicators = "raw_ingest.ingest_technical_indicators:main"
 
 [tool.black]
 line-length = 125

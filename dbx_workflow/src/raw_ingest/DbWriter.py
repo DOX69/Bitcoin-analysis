@@ -33,7 +33,7 @@ class DbWriter:
 
         try:
             if is_table_found:
-                spark_df.write.mode("append").saveAsTable(self.full_path_table_name)
+                spark_df.write.mode("append").option("mergeSchema", "true").saveAsTable(self.full_path_table_name)
                 self.logger.info(f"✓ Append to {self.full_path_table_name} succeeded ({spark_df.count()} rows appended)")
             else:
                 # Create new table

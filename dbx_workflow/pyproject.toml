@@ -37,6 +37,7 @@ packages = ["src/raw_ingest"]
 [project.scripts]
 ingest_market_price_data = "raw_ingest.ingest_market_price_data:main"
 ingest_technical_indicators = "raw_ingest.ingest_technical_indicators:main"
+ingest_swapi_characters = "raw_ingest.ingest_swapi_characters:main"
 
 [tool.black]
 line-length = 125

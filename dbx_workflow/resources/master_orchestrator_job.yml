@@ -38,11 +38,24 @@ resources:
               - "${var.schema}"
           environment_key: default
 
+        - task_key: raw_ingest_swapi
+          max_retries: 0
+          python_wheel_task:
+            package_name: raw_ingest
+            entry_point: ingest_swapi_characters
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+          environment_key: default
+
         - task_key: dbt_silver_gold
           max_retries: 0
           depends_on:
             - task_key: raw_ingest_crypto
             - task_key: raw_ingest_technical_indicators
+            - task_key: raw_ingest_swapi
           dbt_task:
             project_directory: ../../dbt_silver_gold
             commands:

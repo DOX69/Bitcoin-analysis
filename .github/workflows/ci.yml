@@ -5,6 +5,9 @@ on:
     branches:
       - '**'
   pull_request:
+    branches:
+      - staging
+      - main
 
 jobs:
   test_package:
@@ -95,12 +98,32 @@ jobs:
         run: databricks bundle deploy -t prod -p PROD
 
       - name: 🏃‍♀️‍➡️ Run databricks master job
-        run: databricks bundle run -t prod -p PROD master_orchestrator_job
+        if: github.ref_name == 'staging' || github.base_ref == 'staging'
+        run: # databricks bundle run -t prod -p PROD master_orchestrator_job
+
+  promote_to_main:
+    name: "🔄 Promote Staging to Main"
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    permissions:
+      contents: write
+      pull-requests: write
+    if: github.event_name == 'push' && github.ref_name == 'staging'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create and Merge PR to Main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create --base main --head staging --title "ci: Auto-promote staging to main" --body "Automated promotion from staging to main after successful checks." || echo "PR already exists"
+          gh pr merge staging --merge --auto || gh pr merge staging --merge
   deploy_dev:
     name: "🚀 Deploy to Databricks (dev)"
     runs-on: ubuntu-latest
     needs: [test_package, test_app]
-    if: github.event_name == 'push' && !(github.ref_name == 'main' || github.ref_name == 'staging')
+    if: |
+      (github.event_name == 'push' && !(github.ref_name == 'main' || github.ref_name == 'staging')) ||
+      github.event_name == 'pull_request'
     timeout-minutes: 15
     defaults:
       run:
@@ -123,4 +146,4 @@ jobs:
       - name: 🚀 Deploy to DEV
         run: databricks bundle deploy -t dev -p DEFAULT
       - name: 🏃‍♀️‍➡️ Run databricks master job (dev)
-        run: databricks bundle run -t dev -p DEFAULT master_orchestrator_job
+        run: # databricks bundle run -t dev -p DEFAULT master_orchestrator_job

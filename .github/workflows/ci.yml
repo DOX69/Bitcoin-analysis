@@ -99,7 +99,7 @@ jobs:
 
       - name: 🏃‍♀️‍➡️ Run databricks master job
         if: github.ref_name == 'staging' || github.base_ref == 'staging'
-        run: # databricks bundle run -t prod -p PROD master_orchestrator_job
+        run: databricks bundle run -t prod -p PROD master_orchestrator_job
 
   promote_to_main:
     name: "🔄 Promote Staging to Main"
@@ -146,4 +146,4 @@ jobs:
       - name: 🚀 Deploy to DEV
         run: databricks bundle deploy -t dev -p DEFAULT
       - name: 🏃‍♀️‍➡️ Run databricks master job (dev)
-        run: # databricks bundle run -t dev -p DEFAULT master_orchestrator_job
+        run: databricks bundle run -t dev -p DEFAULT master_orchestrator_job

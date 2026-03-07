@@ -48,7 +48,7 @@ describe('Bitcoin API - All Filter Logic', () => {
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(
             expect.stringContaining('prod.dlh_gold__crypto_prices.agg_month_btc'),
-            expect.objectContaining({ days: { value: -3650 } })
+            expect.objectContaining({ days: -3650 })
         );
         expect(executeQuery).toHaveBeenCalledWith(
             expect.stringContaining('CASE'), // Checks for the RSI status case statement
@@ -82,7 +82,7 @@ describe('Bitcoin API - All Filter Logic', () => {
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(
             expect.stringContaining('prod.dlh_silver__crypto_prices.obt_fact_day_btc'),
-            expect.objectContaining({ days: { value: -30 } })
+            expect.objectContaining({ days: -30 })
         );
 
         // Ensure agg_month_btc is NEVER queried

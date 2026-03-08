@@ -8,6 +8,10 @@
         }}
 
 {% set period = 14 %}
+{% set currencies = ['chf', 'eur'] %}
+{% set cols_ohlc = ['low', 'high', 'open', 'close'] %}
+{% set cols_technical_indicators = ['macd', 'macd_signal', 'macd_hist', 'sma_7', 'sma_50', 'sma_200', 'ema_7', 'ema_50', 'ema_200'] %}
+{% set cols_to_convert_currency = cols_ohlc + cols_technical_indicators %}
 
 with deduplicate_source as (
         select *, row_number() over (partition by date order by ingest_date_time desc) as rn
@@ -43,32 +47,35 @@ with deduplicate_source as (
             {% endif %}
 
     )
+    -- add bgeometrics_technical_indicators
+    , add_technical_indicators as (
+        select if.*, fb.* except (fb.date_indicators, fb.ingest_date_time, fb.dbt_batch_id)
+        from increment_filter as if
+        left join {{ ref('fact_btc') }} as fb
+        on if.date_prices = fb.date_indicators
+    )
     ,increment_data as (
 select * except (ingest_date_time),
      current_timestamp as ingest_date_time,
     '{{ invocation_id }}' as dbt_batch_id
-from increment_filter
+from add_technical_indicators
     )
     select date_prices,
-    low as low_usd,
-    high as high_usd,
-    open as open_usd,
-    close as close_usd,
+    {%- for col in cols_to_convert_currency %}
+    {{ col }} as {{ col }}_usd,
+    {%- endfor %}
     volume,
     rsi,
     rsi_status,
     rate_usd_chf,
     rate_usd_eur,
-    round(low * rate_usd_chf, 2) as low_chf,
-    round(high * rate_usd_chf, 2) as high_chf,
-    round(open * rate_usd_chf, 2) as open_chf,
-    round(close * rate_usd_chf, 2) as close_chf,
-    round(low * rate_usd_eur, 2) as low_eur,
-    round(high * rate_usd_eur, 2) as high_eur,
-    round(open * rate_usd_eur, 2) as open_eur,
-    round(close * rate_usd_eur, 2) as close_eur,
+    {%- for curr in currencies -%}
+        {%- for col in cols_to_convert_currency -%}
+    round({{ col }} * rate_usd_{{ curr }}, 2) as {{ col }}_{{ curr }},
+        {%- endfor -%}
+    {%- endfor %}
     ingest_date_time,
     dbt_batch_id
     from increment_data as id left join rates as r
     on r.date_rates = id.date_prices
-    {% endmacro %}
+{% endmacro %}

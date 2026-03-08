@@ -23,8 +23,10 @@ for (let i = 0; i < args.length; i++) {
 const command = commandArgs[0];
 const remainingArgs = commandArgs.slice(1);
 
-const fullCommand = command === 'dev' ? 'next' : command;
-const fullArgs = command === 'dev' ? ['dev', ...remainingArgs] : remainingArgs;
+const nextCommands = new Set(['dev', 'build', 'start']);
+const isNextCommand = nextCommands.has(command);
+const fullCommand = isNextCommand ? 'next' : command;
+const fullArgs = isNextCommand ? [command, ...remainingArgs] : remainingArgs;
 
 console.log(`🚀 Using Databricks Catalog: ${catalog}`);
 

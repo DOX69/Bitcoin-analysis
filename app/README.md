@@ -14,6 +14,20 @@ pnpm dev
 bun dev
 ```
 
+### 🗄️ Catalog Switching
+
+You can switch between `prod` and `dev` catalogs using the `--catalog` flag:
+
+```bash
+# Run with dev catalog
+npm run dev -- --catalog dev
+
+# Run with prod catalog (default)
+npm run dev
+```
+
+The application defaults to `prod` if no catalog is specified. This is also handled automatically in the CI/CD pipeline based on the branch.
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

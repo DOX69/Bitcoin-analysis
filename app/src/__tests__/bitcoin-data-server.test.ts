@@ -36,7 +36,7 @@ describe('Bitcoin API', () => {
         jest.restoreAllMocks();
     });
 
-    describe('getCurrentBitcoinMetrics', () => {
+describe('getCurrentBitcoinMetrics', () => {
         it('should return current Bitcoin metrics with correct calculations', async () => {
             // Mock query response (matches the aliases in the query)
             const mockData = [
@@ -84,7 +84,7 @@ describe('Bitcoin API', () => {
         });
     });
 
-    describe('getHistoricalPrices', () => {
+describe('getHistoricalPrices', () => {
         it('should return historical price data for specified days', async () => {
             const mockPrices = Array.from({ length: 30 }, (_, i) => ({
                 date_prices: `2024-01-${String(i + 1).padStart(2, '0')}`,
@@ -143,7 +143,7 @@ describe('Bitcoin API', () => {
         });
     });
 
-    describe('getAggregatedData', () => {
+describe('getAggregatedData', () => {
         it('should return weekly aggregated data', async () => {
             const mockAggregated = [
                 {
@@ -190,7 +190,7 @@ describe('Bitcoin API', () => {
         });
     });
 
-    describe('Data validation', () => {
+describe('Data validation', () => {
         it('should ensure all prices are positive numbers', async () => {
             const mockPrices = [
                 {
@@ -238,3 +238,41 @@ describe('Bitcoin API', () => {
         });
     });
 });
+
+describe('namedParameters format verification', () => {
+        it('should pass primitive values without { value: ... } wrapper to prevent writeString error', async () => {
+            await getHistoricalPrices(30, '2023-01-01', '2023-01-31', 'USD');
+
+            // Get the last call to executeQuery
+            const lastCall = (executeQuery as jest.Mock).mock.calls[(executeQuery as jest.Mock).mock.calls.length - 1];
+            const passedParameters = lastCall[1];
+
+            // Assert that the parameters are passed correctly
+            expect(passedParameters).toBeDefined();
+            expect(passedParameters).toHaveProperty('startDate', '2023-01-01');
+            expect(passedParameters).toHaveProperty('endDate', '2023-01-31');
+
+            // Specifically assert that it's NOT wrapped in an object
+            expect(typeof passedParameters.startDate).toBe('string');
+            expect(typeof passedParameters.endDate).toBe('string');
+            expect(passedParameters.startDate).not.toHaveProperty('value');
+        });
+    });
+
+describe('namedParameters format verification for days parameter', () => {
+        it('should pass days as primitive number without { value: ... } wrapper', async () => {
+            await getHistoricalPrices(30, undefined, undefined, 'USD');
+
+            // Get the last call to executeQuery
+            const lastCall = (executeQuery as jest.Mock).mock.calls[(executeQuery as jest.Mock).mock.calls.length - 1];
+            const passedParameters = lastCall[1];
+
+            // Assert that the parameters are passed correctly
+            expect(passedParameters).toBeDefined();
+            expect(passedParameters).toHaveProperty('days', -30);
+
+            // Specifically assert that it's NOT wrapped in an object
+            expect(typeof passedParameters.days).toBe('number');
+            expect(passedParameters.days).not.toHaveProperty('value');
+        });
+    });

@@ -37,7 +37,7 @@ export default function EnergyGraph() {
 
             for (let i = 0; i < count; i++) {
                 const change = (Math.random() - 0.5) * (height * 0.15); // Volatility
-                let open = prevClose;
+                const open = prevClose;
                 let close = open + change;
 
                 // Keep within bounds
@@ -67,7 +67,7 @@ export default function EnergyGraph() {
                 // Add new candle at the end
                 const lastCandle = candles[candles.length - 1];
                 const change = (Math.random() - 0.5) * (height * 0.15);
-                let open = lastCandle.close;
+                const open = lastCandle.close;
                 let close = open + change;
 
                 // Keep within bounds

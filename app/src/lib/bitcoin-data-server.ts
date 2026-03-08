@@ -142,11 +142,11 @@ export const getHistoricalPrices = cache(async (
 
             if (startDate && endDate) {
                 whereClause = `month_start_date BETWEEN :startDate AND :endDate`;
-                namedParameters.startDate = { value: startDate };
-                namedParameters.endDate = { value: endDate };
+                namedParameters.startDate = startDate;
+                namedParameters.endDate = endDate;
             } else {
                 whereClause = `month_start_date >= DATEADD(day, :days, CURRENT_DATE())`;
-                namedParameters.days = { value: -days };
+                namedParameters.days = -days;
             }
 
             query = `
@@ -173,11 +173,11 @@ export const getHistoricalPrices = cache(async (
 
             if (startDate && endDate) {
                 whereClause = `date_prices BETWEEN :startDate AND :endDate`;
-                namedParameters.startDate = { value: startDate };
-                namedParameters.endDate = { value: endDate };
+                namedParameters.startDate = startDate;
+                namedParameters.endDate = endDate;
             } else {
                 whereClause = `date_prices >= DATEADD(day, :days, CURRENT_DATE())`;
-                namedParameters.days = { value: -days };
+                namedParameters.days = -days;
             }
 
             query = `

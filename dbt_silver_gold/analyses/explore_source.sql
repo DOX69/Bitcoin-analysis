@@ -1,1 +1,1 @@
-select * from {{ source('bronze', 'btc_usd_ohlcv') }} order by ingest_date_time desc limit 10;
+select * from {{ source('bronze', 'bgeometrics_btc_technical_indicators') }} order by ingest_date_time desc limit 10;

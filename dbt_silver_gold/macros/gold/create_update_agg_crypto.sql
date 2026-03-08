@@ -1,30 +1,10 @@
 {%- macro create_update_agg(table_source, granularity) -%}
 {% set period = 14 %}
 {%- set currencies = ["usd", "chf", "eur"] -%}
-{%- set ohlc_configs = [] -%}
 
-{%- for cur in currencies -%}
-  {%- if cur == "" -%}
-    {%- set cfg = {
-      "low": "low",
-      "high": "high",
-      "open": "open",
-      "close": "close"
-    } -%}
-  {%- else -%}
-    {# string concatenation using the ~ operator #}
-    {%- set suffix = "_" ~ cur -%}
-    {%- set cfg = {
-      "low": "low" ~ suffix,
-      "high": "high" ~ suffix,
-      "open": "open" ~ suffix,
-      "close": "close" ~ suffix
-    } -%}
-  {%- endif -%}
-
-  {%- do ohlc_configs.append(cfg) -%}
-{%- endfor -%}
-
+{%- set ohlc_cols = ['low', 'high', 'open', 'close'] -%}
+{%- set tech_cols = ['macd', 'macd_signal', 'macd_hist', 'sma_7', 'sma_50', 'sma_200', 'ema_7', 'ema_50', 'ema_200'] -%}
+{%- set all_cols_to_agg = ohlc_cols + tech_cols -%}
 
 {%- if granularity == "week" -%}
     {%- set smaller_granularity_ref_col = "date_prices" -%}
@@ -49,24 +29,17 @@
 {%- endif -%}
 
 
-{{ 
-    config(
-        materialized='incremental',
-        unique_key=parition_by_col,
-        on_schema_change='sync_all_columns'
-        ) 
-}}
+
 
 With join_calendar as (
         select ingest_date_time,
 
         {{smaller_granularity_ref_col}},
-        {% for cfg in ohlc_configs %}
-            {{ cfg.low }},
-            {{ cfg.high }},
-            {{ cfg.open }},
-            {{ cfg.close }},
-        {% endfor %}
+        {% for cur in currencies -%}
+            {% for col in all_cols_to_agg -%}
+            {{ col }}_{{ cur }},
+            {% endfor -%}
+        {% endfor -%}
         {{agg_cols}}        
     from {{table_source}} ofdb 
     {% if granularity == "week" %}
@@ -79,12 +52,20 @@ With join_calendar as (
         {{smaller_granularity_ref_col}},
         {{agg_cols}},
 
-        {% for cfg in ohlc_configs %}
-            {{ cfg.low }},
-            {{ cfg.high }},
-            first({{cfg.open}}) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} asc ) as {{cfg.open}},
-            first({{cfg.close}}) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} desc) as {{cfg.close}},
-        {% endfor %}
+        {% for cur in currencies -%}
+            {% for col in all_cols_to_agg -%}
+                {%- if col == 'low' -%}
+                {{ col }}_{{ cur }},
+                {%- elif col == 'high' -%}
+                {{ col }}_{{ cur }},
+                {%- elif col == 'open' -%}
+                first({{ col }}_{{ cur }}) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} asc ) as {{ col }}_{{ cur }},
+                {%- else -%}
+                {# for close and technical indicators, we take the last value of the period #}
+                first({{ col }}_{{ cur }}) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} desc) as {{ col }}_{{ cur }},
+                {%- endif -%}
+            {% endfor -%}
+        {% endfor -%}
 
         ingest_date_time
         from join_calendar
@@ -93,12 +74,17 @@ With join_calendar as (
     select
         {{agg_cols}},
 
-        {% for cfg in ohlc_configs %}
-            min({{cfg.low}}) as {{ cfg.low }},
-            max({{cfg.high}}) as {{ cfg.high }},
-            max({{cfg.open}}) as {{ cfg.open }},
-            max({{cfg.close}}) as {{ cfg.close }},
-        {% endfor %}
+        {% for cur in currencies -%}
+            {% for col in all_cols_to_agg -%}
+                {%- if col == 'low' -%}
+                min({{ col }}_{{ cur }}) as {{ col }}_{{ cur }},
+                {%- elif col == 'high' -%}
+                max({{ col }}_{{ cur }}) as {{ col }}_{{ cur }},
+                {%- else -%}
+                max({{ col }}_{{ cur }}) as {{ col }}_{{ cur }},
+                {%- endif -%}
+            {% endfor -%}
+        {% endfor -%}
         max(ingest_date_time) as ingest_date_time
         from open_close
     group by ALL

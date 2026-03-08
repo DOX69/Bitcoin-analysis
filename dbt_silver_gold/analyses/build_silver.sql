@@ -1,17 +1,23 @@
-{%set source_schema_name = 'bronze' %}
+{%- set indicators = [
+    ('macd', 'macd'),
+    ('macdsignal', 'macd_signal'),
+    ('macdhist', 'macd_hist'),
+    ('sma7', 'sma_7'),
+    ('sma50', 'sma_50'),
+    ('sma200', 'sma_200'),
+    ('ema7', 'ema_7'),
+    ('ema50', 'ema_50'),
+    ('ema200', 'ema_200')
+] -%}
+with source as (
+    select * from {{ source('bronze', 'bgeometrics_btc_technical_indicators') }}
+)
 
-WITH deduplicate_rate_eur as (
-select *, row_number() over (partition by date order by ingest_date_time desc) as rn
-from {{ source(source_schema_name, 'usd_eur_rates') }}
-    qualify rn = 1
-)
-, deduplicate_rate_chf as (
-select *, row_number() over (partition by date order by ingest_date_time desc) as rn
-from {{ source(source_schema_name, 'usd_chf_rates') }}
-    qualify rn = 1
-)
-select coalesce(chf.date,eur.date) as date_rates,
-chf.rate as rate_usd_chf,
-eur.rate as rate_usd_eur,
-current_timestamp as update_date_time
-from deduplicate_rate_chf as chf full join deduplicate_rate_eur as eur using (date)
+
+select 
+d as date_indicators,
+{% for src, alias in indicators %}
+round({{src}}, 2) as {{alias}},
+{% endfor %}
+current_timestamp as ingest_date_time
+from source

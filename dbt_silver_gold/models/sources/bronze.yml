@@ -7,3 +7,4 @@ sources:
         - name: eth_usd_ohlcv
         - name: usd_chf_rates
         - name: usd_eur_rates
+        - name: bgeometrics_btc_technical_indicators

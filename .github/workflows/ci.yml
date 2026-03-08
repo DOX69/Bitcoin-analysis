@@ -62,6 +62,8 @@ jobs:
         run: npm ci
 
       - name: Run Components Tests
+        env:
+          DATABRICKS_CATALOG: ${{ (github.ref_name == 'main' || github.ref_name == 'staging') && 'prod' || 'dev' }}
         run: npm test -- --ci --watchAll=false
 
   deploy:

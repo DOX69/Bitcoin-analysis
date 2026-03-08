@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/run-with-catalog.js dev",
+    "build": "node scripts/run-with-catalog.js build",
+    "start": "node scripts/run-with-catalog.js start",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch"

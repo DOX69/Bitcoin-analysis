@@ -22,7 +22,7 @@ export const getCurrencyRates = cache(async () => {
       SELECT
         rate_usd_chf,
         rate_usd_eur
-      FROM prod.dlh_silver__currency_rate.usd_to_other
+      FROM ${env.DATABRICKS_CATALOG}.dlh_silver__currency_rate.usd_to_other
       ORDER BY date_rates DESC
       LIMIT 1
     `;
@@ -71,7 +71,7 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
         low_usd as low_24h,
         volume as volume_24h,
         rsi as rsi
-      FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
+      FROM ${env.DATABRICKS_CATALOG}.dlh_silver__crypto_prices.obt_fact_day_btc
       ORDER BY date_prices DESC
       LIMIT 2
     `;
@@ -159,11 +159,11 @@ export const getHistoricalPrices = cache(async (
                 0 as volume,
                 rsi,
                 CASE 
-                    WHEN rsi >= 70 THEN 'Overbought'
-                    WHEN rsi <= 30 THEN 'Oversold'
+                    WHEN rsi > 70 THEN 'Overbought'
+                    WHEN rsi < 30 THEN 'Oversold'
                     ELSE 'Neutral'
                 END as rsi_status
-              FROM prod.dlh_gold__crypto_prices.agg_month_btc
+              FROM ${env.DATABRICKS_CATALOG}.dlh_gold__crypto_prices.agg_month_btc
               WHERE ${whereClause}
               ORDER BY month_start_date ASC
             `;
@@ -190,7 +190,7 @@ export const getHistoricalPrices = cache(async (
                 volume,
                 rsi,
                 rsi_status
-              FROM prod.dlh_silver__crypto_prices.obt_fact_day_btc
+              FROM ${env.DATABRICKS_CATALOG}.dlh_silver__crypto_prices.obt_fact_day_btc
               WHERE ${whereClause}
               ORDER BY date_prices ASC
             `;
@@ -235,7 +235,7 @@ export const getAggregatedData = cache(async (
                 : aggregation === 'quarterly' ? 'quarter'
                     : 'week';
 
-        const tableName = `prod.dlh_gold__crypto_prices.agg_${tableSuffix}_btc`;
+        const tableName = `${env.DATABRICKS_CATALOG}.dlh_gold__crypto_prices.agg_${tableSuffix}_btc`;
         const dateCol = aggregation === 'weekly' ? 'iso_week_start_date'
             : aggregation === 'monthly' ? 'month_start_date'
                 : aggregation === 'quarterly' ? 'quarter_start_date'
@@ -275,7 +275,7 @@ export const getForecastData = cache(async (currency: Currency = 'USD') => {
           predicted_close_usd_upper,
           predicted_at,
           ROW_NUMBER() OVER (PARTITION BY date_prices ORDER BY predicted_at DESC) as rn
-        FROM prod.dlh_silver__crypto_prices.forcast_btc_price
+        FROM ${env.DATABRICKS_CATALOG}.dlh_silver__crypto_prices.forcast_btc_price
       )
       SELECT
         date_prices,

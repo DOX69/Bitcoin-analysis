@@ -1,0 +1,286 @@
+🧪 Frontend Tests	Set up job	﻿2026-03-08T18:40:31.2439194Z Current runner version: '2.332.0'
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2464188Z ##[group]Runner Image Provisioner
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2465324Z Hosted Compute Agent
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2465907Z Version: 20260213.493
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2466587Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2467255Z Build Date: 2026-02-13T00:28:41Z
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2468034Z Worker ID: {5a3f5f91-d8d4-4fc6-ae75-5b54aee1811d}
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2468793Z Azure Region: westcentralus
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2469378Z ##[endgroup]
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2470863Z ##[group]Operating System
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2471517Z Ubuntu
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2472011Z 24.04.3
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2472730Z LTS
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2473238Z ##[endgroup]
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2473731Z ##[group]Runner Image
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2474360Z Image: ubuntu-24.04
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2474898Z Version: 20260302.42.1
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2475911Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2477619Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2478538Z ##[endgroup]
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2481247Z ##[group]GITHUB_TOKEN Permissions
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2483525Z Actions: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2484181Z ArtifactMetadata: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2484804Z Attestations: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2485314Z Checks: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2485886Z Contents: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2486484Z Deployments: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2486998Z Discussions: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2487574Z Issues: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2488081Z Metadata: read
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2488604Z Models: read
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2489068Z Packages: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2489694Z Pages: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2490271Z PullRequests: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2490837Z RepositoryProjects: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2491522Z SecurityEvents: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2492051Z Statuses: write
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2492781Z ##[endgroup]
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2494868Z Secret source: Actions
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2495611Z Prepare workflow directory
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2892773Z Prepare all required actions
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.2930063Z Getting action download info
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.7046529Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:31.8385060Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+🧪 Frontend Tests	Set up job	2026-03-08T18:40:32.0260225Z Complete job name: 🧪 Frontend Tests
+🧪 Frontend Tests	Checkout repository	﻿2026-03-08T18:40:32.0960604Z ##[group]Run actions/checkout@v4
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0961451Z with:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0961879Z   repository: DOX69/Bitcoin-analysis
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0962724Z   token: ***
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0963127Z   ssh-strict: true
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0963546Z   ssh-user: git
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0963970Z   persist-credentials: true
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0964447Z   clean: true
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0964868Z   sparse-checkout-cone-mode: true
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0965360Z   fetch-depth: 1
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0965790Z   fetch-tags: false
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0966205Z   show-progress: true
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0966631Z   lfs: false
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0967025Z   submodules: false
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0967442Z   set-safe-directory: true
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.0968138Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2051106Z Syncing repository: DOX69/Bitcoin-analysis
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2053117Z ##[group]Getting Git version info
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2053926Z Working directory is '/home/runner/work/Bitcoin-analysis/Bitcoin-analysis'
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2055177Z [command]/usr/bin/git version
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2139663Z git version 2.53.0
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2167661Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2183305Z Temporarily overriding HOME='/home/runner/work/_temp/d04baf96-b015-418c-8eac-873103531ea9' before making global git config changes
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2189477Z Adding repository directory to the temporary git global config as a safe directory
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2190714Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Bitcoin-analysis/Bitcoin-analysis
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2236554Z Deleting the contents of '/home/runner/work/Bitcoin-analysis/Bitcoin-analysis'
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2240181Z ##[group]Initializing the repository
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2246379Z [command]/usr/bin/git init /home/runner/work/Bitcoin-analysis/Bitcoin-analysis
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2354866Z hint: Using 'master' as the name for the initial branch. This default branch name
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2356248Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2357210Z hint: to use in all of your new repositories, which will suppress this warning,
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2358193Z hint: call:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2358848Z hint:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2359456Z hint: 	git config --global init.defaultBranch <name>
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2360250Z hint:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2361236Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2363086Z hint: 'development'. The just-created branch can be renamed via this command:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2364406Z hint:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2365111Z hint: 	git branch -m <name>
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2365925Z hint:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2366994Z hint: Disable this message with "git config set advice.defaultBranchName false"
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2368813Z Initialized empty Git repository in /home/runner/work/Bitcoin-analysis/Bitcoin-analysis/.git/
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2373193Z [command]/usr/bin/git remote add origin https://github.com/DOX69/Bitcoin-analysis
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2408182Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2409394Z ##[group]Disabling automatic garbage collection
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2413319Z [command]/usr/bin/git config --local gc.auto 0
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2443357Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2444553Z ##[group]Setting up auth
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2450974Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2483372Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2854970Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.2889504Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.3145743Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.3187627Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.3447256Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.3482000Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.3483205Z ##[group]Fetching the repository
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.3491395Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +eabfd3aeb5c3adf04e2106f8632129dd8a9af804:refs/remotes/pull/60/merge
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9355739Z From https://github.com/DOX69/Bitcoin-analysis
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9357460Z  * [new ref]         eabfd3aeb5c3adf04e2106f8632129dd8a9af804 -> pull/60/merge
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9395791Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9397072Z ##[group]Determining the checkout info
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9398545Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9405077Z [command]/usr/bin/git sparse-checkout disable
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9452051Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9482091Z ##[group]Checking out the ref
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9487039Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/60/merge
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9772853Z Note: switching to 'refs/remotes/pull/60/merge'.
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9774022Z 
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9774925Z You are in 'detached HEAD' state. You can look around, make experimental
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9777363Z changes and commit them, and you can discard any commits you make in this
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9779022Z state without impacting any branches by switching back to a branch.
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9779834Z 
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9780409Z If you want to create a new branch to retain commits you create, you may
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9781658Z do so (now or later) by using -c with the switch command. Example:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9782928Z 
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9783489Z   git switch -c <new-branch-name>
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9784393Z 
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9784895Z Or undo this operation with:
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9785672Z 
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9786111Z   git switch -
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9786708Z 
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9787736Z Turn off this advice by setting config variable advice.detachedHead to false
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9788971Z 
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9790247Z HEAD is now at eabfd3a Merge feba83e985586815b8dc6ee6ace1abedf414b51e into ba38aab69ad3cac6d54d4076cf0142dd889b470e
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9793783Z ##[endgroup]
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9823569Z [command]/usr/bin/git log -1 --format=%H
+🧪 Frontend Tests	Checkout repository	2026-03-08T18:40:32.9846815Z eabfd3aeb5c3adf04e2106f8632129dd8a9af804
+🧪 Frontend Tests	Set up Node.js	﻿2026-03-08T18:40:33.0156621Z ##[group]Run actions/setup-node@v4
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0157762Z with:
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0158576Z   node-version: 20
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0159458Z   cache: npm
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0160432Z   cache-dependency-path: app/package-lock.json
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0161664Z   always-auth: false
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0162916Z   check-latest: false
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0164167Z   token: ***
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.0164994Z ##[endgroup]
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.1970389Z Found in cache @ /opt/hostedtoolcache/node/20.20.0/x64
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.1976332Z ##[group]Environment details
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.5436698Z node: v20.20.0
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.5437150Z npm: 10.8.2
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.5437435Z yarn: 1.22.22
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.5438136Z ##[endgroup]
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.5458714Z [command]/opt/hostedtoolcache/node/20.20.0/x64/bin/npm config get cache
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.6672872Z /home/runner/.npm
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:33.8960087Z Cache hit for: node-cache-Linux-x64-npm-7fb231fbc1d74a458ca8742cc29e91d3ac03ceeb6ba7636522e43b3100230593
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:35.1282534Z Received 41943040 of 181564306 (23.1%), 40.0 MBs/sec
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:36.1012695Z Received 181564306 of 181564306 (100.0%), 87.8 MBs/sec
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:36.1014264Z Cache Size: ~173 MB (181564306 B)
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:36.1102679Z [command]/usr/bin/tar -xf /home/runner/work/_temp/0662f118-8e6b-4975-9d28-711840ed1531/cache.tzst -P -C /home/runner/work/Bitcoin-analysis/Bitcoin-analysis --use-compress-program unzstd
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:36.4729726Z Cache restored successfully
+🧪 Frontend Tests	Set up Node.js	2026-03-08T18:40:36.5096323Z Cache restored from key: node-cache-Linux-x64-npm-7fb231fbc1d74a458ca8742cc29e91d3ac03ceeb6ba7636522e43b3100230593
+🧪 Frontend Tests	Install dependencies	﻿2026-03-08T18:40:36.5267421Z ##[group]Run npm ci
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:36.5267741Z [36;1mnpm ci[0m
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:36.5402027Z shell: /usr/bin/bash -e {0}
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:36.5402643Z ##[endgroup]
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:41.4208237Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:41.5525974Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:41.7407445Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:41.8055336Z npm warn deprecated q@1.5.1: You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:41.8057745Z npm warn deprecated
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:41.8059081Z npm warn deprecated (For a CapTP with native promises, see @endo/eventual-send and @endo/captp)
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1759467Z 
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1760479Z added 838 packages, and audited 839 packages in 23s
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1761479Z 
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1761846Z 196 packages are looking for funding
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1762579Z   run `npm fund` for details
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1872847Z 
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1873617Z 3 vulnerabilities (1 moderate, 1 high, 1 critical)
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1880976Z 
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1881524Z To address all issues, run:
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1882007Z   npm audit fix
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1882439Z 
+🧪 Frontend Tests	Install dependencies	2026-03-08T18:40:59.1882657Z Run `npm audit` for details.
+🧪 Frontend Tests	Run Components Tests	﻿2026-03-08T18:40:59.2695530Z ##[group]Run npm test -- --ci --watchAll=false
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.2695915Z [36;1mnpm test -- --ci --watchAll=false[0m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.2747725Z shell: /usr/bin/bash -e {0}
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.2747963Z env:
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.2748144Z   DATABRICKS_CATALOG: dev
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.2748362Z ##[endgroup]
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.3902003Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.3902554Z > app@0.1.0 test
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.3902916Z > jest --ci --watchAll=false
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:40:59.3903101Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.4151204Z PASS src/__tests__/bitcoin-data-server.test.ts
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.5363747Z PASS src/__tests__/forecast-implementation.test.ts
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7743783Z FAIL src/__tests__/bitcoin-data-server-all-filter.test.ts
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7745898Z   ● Bitcoin API - All Filter Logic › should use monthly aggregated table when days >= 1800 (ALL filter)
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7746980Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7747679Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7761170Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7762447Z     Expected: StringContaining "prod.dlh_gold__crypto_prices.agg_month_btc", ObjectContaining {"days": -3650}
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7763794Z     Received: "
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7774576Z                   SELECT
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7775050Z                     month_start_date as date,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7775588Z                     open_usd as open,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7776063Z                     high_usd as high,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7776538Z                     low_usd as low,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7776970Z                     close_usd as close,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7777409Z                     0 as volume,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7777775Z                     rsi,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7778235Z                     CASE·
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7778697Z                         ELSE 'Neutral'
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7779141Z                     END as rsi_status
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7779732Z                   FROM undefined.dlh_gold__crypto_prices.agg_month_btc
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7780488Z                   WHERE month_start_date >= DATEADD(day, :days, CURRENT_DATE())
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7781148Z                   ORDER BY month_start_date ASC
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7781612Z                 ", {"days": -3650}
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7781889Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7782018Z     Number of calls: 1
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7782452Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7782673Z     [0m [90m 47 |[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7783373Z      [90m 48 |[39m         [90m// Assert: Verify the correct table is queried[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7784491Z     [31m[1m>[22m[39m[90m 49 |[39m         expect(executeQuery)[33m.[39mtoHaveBeenCalledWith(
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7804264Z      [90m    |[39m                              [31m[1m^[22m[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7805602Z      [90m 50 |[39m             expect[33m.[39mstringContaining([32m'prod.dlh_gold__crypto_prices.agg_month_btc'[39m)[33m,[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7807021Z      [90m 51 |[39m             expect[33m.[39mobjectContaining({ days[33m:[39m [33m-[39m[35m3650[39m })
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7807889Z      [90m 52 |[39m         )[33m;[39m[0m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7808186Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7808756Z       at Object.toHaveBeenCalledWith (src/__tests__/bitcoin-data-server-all-filter.test.ts:49:30)
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7809391Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7809901Z   ● Bitcoin API - All Filter Logic › should use daily table when days < 1800
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7810688Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7810966Z     expect(jest.fn()).toHaveBeenCalledWith(...expected)
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7811339Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7811991Z     Expected: StringContaining "prod.dlh_silver__crypto_prices.obt_fact_day_btc", ObjectContaining {"days": -30}
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7813052Z     Received: "
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7813346Z                   SELECT
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7813737Z                     date_prices as date,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7814182Z                     open_usd as open,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7814608Z                     high_usd as high,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7815034Z                     low_usd as low,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7815755Z                     close_usd as close,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7816141Z                     volume,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7816474Z                     rsi,
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7816824Z                     rsi_status
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7817383Z                   FROM undefined.dlh_silver__crypto_prices.obt_fact_day_btc
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7818124Z                   WHERE date_prices >= DATEADD(day, :days, CURRENT_DATE())
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7818701Z                   ORDER BY date_prices ASC
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7819140Z                 ", {"days": -30}
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7819384Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7819511Z     Number of calls: 1
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7819709Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7819902Z     [0m [90m 81 |[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7820565Z      [90m 82 |[39m         [90m// Assert: Verify the correct table is queried[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7821572Z     [31m[1m>[22m[39m[90m 83 |[39m         expect(executeQuery)[33m.[39mtoHaveBeenCalledWith(
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7822608Z      [90m    |[39m                              [31m[1m^[22m[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7823872Z      [90m 84 |[39m             expect[33m.[39mstringContaining([32m'prod.dlh_silver__crypto_prices.obt_fact_day_btc'[39m)[33m,[39m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7825271Z      [90m 85 |[39m             expect[33m.[39mobjectContaining({ days[33m:[39m [33m-[39m[35m30[39m })
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7826105Z      [90m 86 |[39m         )[33m;[39m[0m
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7826385Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7826936Z       at Object.toHaveBeenCalledWith (src/__tests__/bitcoin-data-server-all-filter.test.ts:83:30)
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:03.7827564Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.0646526Z PASS src/__tests__/module-resolution.test.ts
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.1043984Z PASS src/__tests__/MetricsCard.test.tsx
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.1434250Z PASS src/__tests__/performance_benchmark.test.ts
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.2979622Z PASS src/theme/__tests__/theme.test.ts
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.5803688Z PASS src/__tests__/DateRangePicker.test.tsx
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6002814Z PASS src/__tests__/databricks.test.ts
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6390118Z 
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6394975Z Test Suites: 1 failed, 8 passed, 9 total
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6395618Z Tests:       2 failed, 53 passed, 55 total
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6396073Z Snapshots:   0 total
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6396434Z Time:        2.567 s
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6396838Z Ran all test suites.
+🧪 Frontend Tests	Run Components Tests	2026-03-08T18:41:04.6855137Z ##[error]Process completed with exit code 1.
+🧪 Frontend Tests	Post Checkout repository	﻿2026-03-08T18:41:04.6964751Z Post job cleanup.
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.7906645Z [command]/usr/bin/git version
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.7942508Z git version 2.53.0
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.7993316Z Temporarily overriding HOME='/home/runner/work/_temp/2ab29979-779a-4b9d-94ab-997e5646a286' before making global git config changes
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.7994880Z Adding repository directory to the temporary git global config as a safe directory
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.7999723Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Bitcoin-analysis/Bitcoin-analysis
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8035012Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8069146Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8310863Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8332102Z http.https://github.com/.extraheader
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8345962Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8378535Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8610110Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+🧪 Frontend Tests	Post Checkout repository	2026-03-08T18:41:04.8642021Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+🧪 Frontend Tests	Complete job	﻿2026-03-08T18:41:04.9004834Z Cleaning up orphan processes

@@ -159,6 +159,8 @@ export const getHistoricalPrices = cache(async (
                 0 as volume,
                 rsi,
                 CASE 
+                    WHEN rsi > 70 THEN 'Overbought'
+                    WHEN rsi < 30 THEN 'Oversold'
                     ELSE 'Neutral'
                 END as rsi_status
               FROM ${env.DATABRICKS_CATALOG}.dlh_gold__crypto_prices.agg_month_btc

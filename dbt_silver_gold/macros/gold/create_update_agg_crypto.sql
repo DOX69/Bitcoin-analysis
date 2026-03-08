@@ -8,27 +8,26 @@
 
 {%- if granularity == "week" -%}
     {%- set smaller_granularity_ref_col = "date_prices" -%}
-    {%- set agg_cols = "iso_week_start_date, month_start_date, quarter_start_date, year_start_date" -%}
-    {%- set parition_by_col = "iso_week_start_date" -%}
+    {%- set agg_cols_str = "iso_week_start_date, month_start_date, quarter_start_date, year_start_date" -%}
+    {%- set partition_by_col = "iso_week_start_date" -%}
     
 {%- elif granularity == "month" %}
     {%- set smaller_granularity_ref_col = "iso_week_start_date" -%}
-    {%- set agg_cols = "month_start_date, quarter_start_date, year_start_date" -%}
-    {%- set parition_by_col = "month_start_date" -%}
+    {%- set agg_cols_str = "month_start_date, quarter_start_date, year_start_date" -%}
+    {%- set partition_by_col = "month_start_date" -%}
     
 {%- elif granularity == "quarter" %}
     {%- set smaller_granularity_ref_col = "month_start_date" -%}
-    {%- set agg_cols = "quarter_start_date, year_start_date" -%}
-    {%- set parition_by_col = "quarter_start_date" -%}
+    {%- set agg_cols_str = "quarter_start_date, year_start_date" -%}
+    {%- set partition_by_col = "quarter_start_date" -%}
     
 {%- elif granularity == "year" %}
     {%- set smaller_granularity_ref_col = "quarter_start_date" -%}
-    {%- set agg_cols = "year_start_date" -%}
-    {%- set parition_by_col = "year_start_date" -%}
-
+    {%- set agg_cols_str = "year_start_date" -%}
+    {%- set partition_by_col = "year_start_date" -%}
 {%- endif -%}
 
-
+{%- set agg_cols = agg_cols_str.split(', ') -%}
 
 
 With join_calendar as (
@@ -40,7 +39,7 @@ With join_calendar as (
             {{ col }}_{{ cur }},
             {% endfor -%}
         {% endfor -%}
-        {{agg_cols}}        
+        {{ agg_cols_str }}
     from {{table_source}} ofdb 
     {% if granularity == "week" %}
         left join {{ source('silver_global', 'dim_calendar') }} as dc on ofdb.date_prices = dc.date
@@ -50,7 +49,7 @@ With join_calendar as (
         select
 
         {{smaller_granularity_ref_col}},
-        {{agg_cols}},
+        {{ agg_cols_str }},
 
         {% for cur in currencies -%}
             {% for col in all_cols_to_agg -%}
@@ -59,10 +58,10 @@ With join_calendar as (
                 {%- elif col == 'high' -%}
                 {{ col }}_{{ cur }},
                 {%- elif col == 'open' -%}
-                first({{ col }}_{{ cur }}) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} asc ) as {{ col }}_{{ cur }},
+                first({{ col }}_{{ cur }}) over(partition by {{partition_by_col}} order by {{smaller_granularity_ref_col}} asc ) as {{ col }}_{{ cur }},
                 {%- else -%}
                 {# for close and technical indicators, we take the last value of the period #}
-                first({{ col }}_{{ cur }}) over(partition by {{parition_by_col}} order by {{smaller_granularity_ref_col}} desc) as {{ col }}_{{ cur }},
+                first({{ col }}_{{ cur }}) over(partition by {{partition_by_col}} order by {{smaller_granularity_ref_col}} desc) as {{ col }}_{{ cur }},
                 {%- endif -%}
             {% endfor -%}
         {% endfor -%}
@@ -72,7 +71,12 @@ With join_calendar as (
     )
     ,agg as (
     select
-        {{agg_cols}},
+        {{ partition_by_col }},
+        {% for col in agg_cols -%}
+            {%- if col != partition_by_col -%}
+            max({{ col }}) as {{ col }},
+            {%- endif -%}
+        {%- endfor -%}
 
         {% for cur in currencies -%}
             {% for col in all_cols_to_agg -%}
@@ -87,16 +91,16 @@ With join_calendar as (
         {% endfor -%}
         max(ingest_date_time) as ingest_date_time
         from open_close
-    group by ALL
+    group by {{ partition_by_col }}
     )
     ,add_previous_price_change as (
         select *,
-            {{ previous_price_change('close_usd', parition_by_col) }} AS change
+            {{ previous_price_change('close_usd', partition_by_col) }} AS change
         from agg
     )
     ,add_rsi as (
         select *,
-            {{ rsi('change', period, parition_by_col) }}
+            {{ rsi('change', period, partition_by_col) }}
         from add_previous_price_change
     )
     ,increment_data as (

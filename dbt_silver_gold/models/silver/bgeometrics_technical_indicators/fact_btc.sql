@@ -28,7 +28,7 @@ with source as (
         {% if is_incremental() %}
     where ingest_date_time > (select max(ingest_date_time) from {{ this }})
         {% endif %}
-
+    qualify row_number() over (partition by d order by ingest_date_time desc) = 1
 )
 select
     d as date_indicators,

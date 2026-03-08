@@ -74,7 +74,7 @@ With join_calendar as (
         {{ partition_by_col }},
         {% for col in agg_cols -%}
             {%- if col != partition_by_col -%}
-            max({{ col }}) as {{ col }},
+            min({{ col }}) as {{ col }},
             {%- endif -%}
         {%- endfor -%}
 

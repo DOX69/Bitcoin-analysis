@@ -7,7 +7,15 @@
     {# Get the folder path relative to the models directory #}
     {% set replace_slash = node.path | replace('/', '|') | replace('\\', '|') %}
     {% set splited_path_array = replace_slash.split('|') %}
-    {% set model_full_path = splited_path_array[:-1] | join('__') %}
+    
+    {# Filter out 'models' if it's the first element #}
+    {% if splited_path_array[0] == 'models' %}
+        {% set remaining_path = splited_path_array[1:-1] %}
+    {% else %}
+        {% set remaining_path = splited_path_array[:-1] %}
+    {% endif %}
+    
+    {% set model_full_path = remaining_path | join('__') %}
     {# {% set model_full_path = node.path | replace('models/', '') | replace('.sql', '') | replace('/', '__') | replace('\\', '__') %} #}
 
     {# Use target.schema as base schema prefix #}

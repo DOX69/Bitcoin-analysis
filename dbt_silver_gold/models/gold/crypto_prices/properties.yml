@@ -8,6 +8,7 @@ models:
         description: "The start date of the ISO week."
         data_tests:
           - not_null
+          - unique
       - name: month_start_date
         description: "The start date of the month."
       - name: quarter_start_date
@@ -65,6 +66,7 @@ models:
         description: "The start date of the month."
         data_tests:
           - not_null
+          - unique
       - name: quarter_start_date
         description: "The start date of the quarter."
       - name: year_start_date
@@ -120,6 +122,7 @@ models:
         description: "The start date of the quarter."
         data_tests:
           - not_null
+          - unique
       - name: year_start_date
         description: "The start date of the year."
       - name: low_usd
@@ -173,6 +176,7 @@ models:
         description: "The start date of the year."
         data_tests:
           - not_null
+          - unique
       - name: low_usd
         description: "Lowest price in USD during the period."
         data_tests:

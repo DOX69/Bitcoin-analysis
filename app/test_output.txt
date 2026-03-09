@@ -1,0 +1,14 @@
+
+> app@0.1.0 test
+> jest src/__tests__/indicators.test.ts --verbose
+
+PASS src/__tests__/indicators.test.ts
+  Technical Indicators Data Fetching
+    √ should include indicator data in historical prices response (5 ms)
+    √ should convert indicators to CHF (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        1.682 s
+Ran all test suites matching src/__tests__/indicators.test.ts.

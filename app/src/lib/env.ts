@@ -4,6 +4,7 @@ const envSchema = z.object({
     DATABRICKS_HOST: z.string().default(''),
     DATABRICKS_PATH: z.string().default(''),
     DATABRICKS_TOKEN: z.string().default(''),
+    DATABRICKS_CATALOG: z.string().default('prod'),
     NODE_ENV: z.string().default('development'),
 });
 
@@ -11,6 +12,7 @@ const _env = envSchema.safeParse({
     DATABRICKS_HOST: process.env.DATABRICKS_HOST || process.env.NEXT_PUBLIC_DATABRICKS_HOST,
     DATABRICKS_PATH: process.env.DATABRICKS_PATH || process.env.NEXT_PUBLIC_DATABRICKS_HTTP_PATH,
     DATABRICKS_TOKEN: process.env.DATABRICKS_TOKEN || process.env.NEXT_PUBLIC_DATABRICKS_TOKEN,
+    DATABRICKS_CATALOG: process.env.DATABRICKS_CATALOG || 'prod',
     NODE_ENV: process.env.NODE_ENV || 'development',
 });
 
@@ -18,6 +20,7 @@ export const env = _env.success ? _env.data : {
     DATABRICKS_HOST: '',
     DATABRICKS_PATH: '',
     DATABRICKS_TOKEN: '',
+    DATABRICKS_CATALOG: 'prod',
     NODE_ENV: 'development',
 };
 

@@ -49,6 +49,9 @@ interface PriceChartProps {
     currencySymbol?: string;
     forecastData?: BitcoinForecast[];
     showForecast?: boolean;
+    showMacd?: boolean;
+    showSma?: boolean;
+    showEma?: boolean;
     scaleType?: 'linear' | 'logarithmic';
 }
 
@@ -60,6 +63,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
     currencySymbol = '$',
     forecastData = [],
     showForecast = false,
+    showMacd = false,
+    showSma = false,
+    showEma = false,
     scaleType = 'linear'
 }) => {
     const { sanitizedData, shouldSmooth } = useMemo(() => {
@@ -87,9 +93,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
 
     const rsiPoints = useMemo(() => {
         if (!shouldSmooth) {
-            return sanitizedData.map((item: BitcoinPrice) => ({
+            return sanitizedData.filter(item => item.rsi !== null && item.rsi !== undefined).map((item: BitcoinPrice) => ({
                 x: new Date(item.date).getTime(),
-                y: item.rsi || 50
+                y: item.rsi
             }));
         }
 
@@ -253,6 +259,115 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     pointHitRadius: 20,
                     yAxisID: 'y',
                 }
+            ] : []),
+            ...(showSma ? [
+                {
+                    type: 'line' as const,
+                    label: 'SMA 7',
+                    data: sanitizedData.filter(item => item.sma_7 !== null && item.sma_7 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.sma_7 })),
+                    borderColor: 'rgba(56, 189, 248, 0.8)', // cyan
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    yAxisID: 'y',
+                    spanGaps: false,
+                },
+                {
+                    type: 'line' as const,
+                    label: 'SMA 50',
+                    data: sanitizedData.filter(item => item.sma_50 !== null && item.sma_50 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.sma_50 })),
+                    borderColor: 'rgba(168, 85, 247, 0.8)', // purple
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    yAxisID: 'y',
+                    spanGaps: false,
+                },
+                {
+                    type: 'line' as const,
+                    label: 'SMA 200',
+                    data: sanitizedData.filter(item => item.sma_200 !== null && item.sma_200 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.sma_200 })),
+                    borderColor: 'rgba(236, 72, 153, 0.8)', // pink
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    yAxisID: 'y',
+                    spanGaps: false,
+                }
+            ] : []),
+            ...(showEma ? [
+                {
+                    type: 'line' as const,
+                    label: 'EMA 7',
+                    data: sanitizedData.filter(item => item.ema_7 !== null && item.ema_7 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.ema_7 })),
+                    borderColor: 'rgba(56, 189, 248, 0.6)',
+                    borderDash: [2, 2],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    yAxisID: 'y',
+                    spanGaps: false,
+                },
+                {
+                    type: 'line' as const,
+                    label: 'EMA 50',
+                    data: sanitizedData.filter(item => item.ema_50 !== null && item.ema_50 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.ema_50 })),
+                    borderColor: 'rgba(168, 85, 247, 0.6)',
+                    borderDash: [2, 2],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    yAxisID: 'y',
+                    spanGaps: false,
+                },
+                {
+                    type: 'line' as const,
+                    label: 'EMA 200',
+                    data: sanitizedData.filter(item => item.ema_200 !== null && item.ema_200 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.ema_200 })),
+                    borderColor: 'rgba(236, 72, 153, 0.6)',
+                    borderDash: [2, 2],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    yAxisID: 'y',
+                    spanGaps: false,
+                }
+            ] : []),
+            ...(showMacd ? [
+                {
+                    type: 'line' as const,
+                    label: 'MACD',
+                    data: sanitizedData.filter(item => item.macd !== null && item.macd !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.macd })),
+                    borderColor: '#3b82f6', // blue-500
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    tension: 0.4,
+                    yAxisID: 'y2',
+                    spanGaps: false,
+                },
+                {
+                    type: 'line' as const,
+                    label: 'Signal',
+                    data: sanitizedData.filter(item => item.macd_signal !== null && item.macd_signal !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.macd_signal })),
+                    borderColor: '#f97316', // orange-500
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.4,
+                    yAxisID: 'y2',
+                    spanGaps: false,
+                },
+                {
+                    type: 'bar' as const,
+                    label: 'Histogram',
+                    data: sanitizedData.filter(item => item.macd_hist !== null && item.macd_hist !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.macd_hist })),
+                    backgroundColor: (context: any) => {
+                        const val = context.raw?.y;
+                        return val >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+                    },
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9,
+                    yAxisID: 'y2',
+                }
             ] : [])
         ],
     };
@@ -302,6 +417,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         if (context.dataset.label === 'RSI') {
                             return `RSI: ${Math.round(context.parsed.y)}`;
                         }
+                        if (['MACD', 'Signal', 'Histogram'].includes(context.dataset.label)) {
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                        }
+                        if (['SMA 7', 'SMA 50', 'SMA 200', 'EMA 7', 'EMA 50', 'EMA 200'].includes(context.dataset.label)) {
+                            return `${context.dataset.label}: ${currencySymbol}${formatPrice(context.parsed.y)}`;
+                        }
                         if (context.dataset.type === 'candlestick') {
                             const raw = context.raw;
                             return [
@@ -349,7 +470,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 display: true,
                 position: 'right' as const,
                 stack: 'demo',
-                stackWeight: showRsi ? 3 : 1,
+                stackWeight: (showRsi ? 1 : 0) + (showMacd ? 2 : 0) + 3,
                 grid: {
                     display: false,
                 },
@@ -381,6 +502,26 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     ticks: {
                         color: '#6b7280',
                         stepSize: 50,
+                        font: {
+                            size: 10,
+                        }
+                    }
+                }
+            } : {}),
+            ...(showMacd ? {
+                y2: {
+                    type: 'linear' as const,
+                    display: true,
+                    position: 'right' as const,
+                    stack: 'demo',
+                    stackWeight: 2,
+                    grid: {
+                        display: true,
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: '#6b7280',
                         font: {
                             size: 10,
                         }

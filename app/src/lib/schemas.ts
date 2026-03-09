@@ -19,6 +19,15 @@ export const BitcoinPriceSchema = z.object({
     volume: z.coerce.number().default(0),
     rsi: z.coerce.number().default(50),
     rsi_status: z.string().default('Neutral'),
+    macd: z.coerce.number().optional(),
+    macd_signal: z.coerce.number().optional(),
+    macd_hist: z.coerce.number().optional(),
+    sma_7: z.coerce.number().optional(),
+    sma_50: z.coerce.number().optional(),
+    sma_200: z.coerce.number().optional(),
+    ema_7: z.coerce.number().optional(),
+    ema_50: z.coerce.number().optional(),
+    ema_200: z.coerce.number().optional(),
 });
 
 export const BitcoinHistorySchema = z.array(BitcoinPriceSchema);

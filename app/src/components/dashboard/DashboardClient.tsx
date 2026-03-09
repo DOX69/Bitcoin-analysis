@@ -14,6 +14,7 @@ import type { BitcoinMetrics, BitcoinPrice, BitcoinForecast } from '@/lib/schema
 import type { Currency } from '@/lib/bitcoin-data-server';
 import { formatPriceWithCurrency } from '@/lib/format-utils';
 import { getForecastSlice } from '@/lib/forecast-utils';
+import IndicatorSelector from '@/components/dashboard/IndicatorSelector';
 
 interface DashboardClientProps {
     initialMetrics: BitcoinMetrics;
@@ -36,11 +37,23 @@ export default function DashboardClient({
     const searchParams = useSearchParams();
 
     // States that don't necessarily need to be in URL (UI preferences)
-    const [showRsi, setShowRsi] = useState(false);
+    const [selectedIndicators, setSelectedIndicators] = useState<Set<string>>(new Set());
     const [showForecast, setShowForecast] = useState(true);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
     const [scaleType, setScaleType] = useState<'linear' | 'logarithmic'>('linear');
+
+    const handleToggleIndicator = (indicator: string) => {
+        setSelectedIndicators(prev => {
+            const next = new Set(prev);
+            if (next.has(indicator)) {
+                next.delete(indicator);
+            } else {
+                next.add(indicator);
+            }
+            return next;
+        });
+    };
 
     // Stats calculated from data
     const periodStats = initialHistoricalData.length > 0 ? {
@@ -132,17 +145,10 @@ export default function DashboardClient({
                                         endDate={searchParams.get('end') || ''}
                                         onChange={handleRangeChange}
                                     />
-                                    <div className="flex items-center gap-2 ml-4">
-                                        <span className="text-xs text-gray-400">RSI</span>
-                                        <div
-                                            className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${showRsi ? 'bg-[#F7931A]' : 'bg-gray-700'}`}
-                                            onClick={() => setShowRsi(!showRsi)}
-                                        >
-                                            <div
-                                                className={`absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm transition-all ${showRsi ? 'right-1' : 'left-1'}`}
-                                            />
-                                        </div>
-                                    </div>
+                                    <IndicatorSelector
+                                        selectedIndicators={selectedIndicators}
+                                        onToggleIndicator={handleToggleIndicator}
+                                    />
                                     <div className="flex items-center gap-2 ml-2">
                                         <span className="text-xs text-gray-400">Forecast</span>
                                         <div
@@ -246,7 +252,10 @@ export default function DashboardClient({
                             <PriceChart
                                 data={initialHistoricalData}
                                 loading={false}
-                                showRsi={showRsi}
+                                showRsi={selectedIndicators.has('rsi')}
+                                showMacd={selectedIndicators.has('macd')}
+                                showSma={selectedIndicators.has('sma')}
+                                showEma={selectedIndicators.has('ema')}
                                 type={chartType}
                                 currencySymbol={{
                                     'USD': '$',

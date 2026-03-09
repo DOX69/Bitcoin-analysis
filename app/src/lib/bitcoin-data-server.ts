@@ -162,7 +162,16 @@ export const getHistoricalPrices = cache(async (
                     WHEN rsi > 70 THEN 'Overbought'
                     WHEN rsi < 30 THEN 'Oversold'
                     ELSE 'Neutral'
-                END as rsi_status
+                END as rsi_status,
+                macd_usd as macd,
+                macd_signal_usd as macd_signal,
+                macd_hist_usd as macd_hist,
+                sma_7_usd as sma_7,
+                sma_50_usd as sma_50,
+                sma_200_usd as sma_200,
+                ema_7_usd as ema_7,
+                ema_50_usd as ema_50,
+                ema_200_usd as ema_200
               FROM ${env.DATABRICKS_CATALOG}.dlh_gold__crypto_prices.agg_month_btc
               WHERE ${whereClause}
               ORDER BY month_start_date ASC
@@ -189,7 +198,16 @@ export const getHistoricalPrices = cache(async (
                 close_usd as close,
                 volume,
                 rsi,
-                rsi_status
+                rsi_status,
+                macd_usd as macd,
+                macd_signal_usd as macd_signal,
+                macd_hist_usd as macd_hist,
+                sma_7_usd as sma_7,
+                sma_50_usd as sma_50,
+                sma_200_usd as sma_200,
+                ema_7_usd as ema_7,
+                ema_50_usd as ema_50,
+                ema_200_usd as ema_200
               FROM ${env.DATABRICKS_CATALOG}.dlh_silver__crypto_prices.obt_fact_day_btc
               WHERE ${whereClause}
               ORDER BY date_prices ASC
@@ -212,6 +230,15 @@ export const getHistoricalPrices = cache(async (
                 high: convertPrice(item.high, currency, rates),
                 low: convertPrice(item.low, currency, rates),
                 close: convertPrice(item.close, currency, rates),
+                sma_7: item.sma_7 ? convertPrice(item.sma_7, currency, rates) : undefined,
+                sma_50: item.sma_50 ? convertPrice(item.sma_50, currency, rates) : undefined,
+                sma_200: item.sma_200 ? convertPrice(item.sma_200, currency, rates) : undefined,
+                ema_7: item.ema_7 ? convertPrice(item.ema_7, currency, rates) : undefined,
+                ema_50: item.ema_50 ? convertPrice(item.ema_50, currency, rates) : undefined,
+                ema_200: item.ema_200 ? convertPrice(item.ema_200, currency, rates) : undefined,
+                macd: item.macd ? convertPrice(item.macd, currency, rates) : undefined,
+                macd_signal: item.macd_signal ? convertPrice(item.macd_signal, currency, rates) : undefined,
+                macd_hist: item.macd_hist ? convertPrice(item.macd_hist, currency, rates) : undefined,
             }));
             return BitcoinHistorySchema.parse(convertedResults);
         }

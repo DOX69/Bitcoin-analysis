@@ -43,7 +43,7 @@ with deduplicate_source as (
         from add_rsi
 
             {% if is_incremental() %}
-        where ingest_date_time > (select max(ingest_date_time) from {{ this }})
+        where ingest_date_time > (select max(ingest_date_time) - INTERVAL '10' DAY from {{ this }})
             {% endif %}
 
     )

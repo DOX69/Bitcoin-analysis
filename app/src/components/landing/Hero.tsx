@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { theme } from '@/theme';
+import { ArrowRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 
 export default function Hero() {
     return (
@@ -11,19 +13,14 @@ export default function Hero() {
                 href="https://github.com/DOX69/Bitcoin-analysis/blob/main/README.md"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 backdrop-blur-sm cursor-pointer hover:scale-105 transition-transform"
-                style={{
-                    background: 'rgba(255, 107, 53, 0.1)',
-                    border: '1px solid rgba(255, 107, 53, 0.3)',
-                }}
+                className="mb-8 transition-transform hover:scale-105"
             >
-                <span className="text-sm text-gray-300">New version coming soon!</span>
-                <span
-                    className="text-sm font-medium flex items-center gap-1"
-                    style={{ color: theme.colors.primary.orange }}
-                >
-                    Read more →
-                </span>
+                <Badge variant="outline" className="gap-2 border-primary/30 bg-primary/10 px-4 py-2 text-muted-foreground">
+                    New version coming soon!
+                    <span className="flex items-center gap-1 text-primary">
+                        Read more <ArrowRight data-icon="inline-end" />
+                    </span>
+                </Badge>
             </Link>
 
             {/* Main Headline */}
@@ -40,15 +37,8 @@ export default function Hero() {
             </p>
 
             {/* CTA Button */}
-            <Link
-                href="/login"
-                className="group relative px-8 py-4 rounded-lg font-semibold text-white transition-all hover:scale-105"
-                style={{
-                    background: `linear-gradient(135deg, ${theme.colors.primary.orange} 0%, #d85a2b 100%)`,
-                    boxShadow: `0 0 40px ${theme.colors.primary.orange}40`,
-                }}
-            >
-                <span className="relative z-10">Get started</span>
+            <Link href="/login" className={buttonVariants({ size: 'lg', className: 'px-8 shadow-[0_0_40px_rgba(255,107,53,0.25)] transition-transform hover:scale-105' })}>
+                Get started
             </Link>
         </div>
     );

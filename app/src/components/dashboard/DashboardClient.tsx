@@ -1,19 +1,25 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ChartCandlestick, ChevronRight, Info, LineChart, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import {
     DashboardHeader,
     StatsPanel,
     StatCard,
     DateRangePicker,
-    PriceChart
+    PriceChart,
 } from '@/components/dashboard';
 import type { BitcoinMetrics, BitcoinPrice } from '@/lib/schemas';
 import type { Currency } from '@/lib/bitcoin-data-server';
 import { formatPriceWithCurrency } from '@/lib/format-utils';
 import IndicatorSelector from '@/components/dashboard/IndicatorSelector';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface DashboardClientProps {
     initialMetrics: BitcoinMetrics;
@@ -23,6 +29,21 @@ interface DashboardClientProps {
     endDate: string;
     selectedCurrency: Currency;
 }
+
+const TIME_FILTERS = [
+    { label: '1W', value: '1w' },
+    { label: '1M', value: '1m' },
+    { label: '6M', value: '6m' },
+    { label: '1Y', value: '1y' },
+    { label: 'YTD', value: 'ytd' },
+    { label: 'ALL', value: 'all' },
+] as const;
+
+const CURRENCY_SYMBOLS: Record<Currency, string> = {
+    USD: '$',
+    EUR: '€',
+    CHF: 'Fr',
+};
 
 export default function DashboardClient({
     initialMetrics,
@@ -35,34 +56,23 @@ export default function DashboardClient({
     const startDate = searchParams.get('start') || '';
     const endDate = searchParams.get('end') || '';
     const dateRangeKey = `${startDate}:${endDate}`;
-
-    // States that don't necessarily need to be in URL (UI preferences)
     const [selectedIndicators, setSelectedIndicators] = useState<Set<string>>(new Set());
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
     const [scaleType, setScaleType] = useState<'linear' | 'logarithmic'>('linear');
 
-    const handleToggleIndicator = (indicator: string) => {
-        setSelectedIndicators(prev => {
-            const next = new Set(prev);
-            if (next.has(indicator)) {
-                next.delete(indicator);
-            } else {
-                next.add(indicator);
-            }
-            return next;
-        });
-    };
+    const periodStats = initialHistoricalData.length > 0
+        ? {
+            start: initialHistoricalData[0],
+            end: initialHistoricalData[initialHistoricalData.length - 1],
+            high: Math.max(...initialHistoricalData.map((data) => data.high)),
+            low: Math.min(...initialHistoricalData.map((data) => data.low)),
+        }
+        : null;
 
-    // Stats calculated from data
-    const periodStats = initialHistoricalData.length > 0 ? {
-        start: initialHistoricalData[0],
-        end: initialHistoricalData[initialHistoricalData.length - 1],
-        high: Math.max(...initialHistoricalData.map(d => d.high)),
-        low: Math.min(...initialHistoricalData.map(d => d.low)),
-    } : null;
-
-    const variation = periodStats ? ((periodStats.end.close - periodStats.start.open) / periodStats.start.open) * 100 : 0;
+    const variation = periodStats
+        ? ((periodStats.end.close - periodStats.start.open) / periodStats.start.open) * 100
+        : 0;
 
     const handleTimeFilter = (value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -86,193 +96,170 @@ export default function DashboardClient({
         router.push(`?${params.toString()}`);
     };
 
-    const timeFilters = [
-        { label: '1W', value: '1w' },
-        { label: '1M', value: '1m' },
-        { label: '6M', value: '6m' },
-        { label: '1Y', value: '1y' },
-        { label: 'YTD', value: 'ytd' },
-        { label: 'ALL', value: 'all' },
-    ];
+    const handleToggleIndicator = (indicator: string) => {
+        setSelectedIndicators((previous) => {
+            const next = new Set(previous);
+            if (next.has(indicator)) next.delete(indicator); else next.add(indicator);
+            return next;
+        });
+    };
+
+    const toggleItemClassName = 'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground';
 
     return (
-        <div className="min-h-screen bg-[#141414] text-white font-sans flex flex-col">
+        <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
             <DashboardHeader />
 
-            <main className="flex-1 flex overflow-hidden">
-                <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden">
-                    <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-                        {/* Filters Row */}
-                        <div className="mb-6">
-                            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                                <div className="flex gap-2">
-                                    {timeFilters.map((filter) => (
-                                        <button
-                                            key={filter.value}
-                                            onClick={() => handleTimeFilter(filter.value)}
-                                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${initialTime === filter.value
-                                                ? 'bg-[#F7931A] text-black'
-                                                : 'bg-gray-800/50 text-gray-400 hover:text-white hover:bg-gray-700'
-                                                }`}
-                                        >
-                                            {filter.label}
-                                        </button>
-                                    ))}
-                                </div>
+            <main className="flex flex-1 overflow-hidden">
+                <div className="flex h-[calc(100vh-64px)] flex-1 flex-col overflow-hidden">
+                    <div className="scrollbar-hide flex-1 overflow-y-auto p-6">
+                        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                            <ToggleGroup
+                                value={initialTime === 'custom' ? [] : [initialTime]}
+                                onValueChange={(values) => values[0] && handleTimeFilter(values[0])}
+                                variant="outline"
+                                size="sm"
+                                spacing={1}
+                                aria-label="Time range"
+                                className="bg-muted/50 p-1"
+                            >
+                                {TIME_FILTERS.map((filter) => (
+                                    <ToggleGroupItem key={filter.value} value={filter.value} className={toggleItemClassName}>
+                                        {filter.label}
+                                    </ToggleGroupItem>
+                                ))}
+                            </ToggleGroup>
 
-                                <div className="flex gap-2 items-center">
-                                    <DateRangePicker
-                                        key={dateRangeKey}
-                                        startDate={startDate}
-                                        endDate={endDate}
-                                        onChange={handleRangeChange}
-                                    />
-                                    <IndicatorSelector
-                                        selectedIndicators={selectedIndicators}
-                                        onToggleIndicator={handleToggleIndicator}
-                                    />
-                                </div>
-                                <div className="flex gap-2 items-center">
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
-                                            <button
-                                                onClick={() => setScaleType('linear')}
-                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${scaleType === 'linear'
-                                                    ? 'bg-[#F7931A] text-black'
-                                                    : 'text-gray-400 hover:text-white'
-                                                    }`}
-                                            >
-                                                Linear
-                                            </button>
-                                            <button
-                                                onClick={() => setScaleType('logarithmic')}
-                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${scaleType === 'logarithmic'
-                                                    ? 'bg-[#F7931A] text-black'
-                                                    : 'text-gray-400 hover:text-white'
-                                                    }`}
-                                            >
-                                                Log
-                                            </button>
-                                        </div>
-                                        <div className="group relative">
-                                            <div className="cursor-help text-gray-400 hover:text-white border border-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">i</div>
-                                            <div className="absolute top-full right-0 mt-2 w-64 p-3 bg-[#1c1c1c] border border-gray-700 rounded-xl shadow-xl z-50 text-xs text-gray-300 hidden group-hover:block">
-                                                <p>Useful for viewing long-term growth where percentage changes matter more than dollar amounts.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
-                                        {(['USD', 'CHF', 'EUR'] as const).map((currency) => (
-                                            <button
-                                                key={currency}
-                                                onClick={() => handleCurrencyFilter(currency)}
-                                                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${initialCurrency === currency
-                                                    ? 'bg-[#F7931A] text-black'
-                                                    : 'text-gray-400 hover:text-white'
-                                                    }`}
-                                            >
-                                                {currency}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="flex bg-gray-800/50 rounded-lg p-1 gap-1">
-                                        <button
-                                            onClick={() => setChartType('line')}
-                                            className={`p-1.5 rounded-md transition-all ${chartType === 'line' ? 'bg-[#F7931A] text-black' : 'text-gray-400 hover:text-white'}`}
-                                            title="Line Chart"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                            </svg>
-                                        </button>
-                                        <button
-                                            onClick={() => setChartType('candlestick')}
-                                            className={`p-1.5 rounded-md transition-all ${chartType === 'candlestick' ? 'bg-[#F7931A] text-black' : 'text-gray-400 hover:text-white'}`}
-                                            title="Candlestick Chart"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <DateRangePicker
+                                    key={dateRangeKey}
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    onChange={handleRangeChange}
+                                />
+                                <IndicatorSelector
+                                    selectedIndicators={selectedIndicators}
+                                    onToggleIndicator={handleToggleIndicator}
+                                />
+                                <ToggleGroup
+                                    value={[scaleType]}
+                                    onValueChange={(values) => values[0] && setScaleType(values[0] as typeof scaleType)}
+                                    variant="outline"
+                                    size="sm"
+                                    spacing={1}
+                                    aria-label="Scale type"
+                                    className="bg-muted/50 p-1"
+                                >
+                                    <ToggleGroupItem value="linear" className={toggleItemClassName}>Linear</ToggleGroupItem>
+                                    <ToggleGroupItem value="logarithmic" className={toggleItemClassName}>Log</ToggleGroupItem>
+                                </ToggleGroup>
+                                <Tooltip>
+                                    <TooltipTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Scale type information" />}>
+                                        <Info />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Useful for viewing long-term growth where percentage changes matter more than dollar amounts.
+                                    </TooltipContent>
+                                </Tooltip>
+                                <ToggleGroup
+                                    value={[initialCurrency]}
+                                    onValueChange={(values) => values[0] && handleCurrencyFilter(values[0] as Currency)}
+                                    variant="outline"
+                                    size="sm"
+                                    spacing={1}
+                                    aria-label="Currency"
+                                    className="bg-muted/50 p-1"
+                                >
+                                    {(['USD', 'CHF', 'EUR'] as const).map((currency) => (
+                                        <ToggleGroupItem key={currency} value={currency} className={toggleItemClassName}>
+                                            {currency}
+                                        </ToggleGroupItem>
+                                    ))}
+                                </ToggleGroup>
+                                <ToggleGroup
+                                    value={[chartType]}
+                                    onValueChange={(values) => values[0] && setChartType(values[0] as typeof chartType)}
+                                    variant="outline"
+                                    size="sm"
+                                    spacing={1}
+                                    aria-label="Chart type"
+                                    className="bg-muted/50 p-1"
+                                >
+                                    <ToggleGroupItem value="line" aria-label="Line Chart" className={toggleItemClassName}>
+                                        <LineChart />
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="candlestick" aria-label="Candlestick Chart" className={toggleItemClassName}>
+                                        <ChartCandlestick />
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
                             </div>
                         </div>
 
+                        <Card className="mb-6 h-[420px] bg-card/80">
+                            <CardContent className="h-full p-6">
+                                <PriceChart
+                                    data={initialHistoricalData}
+                                    loading={false}
+                                    showRsi={selectedIndicators.has('rsi')}
+                                    showMacd={selectedIndicators.has('macd')}
+                                    showSma={selectedIndicators.has('sma')}
+                                    showEma={selectedIndicators.has('ema')}
+                                    type={chartType}
+                                    currencySymbol={CURRENCY_SYMBOLS[initialCurrency] || '$'}
+                                    scaleType={scaleType}
+                                />
+                            </CardContent>
+                        </Card>
 
-
-
-                        {/* Chart Container */}
-                        <div className="h-[420px] dashboard-chart-container relative mb-6">
-                            <PriceChart
-                                data={initialHistoricalData}
-                                loading={false}
-                                showRsi={selectedIndicators.has('rsi')}
-                                showMacd={selectedIndicators.has('macd')}
-                                showSma={selectedIndicators.has('sma')}
-                                showEma={selectedIndicators.has('ema')}
-                                type={chartType}
-                                currencySymbol={{
-                                    'USD': '$',
-                                    'EUR': '€',
-                                    'GBP': '£',
-                                    'CHF': 'Fr'
-                                }[initialCurrency] || '$'}
-                                scaleType={scaleType}
-                            />
-                        </div>
-
-                        {/* Metrics Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <StatCard
                                 title="PNL - Daily"
                                 value={formatPriceWithCurrency(initialMetrics.currentPrice, initialCurrency)}
                                 trend={initialMetrics.change24h >= 0 ? 'up' : 'down'}
-                                trendColor={initialMetrics.change24h >= 0 ? 'text-green-400' : 'text-red-400'}
                                 subtitle={`${initialMetrics.change24h >= 0 ? '+' : ''}${initialMetrics.changePercent24h.toFixed(2)}%`}
-                                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                icon={<Wallet />}
                             />
                             <StatCard
                                 title={`Variation (${initialTime.toUpperCase()})`}
                                 value={`${variation >= 0 ? '+' : ''}${variation.toFixed(2)}%`}
                                 trend={variation >= 0 ? 'up' : 'down'}
-                                trendColor={variation >= 0 ? 'text-green-400' : 'text-red-400'}
                             />
                             <StatCard
                                 title={`ATH (${initialTime.toUpperCase()})`}
                                 value={periodStats ? formatPriceWithCurrency(periodStats.high, initialCurrency) : '-'}
                                 trend="neutral"
-                                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
+                                icon={<TrendingUp />}
                             />
                             <StatCard
                                 title={`ATL (${initialTime.toUpperCase()})`}
                                 value={periodStats ? formatPriceWithCurrency(periodStats.low, initialCurrency) : '-'}
                                 trend="neutral"
-                                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>}
+                                icon={<TrendingDown />}
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* Collapsible Right Panel */}
-                <div className="hidden xl:flex flex-row h-[calc(100vh-64px)] overflow-hidden">
-                    <div className="h-full flex flex-col justify-center items-center px-1 relative w-3 text-[#F7931A]">
-                        <div className={`w-[1px] bg-currentColor transition-all ${isRightPanelOpen ? 'h-32' : 'h-16 opacity-30'}`} />
-                        <button
+                <div className="hidden h-[calc(100vh-64px)] flex-row overflow-hidden xl:flex">
+                    <div className="relative flex h-full w-3 flex-col items-center justify-center px-1 text-primary">
+                        <Separator orientation="vertical" className="h-32 bg-current transition-all" />
+                        <Button
+                            variant="outline"
+                            size="icon-xs"
                             onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
-                            className="absolute z-10 p-0.5 rounded-full bg-[#1c1c1c] border border-[#F7931A] hover:bg-[#F7931A] hover:text-black transition-all"
-                            style={{ top: '50%', transform: 'translateY(-50%)' }}
+                            aria-label={isRightPanelOpen ? 'Close statistics panel' : 'Open statistics panel'}
+                            className="absolute top-1/2 -translate-y-1/2 rounded-full border-primary bg-card hover:bg-primary hover:text-primary-foreground"
                         >
-                            <svg className={`w-3 h-3 transition-transform ${isRightPanelOpen ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
-                        </button>
+                            <ChevronRight className={cn('transition-transform', !isRightPanelOpen && 'rotate-180')} />
+                        </Button>
                     </div>
-                    <div className={`transition-all duration-300 overflow-hidden ${isRightPanelOpen ? 'w-[360px]' : 'w-0'}`}>
+                    <div className={cn('overflow-hidden transition-all duration-300', isRightPanelOpen ? 'w-[360px]' : 'w-0')}>
                         <div className="h-full overflow-y-auto">
                             <StatsPanel metrics={initialMetrics} loading={false} />
                         </div>
                     </div>
                 </div>
-            </main >
-        </div >
+            </main>
+        </div>
     );
 }

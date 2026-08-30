@@ -13,6 +13,8 @@ describe('DateRangePicker Component', () => {
         const input = screen.getByPlaceholderText('YYYY-MM-DD ~ YYYY-MM-DD');
         fireEvent.click(input);
 
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
         // Sidebar items
         expect(screen.getByText('Today')).toBeInTheDocument();
         expect(screen.getByText('Last 5 Years')).toBeInTheDocument();

@@ -26,6 +26,8 @@ DBT_COMMAND = [
     "dbt_silver_gold",
     "--profiles-dir",
     "dbt_silver_gold",
+    "--exclude",
+    "tag:fixture",
 ]
 
 

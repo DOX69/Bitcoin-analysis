@@ -141,6 +141,8 @@ def test_dbt_runner_uses_root_context_and_database_url_pg_variables(monkeypatch)
         "dbt_silver_gold",
         "--profiles-dir",
         "dbt_silver_gold",
+        "--exclude",
+        "tag:fixture",
     ]
     assert check is True
     assert cwd == Path(__file__).parents[2]
@@ -164,3 +166,18 @@ def test_dbt_runner_uses_root_context_and_database_url_pg_variables(monkeypatch)
         "PGSSLMODE": "require",
         "DBT_TARGET_SCHEMA": "silver_test",
     }
+
+
+@pytest.mark.parametrize(
+    "test_name",
+    [
+        "parity_currency_rates.sql",
+        "parity_daily_btc.sql",
+        "parity_gold_ohlc.sql",
+    ],
+)
+def test_fixture_parity_tests_are_tagged(test_name):
+    repository_root = Path(__file__).parents[2]
+    contents = (repository_root / "dbt_silver_gold" / "tests" / test_name).read_text()
+
+    assert "{{ config(tags=['fixture']) }}" in contents

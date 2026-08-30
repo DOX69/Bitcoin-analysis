@@ -1,3 +1,5 @@
+{{ config(tags=['fixture']) }}
+
 with expected(date_rates, rate_usd_chf, rate_usd_eur) as (
     values
         (date '2024-01-01', 0.90::double precision, 0.95::double precision),

@@ -1,3 +1,5 @@
+{{ config(tags=['fixture']) }}
+
 with expected(
     date_prices, low_usd, high_usd, open_usd, close_usd, volume,
     macd_usd, rate_usd_chf, rate_usd_eur, low_chf, close_eur

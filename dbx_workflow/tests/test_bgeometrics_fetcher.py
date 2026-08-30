@@ -54,6 +54,27 @@ class TestBGeometricsFetcher:
         assert 0 < kwargs["timeout"] <= 30
 
     @patch('requests.get')
+    def test_fetch_normalizes_scientific_unix_timestamp(
+        self,
+        mock_requests_get,
+        mock_logger,
+        mock_bgeometrics_api_response,
+    ):
+        response = Mock(status_code=200)
+        response.json.return_value = [
+            {
+                **mock_bgeometrics_api_response[0],
+                "unixTs": "1.7879616E9",
+            }
+        ]
+        mock_requests_get.return_value = response
+        fetcher = BGeometricsFetcher(mock_logger, "BTC", "USD", "dev", "bronze")
+
+        frame = fetcher.fetch_historical_data()
+
+        assert frame.loc[0, "unixTs"] == 1_787_961_600
+
+    @patch('requests.get')
     def test_fetch_historical_data_incremental(self, mock_requests_get, mock_logger, mock_bgeometrics_api_response):
         """Test incremental fetch passing start_date_time."""
         fetcher = BGeometricsFetcher(mock_logger, "BTC", "USD", "dev", "bronze")

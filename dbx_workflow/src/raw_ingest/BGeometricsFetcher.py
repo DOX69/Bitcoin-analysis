@@ -70,6 +70,9 @@ class BGeometricsFetcher(BaseFetcher):
 
             df = pd.DataFrame(data)
 
+            if 'unixTs' in df.columns:
+                df['unixTs'] = pd.to_numeric(df['unixTs'], errors='raise').astype('int64')
+
             # We need a 'time' column for the DbWriter partitioning mapping (col("time").cast("date"))
             # BaseFetcher/DbWriter convention: the fetcher must return a 'time' column
             if 'd' in df.columns:

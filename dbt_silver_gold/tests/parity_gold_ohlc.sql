@@ -1,3 +1,5 @@
+{{ config(tags=['fixture']) }}
+
 with expected(model_name, period_start, low_usd, high_usd, open_usd, close_usd) as (
     values
         ('week', date '2024-01-01', 100::double precision, 130::double precision, 110::double precision, 125::double precision),

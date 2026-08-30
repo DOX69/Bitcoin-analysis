@@ -38,9 +38,9 @@ export default function Hero({ onStart }: HeroProps) {
 
             {/* Subtitle */}
             <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-12 leading-relaxed">
-                Harness the power of B.ai's advanced neural networks to decode market
+                Explore Bitcoin price history and technical indicators with PostgreSQL data
                 <br />
-                trends and identify high-probability trading opportunities in real-time.
+                updated daily.
             </p>
 
             {/* CTA Button */}

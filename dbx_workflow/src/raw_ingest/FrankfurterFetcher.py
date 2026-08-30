@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
-from raw_ingest.BaseFetcher import BaseFetcher
+from raw_ingest.BaseFetcher import BaseFetcher, require_2xx
 
 class FrankfurterFetcher(BaseFetcher):
     """
@@ -26,7 +26,7 @@ class FrankfurterFetcher(BaseFetcher):
         
         # Ticker is Base (USD), Currency is Quote (EUR) -> usd_eur_rates
         self.table_name = f"{ticker.lower()}_{currency.lower()}_rates"
-        self.full_path_table_name = f"{catalog}.{schema}.{self.table_name}"
+        self.full_path_table_name = self.qualify_table_name(self.table_name)
         
         self.logger.info("-" * 80)
         self.logger.info(f"✓ FrankfurterFetcher initialized for {self.ticker_id}")
@@ -89,29 +89,21 @@ class FrankfurterFetcher(BaseFetcher):
                 self.logger.debug(f"Requesting {url}")
                 
                 response = requests.get(url, params=params, timeout=10)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    # Response: {"amount": 1.0, "base": "USD", "start_date": "...", "end_date": "...", "rates": {"2010-01-04": {"EUR": 0.69}}}
-                    rates = data.get("rates", {})
-                    
-                    for date_str, rate_dict in rates.items():
-                        # date_str is YYYY-MM-DD
-                        val = rate_dict.get(self.currency.upper())
-                        if val is not None:
-                            all_data.append([date_str, float(val)])
-                            
-                elif response.status_code == 404:
-                    self.logger.warning(f"No data for range {s_str}..{e_str}")
-                else:
-                    self.logger.error(f"Error: {response.status_code} - {response.text}")
-                    # Don't break on temporary errors? Or retry? 
-                    # User asked for error handling.
-                    if response.status_code >= 500:
-                        # Server error, maybe wait and retry?
-                        # For simplicity, log and continue or break?
-                        # Existing CoinbaseFetcher breaks.
-                        break
+                require_2xx(response)
+                data = response.json()
+                if not isinstance(data, dict) or not isinstance(
+                    data.get("rates"), dict
+                ):
+                    raise ValueError("Invalid Frankfurter payload: missing rates")
+
+                for date_str, rate_dict in data["rates"].items():
+                    if not isinstance(rate_dict, dict) or self.currency.upper() not in rate_dict:
+                        raise ValueError(
+                            f"Invalid Frankfurter rate for {date_str}"
+                        )
+                    all_data.append(
+                        [date_str, float(rate_dict[self.currency.upper()])]
+                    )
                 
                 # Next batch
                 current_start = current_end + timedelta(days=1)

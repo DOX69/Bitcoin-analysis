@@ -1,0 +1,12 @@
+dbt_silver_gold:
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST') }}"
+      port: "{{ env_var('PGPORT') | int }}"
+      user: "{{ env_var('PGUSER') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      dbname: "{{ env_var('PGDATABASE') }}"
+      schema: "{{ env_var('DBT_TARGET_SCHEMA') }}"
+      threads: 4
+  target: dev

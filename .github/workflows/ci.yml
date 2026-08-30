@@ -1,4 +1,4 @@
-name: "CI/CD Pipeline"
+name: CI
 
 on:
   push:
@@ -7,41 +7,94 @@ on:
 
 jobs:
   test_package:
-    name: "📥 Backend Tests"
+    name: PostgreSQL backend and dbt
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: ./dbx_workflow
+    timeout-minutes: 20
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@localhost:55432/bitcoin_test
+      DATABASE_URL: postgresql://postgres@localhost:55432/bitcoin_test
+      PGHOST: localhost
+      PGPORT: '55432'
+      PGUSER: postgres
+      PGPASSWORD: ''
+      PGDATABASE: bitcoin_test
+      DBT_TARGET_SCHEMA: ci
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: bitcoin_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bitcoin_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
-      - name: Install dependencies
-        run: |
-          pip install uv
-          uv sync --extra dev
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.9.17'
+          enable-cache: true
 
-      - name: Run Backend Tests
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: uv run pytest
+      - name: Verify Python lock
+        run: uv lock --check
+
+      - name: Install Python dependencies
+        run: uv sync --locked --package raw-ingest --extra dev
+
+      - name: Run Python tests
+        run: uv run --locked --package raw-ingest --extra dev pytest dbx_workflow/tests
+
+      - name: Prepare dbt fixtures
+        run: uv run --locked --package raw-ingest python -c "import os, pathlib, psycopg; connection = psycopg.connect(os.environ['DATABASE_URL']); connection.execute(pathlib.Path('dbt_silver_gold/tests/fixtures/setup.sql').read_text()); connection.commit(); connection.close()"
+
+      - name: Run dbt debug
+        run: uv run --locked --package raw-ingest dbt debug --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+
+      - name: Compile dbt project
+        run: uv run --locked --package raw-ingest dbt compile --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+
+      - name: Build dbt project from scratch
+        run: uv run --locked --package raw-ingest dbt build --full-refresh --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+
+      - name: Rebuild dbt project to verify idempotence
+        run: uv run --locked --package raw-ingest dbt build --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
 
   test_app:
-    name: "🧪 Frontend Tests"
+    name: Next.js tests and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/postgres
     defaults:
       run:
         working-directory: ./app
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout repository
@@ -51,95 +104,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - name: Install dependencies
+      - name: Verify npm lock and install dependencies
         run: npm ci
 
-      - name: Run Components Tests
-        env:
-          DATABRICKS_CATALOG: ${{ (github.ref_name == 'main' || github.ref_name == 'staging') && 'prod' || 'dev' }}
-        run: npm test -- --ci --watchAll=false
+      - name: Type-check application
+        run: npx tsc --noEmit
 
-  deploy:
-    name: "🚀 Deploy to Databricks"
-    runs-on: ubuntu-latest
-    needs: [test_package, test_app]
-    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'staging')
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: .
+      - name: Run Jest tests
+        run: npm test -- --ci --watchAll=false --runInBand
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: databricks/setup-cli@main
-
-      - name: 📦 Install uv
-        run: pip install uv
-
-      - name: 🔑 Configure Databricks CLI
-        run: |
-          mkdir -p ~/.databricks
-          cat > ~/.databrickscfg << 'EOF'
-          [PROD]
-          host = ${{ secrets.DATABRICKS_HOST }}
-          token = ${{ secrets.DATABRICKS_TOKEN }}
-          EOF
-
-      - name: ✅ Validate bundle syntax
-        run: databricks bundle validate -t prod -p PROD
-
-      - name: 🚀 Deploy to PROD
-        run: databricks bundle deploy -t prod -p PROD
-
-      - name: 🏃‍♀️‍➡️ Run databricks master job
-        if: github.ref_name == 'staging' || github.base_ref == 'staging'
-        run: databricks bundle run -t prod -p PROD master_orchestrator_job
-
-  promote_to_main:
-    name: "🔄 Promote Staging to Main"
-    runs-on: ubuntu-latest
-    needs: [deploy]
-    permissions:
-      contents: write
-      pull-requests: write
-    if: github.event_name == 'push' && github.ref_name == 'staging'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create and Merge PR to Main
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr create --base main --head staging --title "ci: Auto-promote staging to main" --body "Automated promotion from staging to main after successful checks." || echo "PR already exists"
-          gh pr merge staging --merge --auto || gh pr merge staging --merge
-  deploy_dev:
-    name: "🚀 Deploy to Databricks (dev)"
-    runs-on: ubuntu-latest
-    needs: [test_package, test_app]
-    if: github.event_name == 'push' && !(github.ref_name == 'main' || github.ref_name == 'staging')
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: .
-    steps:
-      - uses: actions/checkout@v4
-      - uses: databricks/setup-cli@main
-      - name: 📦 Install uv
-        run: pip install uv
-      - name: 🔑 Configure Databricks CLI
-        run: |
-          mkdir -p ~/.databricks
-          cat > ~/.databrickscfg << 'EOF'
-          [DEFAULT]
-          host = ${{ secrets.DATABRICKS_HOST }}
-          token = ${{ secrets.DATABRICKS_TOKEN }}
-          EOF
-      - name: ✅ Validate bundle syntax (dev)
-        run: databricks bundle validate -t dev -p DEFAULT
-      - name: 🚀 Deploy to DEV
-        run: databricks bundle deploy -t dev -p DEFAULT
-      - name: 🏃‍♀️‍➡️ Run databricks master job (dev)
-        run: databricks bundle run -t dev -p DEFAULT master_orchestrator_job
+      - name: Build Next.js application
+        run: npm run build

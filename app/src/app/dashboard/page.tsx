@@ -2,7 +2,6 @@
 import {
     getCurrentBitcoinMetrics,
     getHistoricalPrices,
-    getForecastData,
     type Currency
 } from '@/lib/bitcoin-data-server';
 import DashboardClient from '@/components/dashboard/DashboardClient';
@@ -44,7 +43,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
     };
 
     // Parallel data fetching on the server
-    const [metrics, historicalData, forecastData] = await Promise.all([
+    const [metrics, historicalData] = await Promise.all([
         getCurrentBitcoinMetrics(selectedCurrency),
         getHistoricalPrices(
             getDaysForFilter(selectedTime),
@@ -52,14 +51,12 @@ export default async function Dashboard({ searchParams }: PageProps) {
             selectedTime === 'custom' ? endDate : undefined,
             selectedCurrency
         ),
-        getForecastData(selectedCurrency),
     ]);
 
     return (
         <DashboardClient
             initialMetrics={metrics}
             initialHistoricalData={historicalData}
-            initialForecastData={forecastData}
             selectedTime={selectedTime}
             startDate={startDate || ''}
             endDate={endDate || ''}

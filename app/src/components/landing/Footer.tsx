@@ -41,12 +41,12 @@ export default function Footer() {
 
                     {/* Powered By */}
                     <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span>Powered by</span>
+                        <span>Data</span>
                         <span
                             className="font-medium"
                             style={{ color: theme.colors.primary.orange }}
                         >
-                            Databricks
+                            PostgreSQL · Prepared for Railway deployment
                         </span>
                     </div>
                 </div>

@@ -1,23 +1,30 @@
-Welcome to your new dbt project!
+# Silver and gold dbt models
 
-### Development and Testing
+This dbt project targets PostgreSQL. Its profile reads connection settings from
+the environment; it contains no credentials.
 
-Before running DBT commands, make sure your Python environment is synchronized. From the root of the repository, run:
-```bash
+Required variables:
+
+- `PGHOST`
+- `PGPORT`
+- `PGUSER`
+- `PGPASSWORD`
+- `PGDATABASE`
+- `DBT_TARGET_SCHEMA`
+
+Run from this directory:
+
+```powershell
 uv sync
+uv run dbt debug --profiles-dir .
+uv run dbt compile --profiles-dir .
+uv run dbt build --profiles-dir .
 ```
 
-Then, from within this `dbt_silver_gold` directory, try running the following commands:
-- `uv run dbt deps`
-- `uv run dbt run`
-- `uv run dbt test`
+The integration fixtures in `tests/fixtures/setup.sql` target a disposable
+PostgreSQL database. They do not call external APIs.
 
-> **Note**: If `dbt run` fails with `[DELTA_UNSUPPORTED_DROP_COLUMN]`, try using the `--full-refresh` flag (e.g., `uv run dbt run --full-refresh`) to rebuild the tables from scratch.
-
-
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+`DBT_TARGET_SCHEMA` controls dbt's own connection schema. The
+`generate_schema_name` macro intentionally keeps the application schemas stable
+as `dlh_silver__*` and `dlh_gold__*`. Railway environments therefore require
+separate PostgreSQL databases for isolation.

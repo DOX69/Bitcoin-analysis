@@ -6,4 +6,4 @@
         ) 
 }}
 
-{{ create_update_agg(ref("agg_week_btc"), 'quarter')}}
+{{ create_update_agg(ref("obt_fact_day_btc"), 'quarter')}}

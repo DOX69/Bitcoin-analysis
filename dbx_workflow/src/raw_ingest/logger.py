@@ -1,8 +1,5 @@
 import logging
 from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv()
 
 class CustomFormatter(logging.Formatter):
     """Formateur affichant parent_folder/filename à la place du chemin complet"""

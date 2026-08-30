@@ -1,17 +1,42 @@
 {% set period = 14 %}
-{% set column = 'close' %}
-WITH price_changes AS (
-        SELECT *,
-            ROW_NUMBER() OVER (PARTITION BY DATE ORDER BY ingest_date_time desc) AS rn,
-            {{ previous_price_change(column) }} AS change
-        from {{ source('bronze', 'btc_usd_ohlcv') }}
-            qualify rn = 1
-    ),
-    get_rsi AS (
-        SELECT *,
-            {{ rsi('change', period) }}
-        FROM price_changes
-    )
-SELECT * except (avg_gain, avg_loss, rn, change, rsi_calculated)
-FROM get_rsi
+
+with ranked as (
+    select
+        time,
+        low,
+        high,
+        open,
+        close,
+        volume,
+        date,
+        ingest_date_time,
+        row_number() over (partition by date order by ingest_date_time desc) as row_number
+    from {{ source('bronze', 'btc_usd_ohlcv') }}
+), deduplicated as (
+    select time, low, high, open, close, volume, date, ingest_date_time
+    from ranked
+    where row_number = 1
+), price_changes as (
+    select
+        *,
+        {{ previous_price_change('close') }} as change
+    from deduplicated
+), get_rsi as (
+    select
+        *,
+        {{ rsi('change', period) }}
+    from price_changes
+)
+select
+    time,
+    low,
+    high,
+    open,
+    close,
+    volume,
+    date,
+    ingest_date_time,
+    rsi,
+    rsi_status
+from get_rsi
 order by date desc

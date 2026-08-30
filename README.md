@@ -1,228 +1,122 @@
-# Bitcoin-analysis
+# Bitcoin Analysis
 
-Bitcoin-analysis is a comprehensive crypto-financial data analysis platform. Designed to provide institutional-grade insights to retail traders, it combines a robust data pipeline (ingestion, transformation, aggregation) with a modern user interface.
+Bitcoin Analysis ingests public cryptocurrency and exchange-rate data into PostgreSQL, transforms it with dbt, and serves the results through a Next.js application.
 
-## 📚 Table of Contents
+No Railway project, service, database, schedule, or deployment has been created from this repository. Railway setup and production cutover remain manual operations.
 
-- [Key Features](#key-features)
-- [Technical Stack](#technical-stack)
-- [Tutorial: Getting Started](#tutorial-getting-started)
-- [How-to Guides](#how-to-guides)
-- [Detailed Architecture](#detailed-architecture)
-- [Pre-Deployment Checklist](#pre-deployment-checklist)
-- [Verification & QA](#verification--qa)
-- [Roadmap](#roadmap)
-- [Connect With Me](#connect-with-me)
+The pre-migration Databricks configuration is retained in three disabled archives:
 
----
+- `databricks.yml.disabled`
+- `dbx_workflow/resources/master_orchestrator_job.yml.disabled`
+- `app/vercel.json.disabled`
 
-## Key Features
+## Architecture
 
-- **Automated Data Pipeline**: Daily ingestion of OHLCV (Open, High, Low, Close, Volume) data from the Coinbase API, orchestrated via Databricks Workflows.
-- **Medallion Architecture (Bronze/Silver/Gold)**: Structured data transformation using dbt to ensure high data quality and performance.
-- **Technical Indicator Calculation**: Automatic generation of key indicators such as **RSI**, **MACD**, **SMA**, and **EMA** directly within the database.
-- **Multi-Currency Support**: Comprehensive analysis for BTC/USD, BTC/EUR, ETH/USD, ETH/EUR, ETH/BTC, and AAVE/USD.
-- **Integrated CI/CD**: Continuous integration and deployment via GitHub Actions targeting Databricks environments.
-- **Immersive Web Application**: A React/Next.js interface providing dynamic visualizations and deep-dive market analysis.
+Production uses one private PostgreSQL service and two Railway services:
 
-## Technical Stack
+- The web service runs the Next.js application from `/app`.
+- The daily Cron uses the repository root as its build and runtime context. The `raw-ingest` console command runs market ingestion, technical-indicator ingestion, then `dbt build`.
+- Both services connect to the same private PostgreSQL database.
+- GitHub Actions runs tests and builds only. It does not deploy to Railway or any other platform.
 
-<table>
-  <tr>
-    <td valign="top" width="50%">
-      <h3>Backend & Data Engineering</h3>
-      <table>
-        <tr>
-          <th>Technology</th>
-          <th>Usage</th>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" /></td>
-          <td>Core language for data processing, scripting, and orchestration.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white" alt="Databricks" /></td>
-          <td>Unified Cloud Platform for Spark execution, Delta Lake storage, and job scheduling.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white" alt="dbt" /></td>
-          <td>ELT workflow management following Medallion architecture patterns.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas" /></td>
-          <td>Data manipulation library for specialized in-memory analysis.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white" alt="Pytest" /></td>
-          <td>Testing framework for ensuring data pipeline integrity.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/uv-Astral-purple?style=for-the-badge" alt="uv" /></td>
-          <td>Ultra-fast Python package installer and dependency manager.</td>
-        </tr>
-      </table>
-    </td>
-    <td valign="top" width="50%">
-      <h3>Frontend</h3>
-      <table>
-        <tr>
-          <th>Technology</th>
-          <th>Usage</th>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></td>
-          <td>React framework for server-side rendering and full-stack capabilities.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" /></td>
-          <td>Library for building interactive and component-based user interfaces.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></td>
-          <td>Type-safe JavaScript flavor for reliable and maintainable code.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" /></td>
-          <td>Utility-first CSS framework for rapid and responsive UI styling.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/Chart.js-F5788D?style=for-the-badge&logo=chart.js&logoColor=white" alt="Chart.js" /></td>
-          <td>Data visualization library for rendering responsive market charts.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white" alt="Jest" /></td>
-          <td>Testing framework for React components and business logic.</td>
-        </tr>
-        <tr>
-          <td><img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zod&logoColor=white" alt="Zod" /></td>
-          <td>Schema declaration and validation for API responses and forms.</td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
+The Cron must keep the repository root as its context. The root `uv.lock` covers the workspace, including `dbx_workflow` and `dbt_silver_gold`. Setting the Cron root to `/dbx_workflow` would hide the dbt project.
 
-## Tutorial: Getting Started
+## Railway and Railpack settings
 
-### Prerequisites
-- **Databricks Account** (Community Edition works).
-- **Python 3.11+**.
-- **uv** (Python package manager).
-- **Node.js 18+** & **npm**.
-- **Databricks CLI**.
+Use Railpack for both services. Do not add a Dockerfile.
 
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/DOX69/Bitcoin-analysis.git
-   cd Bitcoin-analysis
-   ```
+| Setting | Web | Daily Cron |
+| --- | --- | --- |
+| Root directory | `/app` | Repository root |
+| Build command | `npm run build` | `uv sync --locked --package raw-ingest` |
+| Start command | `npm run start` | `uv run --locked --package raw-ingest raw-ingest` |
+| Watch paths | `app/**` | `dbx_workflow/**`, `dbt_silver_gold/**`, `pyproject.toml`, `uv.lock` |
 
-2. Install `uv`:
-   ```bash
-   pip install uv
-   ```
+Create exactly one Railway Cron schedule. Choose its UTC expression only after deciding how the intended Europe/Paris time should behave across daylight-saving changes.
 
-3. Compile and install dependencies:
-   ```bash
-   uv sync
-   ```
+### Variables
 
-4. Install Databricks CLI:
-   ```bash
-   pip install databricks-cli
-   ```
+Keep PostgreSQL private and use Railway variable references.
 
-### Databricks Configuration
-1. Generate an Access Token in Databricks (User Settings > Developer > Access tokens).
-2. Configure your Databricks profile:
-   ```bash
-   databricks configure --token
-   ```
-3. Add GitHub Secrets (Settings > Secrets and variables > Actions):
-   - `DATABRICKS_HOST`: Your workspace URL.
-   - `DATABRICKS_TOKEN`: Your generated access token.
+| Service | Required variables |
+| --- | --- |
+| Web | `DATABASE_URL` |
+| Daily Cron | `DATABASE_URL`, `DBT_TARGET_SCHEMA` |
 
-## How-to Guides
+The orchestrator derives `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, and `PGDATABASE` from `DATABASE_URL` before it starts dbt. Database credentials are server-side only.
 
-### Development Environment (DEV)
-To develop locally and test against a Databricks DEV environment:
+## Local setup
 
-1. Activate your virtual environment:
-   ```bash
-   source .venv/bin/activate  # Windows: .venv\Scripts\activate
-   ```
-2. Navigate to the `dbx_workflow` folder:
-   ```bash
-   cd dbx_workflow
-   ```
-3. Validate, Deploy, and Run:
-   ```bash
-   databricks bundle validate -t dev -p DEV
-   databricks bundle deploy -t dev -p DEV
-   databricks bundle run -t dev -p DEV master_orchestrator_job
-   ```
+Required tools:
 
-### Production Deployment (PROD)
-To deploy to production with active scheduling:
+- Python 3.11
+- uv 0.9.17
+- Node.js 20 and npm
+- PostgreSQL 16
 
-1. Validate and deploy with the target set to `prod`:
-   ```bash
-   databricks bundle deploy -t prod -p PROD --var="pauseStatus=UNPAUSED"
-   ```
-2. Run the production job:
-   ```bash
-   databricks bundle run -t prod -p PROD master_orchestrator_job
-   ```
+Set `DATABASE_URL`, `TEST_DATABASE_URL`, `DBT_TARGET_SCHEMA`, and the `PG*` variables in the current shell. Do not commit local credentials.
 
-## Detailed Architecture
+Install and test the Python workspace from the repository root:
 
-### Medallion Data Design
-The project leverages a Medallion architecture inside Delta Lake:
+```powershell
+uv sync --locked --package raw-ingest --extra dev
+uv run --locked --package raw-ingest --extra dev pytest dbx_workflow/tests
+uv run --locked --package raw-ingest dbt debug --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+uv run --locked --package raw-ingest dbt compile --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+uv run --locked --package raw-ingest dbt build --full-refresh --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+uv run --locked --package raw-ingest dbt build --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+```
 
-- **Bronze Layer**: Raw ingestion from the Coinbase API. Stores full history OHLCV data for multiple pairs.
-- **Silver Layer**: Cleaned and structured data facts. Handles deduplication and schema enforcement using dbt.
-- **Gold Layer**: Business-level aggregations and technical indicators. Calculates RSI (14-day), MACD, SMA, and EMA over various timeframes (Daily, Weekly, Monthly, Yearly).
+Run the complete ingestion pipeline:
 
-### Engineering Standards
-- **dbt**: Used for all SQL transformations and metric calculations.
-- **GitHub Actions**: Automated CI/CD pipelines for testing and deployment.
-- **Asset Bundles (DABs)**: Databricks Asset Bundles for managing infrastructure as code.
+```powershell
+uv run --locked --package raw-ingest raw-ingest
+```
 
-## Pre-Deployment Checklist
+Install, test, and run the web application:
 
-Before deploying to production or Vercel:
+```powershell
+Set-Location app
+npm ci
+npx tsc --noEmit
+npm test -- --ci --watchAll=false --runInBand
+npm run build
+npm run dev
+```
 
-- [ ] **Run Checks**: Execute `./check-all.bat` (Windows) or `./check-all` (Linux/Mac) and ensure all tests pass.
-- [ ] **Environment Variables**: Verify `.env.example` matches current production needs.
-- [ ] **Architecture Alignment**: Ensure `dbt` models are successfully built in the `prod` schema.
-- [ ] **Vercel Settings**:
-  - Root Directory: `app`
-  - Required Env Vars: Databricks host, token, and warehouse ID.
+## Production cutover
 
-## Verification & QA
+Do not enable two schedulers against the same database.
 
-A general check script is provided to validate the entire repository:
+1. Record the pre-migration Git tag or commit and keep it available for rollback.
+2. Back up the current production database.
+3. Restore that backup into a temporary PostgreSQL database. Test the restore, table counts, key queries, and application reads before proceeding.
+4. Create the Railway PostgreSQL, web, and Cron services manually. Keep the Cron schedule disabled.
+5. Configure the roots, Railpack commands, watch paths, and variables listed above.
+6. Deploy the web and Cron services manually.
+7. Disable the Databricks production schedule before the first Railway ingestion run. This step is mandatory.
+8. Run the Railway Cron command once, then verify ingestion rows, dbt models, logs, and web reads.
+9. Enable one Railway Cron schedule only after those checks pass.
 
-- **Windows**: `./check-all.bat`
-- **Linux/Mac**: `./check-all`
+## Rollback
 
-This script validates:
-1. **Frontend**: Runs `npm test` in the `app/` directory.
-2. **Backend**: Runs `pytest` for Databricks workflows.
-3. **dbt**: Executes `dbt test` for both `dev` and `prod` targets.
+1. Disable the Railway Cron schedule.
+2. Redeploy the recorded pre-migration tag or commit.
+3. Restore the tested backup if the cutover changed production data or schemas incompatibly.
+4. Verify database reads and the previous pipeline before re-enabling its schedule.
+5. Keep only one production scheduler active.
 
-## Roadmap
+The backup is not a rollback plan until a restore has passed on a separate database.
 
-- **Trading & Portfolio Management**: Strategy backtesting on 5-year historical data.
-- **AI-Driven Forecasting**: Deep learning models (LSTM/Transformers) for short-term price movement prediction.
-- **Sentiment & On-Chain Analysis**: Whale activity tracking and real-time social sentiment aggregation (Twitter/Reddit).
-- **Macro-Economic Integration**: Correlation analysis with S&P 500, Gold, and DXY.
+## Continuous integration
 
----
+`.github/workflows/ci.yml` uses Python 3.11, Node.js 20, and PostgreSQL 16. It runs:
 
-## Connect With Me
+- `uv lock --check`, then installs the Python workspace with `uv sync --locked`;
+- raw-ingest tests with `TEST_DATABASE_URL`;
+- dbt debug and compile, then `dbt build --full-refresh` followed by `dbt build` to check idempotence;
+- `npm ci`, `npx tsc --noEmit`, Jest, and a production Next.js build.
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/mickael-rakotoarinivo/)
-[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:mickael.rakotoa@gmail.com)
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/DOX69)
+CI only validates locks, tests, transformations, types, and builds. It creates no Railway infrastructure and performs no deployment.
+
+`.github/workflows/daily_schema_check.yml` checks public API response schemas with Python 3.11 and opens a review pull request when generated Pydantic models change. It does not deploy the application.

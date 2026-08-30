@@ -5,6 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "dbt-core>=1.7.19",
-    "dbt-databricks>=1.7.3",
+    "dbt-core>=1.11,<1.12",
+    "dbt-postgres>=1.11,<1.12",
 ]

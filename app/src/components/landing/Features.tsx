@@ -5,18 +5,18 @@ import { theme } from '@/theme';
 const features = [
     {
         icon: '📊',
-        title: 'Real-time Analytics',
-        description: 'Track Bitcoin prices and market trends with live data from Databricks warehouse.',
+        title: 'Daily Market Data',
+        description: 'Track Bitcoin prices and market trends with data updated daily.',
     },
     {
-        icon: '🤖',
-        title: 'AI-Powered Insights',
-        description: 'Advanced machine learning models predict market movements and identify patterns.',
+        icon: '🗄️',
+        title: 'PostgreSQL History',
+        description: 'Review historical Bitcoin market data stored in PostgreSQL.',
     },
     {
         icon: '📈',
-        title: 'Portfolio Tracking',
-        description: 'Monitor your crypto investments with comprehensive performance dashboards.',
+        title: 'Railway Preparation',
+        description: 'The application is prepared for Railway deployment.',
     },
 ];
 

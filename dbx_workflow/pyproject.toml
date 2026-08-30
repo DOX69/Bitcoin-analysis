@@ -8,23 +8,21 @@ name = "raw-ingest"
 version = "0.0.1"
 description = "Ticker raw data ingestion and ETL pipeline"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.11,<3.13"
 authors = [{name = "Mickael", email = "mickael.rakotoa@gmail.com"}]
 
 dependencies = [
-    "databricks>=0.2",
-    "databricks-connect>=15.4.17",
-    "python-dotenv",
-    "pytest>=9.0.2",
+    "pandas>=2.1.0",
     "pydantic>=2.0.0",
     "requests>=2.32.5",
+    "psycopg[binary]>=3.3,<4",
+    "dbt-core==1.11.6",
+    "dbt-postgres>=1.11,<1.12",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "databricks-dlt",
-    "databricks-connect>=15.4,<15.5",
+    "pytest>=9.0.2",
     "datamodel-code-generator[http]>=0.25.0",
     "genson",
 ]
@@ -35,6 +33,7 @@ packages = ["src/raw_ingest"]
 
 # Pas de "src." au début du path
 [project.scripts]
+raw-ingest = "raw_ingest.orchestrator:main"
 ingest_market_price_data = "raw_ingest.ingest_market_price_data:main"
 ingest_technical_indicators = "raw_ingest.ingest_technical_indicators:main"
 

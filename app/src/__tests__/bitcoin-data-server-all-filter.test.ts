@@ -2,24 +2,10 @@
 import {
     getHistoricalPrices,
 } from '@/lib/bitcoin-data-server';
-import { executeQuery } from '@/lib/databricks';
+import { executeQuery } from '@/lib/postgres';
 
-// Mock the databricks module
-jest.mock('@/lib/databricks', () => ({
+jest.mock('@/lib/postgres', () => ({
     executeQuery: jest.fn(),
-    getDatabricksConfig: jest.fn(() => ({
-        host: 'https://test.databricks.com',
-        token: 'test-token',
-        httpPath: '/sql/1.0/warehouses/test',
-    })),
-}));
-
-// Mock env
-jest.mock('@/lib/env', () => ({
-    env: {
-        DATABRICKS_HOST: 'https://test.databricks.com',
-        DATABRICKS_CATALOG: 'prod',
-    },
 }));
 
 describe('Bitcoin API - All Filter Logic', () => {
@@ -48,16 +34,16 @@ describe('Bitcoin API - All Filter Logic', () => {
 
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringContaining('.dlh_gold__crypto_prices.agg_month_btc'),
-            expect.objectContaining({ days: -3650 })
+            expect.stringContaining('dlh_gold__crypto_prices.agg_month_btc'),
+            [3650]
         );
         expect(executeQuery).toHaveBeenCalledWith(
             expect.stringContaining('CASE'), // Checks for the RSI status case statement
-            expect.any(Object)
+            [3650]
         );
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringContaining("month_start_date as date"),
-            expect.any(Object)
+            expect.stringMatching(/month_start_date\s+AS\s+date/i),
+            [3650]
         );
     });
 
@@ -82,8 +68,8 @@ describe('Bitcoin API - All Filter Logic', () => {
 
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringContaining('.dlh_silver__crypto_prices.obt_fact_day_btc'),
-            expect.objectContaining({ days: -30 })
+            expect.stringContaining('dlh_silver__crypto_prices.obt_fact_day_btc'),
+            [30]
         );
 
         // Ensure agg_month_btc is NEVER queried

@@ -6,7 +6,6 @@
 import {
     getHistoricalPrices,
 } from '@/lib/bitcoin-data-server';
-import { BitcoinHistorySchema } from '@/lib/schemas';
 
 jest.mock('@/lib/postgres', () => ({
     executeQuery: jest.fn(),

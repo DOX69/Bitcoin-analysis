@@ -3,11 +3,7 @@
 import Link from 'next/link';
 import { theme } from '@/theme';
 
-interface HeroProps {
-    onStart?: () => void;
-}
-
-export default function Hero({ onStart }: HeroProps) {
+export default function Hero() {
     return (
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4 pt-20">
             {/* Announcement Banner */}

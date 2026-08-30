@@ -8,10 +8,6 @@ import {
     getAggregatedData,
     type Currency,
 } from '@/lib/bitcoin-data-server';
-import {
-    BitcoinMetrics,
-    BitcoinPrice,
-} from '@/lib/schemas';
 
 
 jest.mock('@/lib/postgres', () => ({

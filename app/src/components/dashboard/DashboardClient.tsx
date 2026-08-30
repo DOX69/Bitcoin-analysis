@@ -32,6 +32,9 @@ export default function DashboardClient({
 }: DashboardClientProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const startDate = searchParams.get('start') || '';
+    const endDate = searchParams.get('end') || '';
+    const dateRangeKey = `${startDate}:${endDate}`;
 
     // States that don't necessarily need to be in URL (UI preferences)
     const [selectedIndicators, setSelectedIndicators] = useState<Set<string>>(new Set());
@@ -119,8 +122,9 @@ export default function DashboardClient({
 
                                 <div className="flex gap-2 items-center">
                                     <DateRangePicker
-                                        startDate={searchParams.get('start') || ''}
-                                        endDate={searchParams.get('end') || ''}
+                                        key={dateRangeKey}
+                                        startDate={startDate}
+                                        endDate={endDate}
                                         onChange={handleRangeChange}
                                     />
                                     <IndicatorSelector

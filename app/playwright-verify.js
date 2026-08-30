@@ -1,9 +1,7 @@
-const { chromium } = require('playwright');
-const path = require('path');
-
 const TARGET_URL = 'http://localhost:3000/dashboard';
 
 (async () => {
+    const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: false, slowMo: 50 });
     const context = await browser.newContext({
         viewport: { width: 1440, height: 900 }
@@ -24,11 +22,6 @@ const TARGET_URL = 'http://localhost:3000/dashboard';
         await page.waitForSelector('text=PNL - DAILY', { timeout: 15000 });
 
         // The value is in a div following the title container
-        const firstStatValue = await page.getByText('PNL - DAILY').locator('xpath=../../following-sibling::div | ../../div[contains(@class, "text-xl")]').first().innerText();
-
-        // Simpler check: Just find a $ value on the page
-        const hasPrice = await page.locator('text=$').first().isVisible();
-
         // 3. Verify Chart exists
         await page.waitForSelector('canvas', { timeout: 15000 });
 

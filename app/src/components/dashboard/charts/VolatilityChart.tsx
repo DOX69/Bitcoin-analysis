@@ -3,6 +3,7 @@
 import React from 'react';
 import {
     Chart as ChartJS,
+    type ChartOptions,
     CategoryScale,
     LinearScale,
     BarElement,
@@ -12,8 +13,9 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
+import type { TooltipItem } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { BitcoinPrice } from '@/lib/bitcoin-api';
+import type { BitcoinPrice } from '@/lib/bitcoin-api';
 import { formatPrice, formatDate, formatTooltipTime } from '@/lib/format-utils';
 
 ChartJS.register(
@@ -58,7 +60,7 @@ const VolatilityChart: React.FC<VolatilityChartProps> = ({
         ],
     };
 
-    const options = {
+    const options: ChartOptions<'bar'> = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -86,11 +88,11 @@ const VolatilityChart: React.FC<VolatilityChartProps> = ({
                 borderColor: 'rgba(255, 165, 0, 0.3)',
                 borderWidth: 1,
                 callbacks: {
-                    title: function (context: any) {
-                        const value = context[0].parsed.y;
+                    title: function (context: TooltipItem<'bar'>[]) {
+                        const value = context[0]?.parsed.y ?? 0;
                         return formatPrice(value);
                     },
-                    label: function (context: any) {
+                    label: function (context: TooltipItem<'bar'>) {
                         const date = formatDate(context.label);
                         const time = formatTooltipTime();
                         return [date, time];
@@ -109,8 +111,10 @@ const VolatilityChart: React.FC<VolatilityChartProps> = ({
                     font: {
                         size: 11,
                     },
-                    callback: function (this: any, value: any) {
-                        const label = this.getLabelForValue(value);
+                    callback: (value: number | string) => {
+                        const label = typeof value === 'number'
+                            ? data[value]?.date ?? String(value)
+                            : value;
                         const date = new Date(label);
                         const day = date.getDate();
                         const month = date.getMonth();
@@ -137,8 +141,8 @@ const VolatilityChart: React.FC<VolatilityChartProps> = ({
                     font: {
                         size: 11,
                     },
-                    callback: function (value: any) {
-                        return formatPrice(value);
+                    callback: function (value: number | string) {
+                        return formatPrice(Number(value));
                     },
                 },
             },

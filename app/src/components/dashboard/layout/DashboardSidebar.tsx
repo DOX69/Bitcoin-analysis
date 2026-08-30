@@ -26,8 +26,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     onTabChange
 }) => {
     const [selectedTime, setSelectedTime] = React.useState('6m');
-    const [startDate, setStartDate] = React.useState('13 Jul 2025');
-    const [endDate, setEndDate] = React.useState('13 Jul 2025');
+    const startDate = '13 Jul 2025';
+    const endDate = '13 Jul 2025';
 
     return (
         <aside className="dashboard-sidebar">

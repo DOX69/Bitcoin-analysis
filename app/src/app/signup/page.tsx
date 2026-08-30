@@ -5,6 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthKPIs } from '@/components/dashboard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import EnergyBeam from '../../components/landing/EnergyBeam';
 import EnergyGraph from '../../components/landing/EnergyGraph';
 
@@ -13,150 +17,131 @@ export default function SignupPage() {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value
+            [e.target.name]: e.target.value,
         });
     };
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Simulate signup
         if (formData.email && formData.password) {
             router.push('/dashboard');
         }
     };
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-primary-dark font-sans text-text-primary relative overflow-hidden">
+        <div className="relative flex min-h-screen flex-col overflow-hidden bg-background font-sans text-foreground md:flex-row">
             <EnergyBeam />
             <EnergyGraph />
 
-            {/* Left Section: Auth Form */}
-            <div className="w-full md:w-1/2 flex flex-col justify-center items-center p-8 relative z-10">
-                <div className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 md:p-12 space-y-8 border border-white/20">
-                    {/* Logo */}
-                    <div className="flex justify-center">
-                        <Link href="/" className="relative w-12 h-12 rounded-full overflow-hidden shadow-lg shadow-black/10 hover:shadow-orange-500/20 transition-all duration-300 hover:scale-110 cursor-pointer block">
+            <div className="relative z-10 flex w-full flex-col items-center justify-center p-8 md:w-1/2">
+                <Card className="w-full max-w-md border-white/20 bg-white/95 px-8 py-8 text-gray-900 shadow-2xl backdrop-blur-xl md:px-12 md:py-12">
+                    <CardHeader className="items-center gap-6 p-0 text-center">
+                        <Link
+                            href="/"
+                            className="relative block size-12 overflow-hidden rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+                        >
                             <Image
                                 src="/logo_B_ai_bg_removed.png"
                                 alt="Bitcoin Analytics Logo"
                                 fill
-                                className="object-cover bg-black"
+                                className="bg-black object-cover"
                                 priority
                             />
                         </Link>
-                    </div>
-
-                    <div className="text-center">
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                            Create an account
-                        </h1>
-                        <p className="mt-2 text-sm text-gray-600">
-                            Start your journey with Bitcoin Analytics today.
-                        </p>
-                    </div>
-
-                    <form className="mt-8 space-y-6" onSubmit={handleSignup}>
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                    Email
-                                </label>
-                                <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-primary-orange focus:outline-none focus:ring-1 focus:ring-primary-orange sm:text-sm shadow-sm transition-all duration-200"
-                                    placeholder="Enter your email"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                    Password
-                                </label>
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    required
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-primary-orange focus:outline-none focus:ring-1 focus:ring-primary-orange sm:text-sm shadow-sm transition-all duration-200"
-                                    placeholder="Create a password"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                                    Confirm Password
-                                </label>
-                                <input
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    required
-                                    value={formData.confirmPassword}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-primary-orange focus:outline-none focus:ring-1 focus:ring-primary-orange sm:text-sm shadow-sm transition-all duration-200"
-                                    placeholder="Confirm your password"
-                                />
-                            </div>
+                        <div className="flex flex-col gap-2">
+                            <h1 className="text-3xl font-bold tracking-tight">Create an account</h1>
+                            <p className="text-sm text-gray-600">
+                                Start your journey with Bitcoin Analytics today.
+                            </p>
                         </div>
+                    </CardHeader>
 
-                        <div>
-                            <button
-                                type="submit"
-                                className="group relative flex w-full justify-center rounded-md bg-primary-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-primary-orange focus:ring-offset-2 focus:ring-offset-gray-50 shadow-lg shadow-orange-500/20 transition-all duration-300 hover:scale-[1.02]"
-                            >
+                    <CardContent className="p-0 pt-8">
+                        <form className="flex flex-col gap-6" onSubmit={handleSignup}>
+                            <FieldGroup>
+                                <Field>
+                                    <FieldLabel htmlFor="email">Email</FieldLabel>
+                                    <Input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        placeholder="Enter your email"
+                                        className="bg-white text-gray-900"
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="password">Password</FieldLabel>
+                                    <Input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        required
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        placeholder="Create a password"
+                                        className="bg-white text-gray-900"
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
+                                    <Input
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        required
+                                        value={formData.confirmPassword}
+                                        onChange={handleChange}
+                                        placeholder="Confirm your password"
+                                        className="bg-white text-gray-900"
+                                    />
+                                </Field>
+                            </FieldGroup>
+
+                            <Button type="submit" className="w-full shadow-lg shadow-orange-500/20">
                                 Sign up
-                            </button>
-                        </div>
-                    </form>
+                            </Button>
+                        </form>
+                    </CardContent>
 
-                    <p className="mt-2 text-center text-sm text-gray-600">
+                    <CardFooter className="justify-center gap-1 border-0 bg-transparent p-0 pt-2 text-sm text-gray-600">
                         Already have an account?{' '}
                         <Link href="/login" className="font-medium text-primary-orange hover:text-orange-600">
                             Sign in
                         </Link>
-                    </p>
-                </div>
+                    </CardFooter>
+                </Card>
             </div>
 
-            {/* Right Section: KPI Preview (Reused) */}
-            <div className="hidden md:flex md:w-1/2 relative overflow-hidden flex-col justify-center items-center p-12 z-10">
-                <div className="z-10 w-full max-w-lg space-y-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-md">Join the Community</h2>
-                        <p className="text-gray-300 text-lg">Access premium analytics and charts.</p>
+            <div className="relative z-10 hidden w-1/2 flex-col items-center justify-center overflow-hidden p-12 md:flex">
+                <div className="z-10 flex w-full max-w-lg flex-col gap-6">
+                    <div className="mb-12 text-center">
+                        <h2 className="mb-2 text-3xl font-bold text-white drop-shadow-md">Join the Community</h2>
+                        <p className="text-lg text-gray-300">Access premium analytics and charts.</p>
                     </div>
-                    <div className="flex justify-center transform scale-110">
+                    <div className="flex justify-center scale-110">
                         <AuthKPIs />
                     </div>
                 </div>
             </div>
 
-            {/* Mobile Preview Fallback */}
-            <div className="md:hidden p-6 bg-white/95 backdrop-blur-sm z-10 border-t border-gray-200">
-                <div className="mb-4">
-                    <h3 className="text-gray-900 font-semibold mb-2">Market Overview</h3>
-                    <div className="transform scale-90 origin-top">
-                        <AuthKPIs />
-                    </div>
+            <div className="relative z-10 border-t border-gray-200 bg-white/95 p-6 backdrop-blur-sm md:hidden">
+                <h3 className="mb-2 font-semibold text-gray-900">Market Overview</h3>
+                <div className="origin-top scale-90">
+                    <AuthKPIs />
                 </div>
             </div>
-
         </div>
     );
 }

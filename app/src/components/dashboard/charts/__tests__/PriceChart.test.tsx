@@ -74,4 +74,10 @@ describe('PriceChart calendar dates and RSI values', () => {
             process.env.TZ = previousTimezone;
         }
     });
+
+    it('uses a shadcn spinner while loading', () => {
+        render(<PriceChart data={[]} loading />);
+
+        expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    });
 });

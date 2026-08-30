@@ -35,8 +35,7 @@ describe('IndicatorSelector', () => {
         render(<IndicatorSelector selectedIndicators={selected} onToggleIndicator={mockOnToggle} />);
         fireEvent.click(screen.getByRole('button', { name: /indicators/i }));
 
-        // Use aria-pressed now that we added it
-        expect(screen.getByRole('button', { name: /rsi/i })).toHaveAttribute('aria-pressed', 'true');
-        expect(screen.getByRole('button', { name: /macd/i })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('menuitemcheckbox', { name: /rsi/i })).toHaveAttribute('aria-checked', 'true');
+        expect(screen.getByRole('menuitemcheckbox', { name: /macd/i })).toHaveAttribute('aria-checked', 'true');
     });
 });

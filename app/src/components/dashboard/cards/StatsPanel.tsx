@@ -1,139 +1,123 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { ChevronDown, Eye, Info } from 'lucide-react';
 import type { BitcoinMetrics } from '@/lib/schemas';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface StatsPanelProps {
     metrics: BitcoinMetrics | null;
     loading?: boolean;
 }
 
-const StatsPanel: React.FC<StatsPanelProps> = ({ metrics, loading = false }) => {
-    // Format large numbers
-    const formatCurrency = (value: number) => {
-        if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-        if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-        if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
-        return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    };
+type Direction = 'long' | 'short' | 'all';
 
-    const [isCollapsed, setIsCollapsed] = React.useState(true);
+function formatCurrency(value: number): string {
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+    if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
+    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+}
+
+const StatsPanel: React.FC<StatsPanelProps> = ({ metrics, loading = false }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [direction, setDirection] = useState<Direction>('all');
 
     return (
         <aside className="stats-panel transition-all duration-300">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">Average Deviation Power</h3>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400">Breakdown</span>
-                    <span className="text-sm text-gray-400">Single</span>
-                    <span className="text-sm text-gray-400">Smart</span>
-                    <span className="px-2 py-1 rounded-md bg-energy-orange/20 text-energy-orange text-xs font-medium">
-                        Total
-                    </span>
-                </div>
-            </div>
-
-            {/* User Selector & Collapse Toggle */}
-            <div className="mb-6">
-                <div
-                    className="flex items-center justify-between px-4 py-3 bg-gray-800/50 rounded-lg border border-gray-700 cursor-pointer hover:bg-gray-800 transition-colors"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-energy-orange to-energy-yellow flex items-center justify-center">
-                            <span className="text-xs font-bold text-black">U</span>
+            <Card className="border-0 bg-transparent p-0 shadow-none ring-0">
+                <CardHeader className="gap-4 p-0">
+                    <div className="flex items-center justify-between gap-4">
+                        <CardTitle className="text-lg text-white">Average Deviation Power</CardTitle>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>Breakdown</span>
+                            <span>Single</span>
+                            <span>Smart</span>
+                            <Badge>Total</Badge>
                         </div>
-                        <span className="text-sm font-medium text-white">User Profile</span>
                     </div>
-                    <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isCollapsed ? '-rotate-90' : 'rotate-0'}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </div>
-            </div>
+                    <Separator />
+                </CardHeader>
 
-            {/* Collapsible Content */}
-            <div className={`overflow-hidden transition-all duration-300 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[1000px] opacity-100'}`}>
-                {/* Direction Toggle */}
-                <div className="flex gap-2 mb-6">
-                    <span className="text-sm text-gray-400">Direction</span>
-                    <button className="px-3 py-1 rounded-md bg-gray-700/50 text-gray-300 text-xs">Long</button>
-                    <button className="px-3 py-1 rounded-md bg-gray-700/50 text-gray-300 text-xs">Short</button>
-                    <button className="px-3 py-1 rounded-md bg-energy-orange/20 text-energy-orange text-xs font-medium">All</button>
-                </div>
+                <CardContent className="p-0 pt-6">
+                    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+                        <CollapsibleTrigger
+                            render={<Button variant="outline" className="h-auto w-full justify-between px-4 py-3" />}
+                        >
+                            <span className="flex items-center gap-3">
+                                <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-energy-orange to-energy-yellow text-xs font-bold text-black">U</span>
+                                <span className="text-sm font-medium text-foreground">User Profile</span>
+                            </span>
+                            <ChevronDown className={cn('text-muted-foreground transition-transform duration-300', isOpen && 'rotate-180')} />
+                        </CollapsibleTrigger>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    {/* Deposit */}
-                    <div>
-                        <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Deposit</div>
-                        {loading ? (
-                            <div className="h-8 bg-gray-700/50 rounded animate-pulse" />
-                        ) : (
-                            <div className="text-xl font-bold text-white">
-                                {metrics ? formatCurrency(metrics.currentPrice) : '$0.00'}
+                        <CollapsibleContent className="pt-6">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm text-muted-foreground">Direction</span>
+                                <ToggleGroup
+                                    value={[direction]}
+                                    onValueChange={(values) => values[0] && setDirection(values[0] as Direction)}
+                                    variant="outline"
+                                    size="sm"
+                                    spacing={1}
+                                    aria-label="Position direction"
+                                >
+                                    <ToggleGroupItem value="long" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">Long</ToggleGroupItem>
+                                    <ToggleGroupItem value="short" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">Short</ToggleGroupItem>
+                                    <ToggleGroupItem value="all" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">All</ToggleGroupItem>
+                                </ToggleGroup>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Positions */}
-                    <div>
-                        <div className="flex items-center gap-1 text-xs text-gray-400 uppercase tracking-wide mb-1">
-                            Positions (O/C)
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div className="text-xl font-bold text-energy-orange">0/0</div>
-                    </div>
+                            <dl className="mt-6 grid grid-cols-2 gap-4">
+                                <div>
+                                    <dt className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Deposit</dt>
+                                    {loading ? <Skeleton className="h-8 w-full bg-muted/70" /> : <dd className="text-xl font-bold text-white">{metrics ? formatCurrency(metrics.currentPrice) : '$0.00'}</dd>}
+                                </div>
+                                <div>
+                                    <dt className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground">
+                                        Positions (O/C)
+                                        <Tooltip>
+                                            <TooltipTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Positions information" />}>
+                                                <Info />
+                                            </TooltipTrigger>
+                                            <TooltipContent>Open and closed positions.</TooltipContent>
+                                        </Tooltip>
+                                    </dt>
+                                    <dd className="text-xl font-bold text-primary">0/0</dd>
+                                </div>
+                                <div>
+                                    <dt className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Win rate</dt>
+                                    {loading ? <Skeleton className="h-8 w-full bg-muted/70" /> : <dd className="text-xl font-bold text-white">{metrics?.rsi ? `${metrics.rsi.toFixed(1)}%` : '0.0%'}</dd>}
+                                </div>
+                                <div>
+                                    <dt className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Profit factor</dt>
+                                    <dd className="text-xl font-bold text-white">0.00</dd>
+                                </div>
+                            </dl>
 
-                    {/* Win Rate */}
-                    <div>
-                        <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Win rate</div>
-                        {loading ? (
-                            <div className="h-8 bg-gray-700/50 rounded animate-pulse" />
-                        ) : (
-                            <div className="text-xl font-bold text-white">
-                                {metrics?.rsi ? `${((metrics.rsi / 100) * 100).toFixed(1)}%` : '0.0%'}
+                            <div className="mt-6">
+                                <div className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Risk management</div>
+                                <Badge variant="outline">Disabled</Badge>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Profit Factor */}
-                    <div>
-                        <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Profit factor</div>
-                        <div className="text-xl font-bold text-white">0.00</div>
-                    </div>
-                </div>
-
-                {/* Risk Management */}
-                <div className="mb-6">
-                    <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">Risk management</div>
-                    <div className="text-base font-medium text-gray-300">Disabled</div>
-                </div>
-
-                {/* PnL by Coin */}
-                <div className="mb-6">
-                    <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">PnL by coin</div>
-                </div>
-
-                {/* View Details Link */}
-                <a
-                    href="#"
-                    className="inline-flex items-center gap-1 text-sm text-energy-orange hover:text-energy-yellow smooth-transition"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    View details
-                </a>
-            </div>
+                            <div className="mt-6">
+                                <div className="text-xs uppercase tracking-wide text-muted-foreground">PnL by coin</div>
+                            </div>
+                            <a href="#" className="mt-6 inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80">
+                                <Eye data-icon="inline-start" />
+                                View details
+                            </a>
+                        </CollapsibleContent>
+                    </Collapsible>
+                </CardContent>
+            </Card>
         </aside>
     );
 };

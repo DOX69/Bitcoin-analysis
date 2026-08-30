@@ -1,15 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Bell, ChevronDown, Settings } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 interface DashboardHeaderProps {
     currentPage?: string;
 }
 
 const navItems = [
-    { name: 'Dashboard', href: '/dashboard', active: true },
+    { name: 'Dashboard', href: '/dashboard' },
     { name: 'Screener', href: '/screener' },
     { name: 'Terminal', href: '/terminal' },
     { name: 'Stats', href: '/stats' },
@@ -17,12 +30,9 @@ const navItems = [
 ];
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentPage = 'Dashboard' }) => {
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-
     return (
         <header className="dashboard-header">
             <div className="flex items-center justify-between px-6 py-3">
-                {/* Logo Section */}
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center gap-2">
                         <Image
@@ -35,13 +45,15 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentPage = 'Dashbo
                         <span className="text-lg font-semibold text-white">B.ai</span>
                     </Link>
 
-                    {/* Navigation */}
-                    <nav className="hidden md:flex items-center gap-1">
+                    <nav className="hidden items-center gap-1 md:flex">
                         {navItems.map((item) => (
                             <Link
                                 key={item.name}
                                 href={item.href}
-                                className={`nav-link ${currentPage === item.name ? 'nav-link-active' : ''}`}
+                                className={cn(
+                                    buttonVariants({ variant: 'ghost', size: 'sm' }),
+                                    currentPage === item.name && 'bg-primary/15 text-foreground ring-1 ring-primary/30',
+                                )}
                             >
                                 {item.name}
                             </Link>
@@ -49,65 +61,43 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentPage = 'Dashbo
                     </nav>
                 </div>
 
-                {/* Right Section */}
                 <div className="flex items-center gap-4">
-                    {/* Connection Status */}
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-xs text-green-400 font-medium">Connected</span>
-                    </div>
+                    <Badge variant="secondary" className="hidden gap-2 border-success/30 bg-success/10 text-success sm:inline-flex">
+                        <span className="size-2 rounded-full bg-success" />
+                        Connected
+                    </Badge>
 
-                    {/* Action Icons */}
                     <div className="flex items-center gap-2">
-                        <button className="header-icon-btn" aria-label="Settings">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </button>
-                        <button className="header-icon-btn" aria-label="Notifications">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
-                        </button>
+                        <Button variant="ghost" size="icon" aria-label="Settings">
+                            <Settings />
+                        </Button>
+                        <Button variant="ghost" size="icon" aria-label="Notifications">
+                            <Bell />
+                        </Button>
                     </div>
 
-                    {/* User Profile */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="flex items-center gap-2 p-1 rounded-lg hover:bg-white/5 smooth-transition"
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            render={<Button variant="ghost" className="h-auto gap-2 p-1" />}
                         >
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-energy-orange to-energy-yellow flex items-center justify-center">
-                                <span className="text-sm font-bold text-black">U</span>
-                            </div>
-                            <div className="hidden sm:block text-left">
-                                <div className="text-sm font-medium text-white">User</div>
-                                <div className="text-xs text-gray-400">0x50f9...a7b845a5</div>
-                            </div>
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {isProfileOpen && (
-                            <div className="absolute right-0 mt-2 w-48 rounded-lg bg-gray-900 border border-gray-700 shadow-xl z-50">
-                                <div className="py-1">
-                                    <Link href="/profile" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">
-                                        Profile
-                                    </Link>
-                                    <Link href="/settings" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800">
-                                        Settings
-                                    </Link>
-                                    <hr className="my-1 border-gray-700" />
-                                    <Link href="/" className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-800">
-                                        Logout
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                            <Avatar>
+                                <AvatarFallback className="bg-gradient-to-br from-energy-orange to-energy-yellow text-black">U</AvatarFallback>
+                            </Avatar>
+                            <span className="hidden text-left sm:block">
+                                <span className="block text-sm font-medium text-white">User</span>
+                                <span className="block text-xs text-gray-400">0x50f9...a7b845a5</span>
+                            </span>
+                            <ChevronDown className="text-gray-400" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuGroup>
+                                <DropdownMenuItem render={<Link href="/profile" />}>Profile</DropdownMenuItem>
+                                <DropdownMenuItem render={<Link href="/settings" />}>Settings</DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem variant="destructive" render={<Link href="/" />}>Logout</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
         </header>

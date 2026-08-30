@@ -3,6 +3,10 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { TriangleAlert } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function Error({
     error,
@@ -16,38 +20,20 @@ export default function Error({
     }, [error]);
 
     return (
-        <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center p-6">
-            <div className="max-w-md w-full bg-[#1c1c1c] border border-red-500/20 rounded-2xl p-8 text-center shadow-2xl">
-                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </div>
-                <h2 className="text-2xl font-bold mb-2 text-red-500">Error: {error.name}</h2>
-                <div className="text-left bg-black p-4 rounded mb-8 overflow-auto max-h-60 border border-gray-800">
-                    <p className="font-mono text-red-400 mb-2">{error.message}</p>
-                    {error.digest && (
-                        <p className="font-mono text-gray-500 text-xs">Digest: {error.digest}</p>
-                    )}
-                    <p className="text-gray-500 text-xs mt-4">
-                        Check Railway logs for the full stack trace.
-                    </p>
-                </div>
-                <div className="flex gap-4 justify-center">
-                    <button
-                        onClick={() => reset()}
-                        className="px-6 py-2 bg-[#F7931A] text-black font-semibold rounded-lg hover:bg-[#e08215] transition-colors"
-                    >
-                        Try again
-                    </button>
-                    <Link
-                        href="/"
-                        className="px-6 py-2 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                        Go Home
-                    </Link>
-                </div>
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+            <Alert variant="destructive" className="max-w-md gap-4 p-8 shadow-2xl">
+                <TriangleAlert />
+                <AlertTitle className="text-xl">Error: {error.name}</AlertTitle>
+                <AlertDescription className="flex flex-col gap-4">
+                    <p className="max-h-60 overflow-auto font-mono">{error.message}</p>
+                    {error.digest && <p className="font-mono text-xs">Digest: {error.digest}</p>}
+                    <p className="text-xs">Check Railway logs for the full stack trace.</p>
+                    <div className="flex justify-center gap-4 pt-2">
+                        <Button onClick={() => reset()}>Try again</Button>
+                        <Link href="/" className={cn(buttonVariants({ variant: 'secondary' }))}>Go Home</Link>
+                    </div>
+                </AlertDescription>
+            </Alert>
         </div>
     );
 }

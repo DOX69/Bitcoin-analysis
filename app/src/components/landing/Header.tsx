@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { theme } from '@/theme';
+import { buttonVariants } from '@/components/ui/button';
 
 export default function Header() {
     return (
@@ -23,41 +23,23 @@ export default function Header() {
 
                     {/* Navigation */}
                     <nav className="hidden md:flex items-center gap-8">
-                        <Link
-                            href="#features"
-                            className="text-sm text-gray-400 hover:text-white transition-colors"
-                        >
+                        <Link href="#features" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                             Getting started
                         </Link>
-                        <Link
-                            href="#components"
-                            className="text-sm text-gray-400 hover:text-white transition-colors"
-                        >
+                        <Link href="#components" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                             Components
                         </Link>
-                        <Link
-                            href="#docs"
-                            className="text-sm text-gray-400 hover:text-white transition-colors"
-                        >
+                        <Link href="#docs" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                             Documentation
                         </Link>
                     </nav>
 
                     {/* Auth Buttons */}
                     <div className="flex items-center gap-3">
-                        <Link
-                            href="/login"
-                            className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
-                        >
+                        <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                             Sign in
                         </Link>
-                        <Link
-                            href="/signup"
-                            className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-all hover:scale-105"
-                            style={{
-                                background: `linear-gradient(135deg, ${theme.colors.primary.orange} 0%, #d85a2b 100%)`,
-                            }}
-                        >
+                        <Link href="/signup" className={buttonVariants({ size: 'sm' })}>
                             Sign up
                         </Link>
                     </div>

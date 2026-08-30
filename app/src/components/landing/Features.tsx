@@ -1,20 +1,21 @@
 'use client';
 
-import { theme } from '@/theme';
+import { BarChart3, Database, Cloud } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const features = [
     {
-        icon: '📊',
+        icon: BarChart3,
         title: 'Daily Market Data',
         description: 'Track Bitcoin prices and market trends with data updated daily.',
     },
     {
-        icon: '🗄️',
+        icon: Database,
         title: 'PostgreSQL History',
         description: 'Review historical Bitcoin market data stored in PostgreSQL.',
     },
     {
-        icon: '📈',
+        icon: Cloud,
         title: 'Railway Hosting',
         description: 'The application and its daily data pipeline are hosted on Railway.',
     },
@@ -37,26 +38,17 @@ export default function Features() {
                 {/* Features Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {features.map((feature, index) => (
-                        <div
-                            key={index}
-                            className="glass-card card-hover p-8 rounded-2xl text-center"
-                        >
-                            <div
-                                className="w-16 h-16 mx-auto mb-6 rounded-xl flex items-center justify-center text-3xl"
-                                style={{
-                                    background: `linear-gradient(135deg, ${theme.colors.primary.orange}20 0%, ${theme.colors.secondary.charcoal} 100%)`,
-                                    border: `1px solid ${theme.colors.primary.orange}30`,
-                                }}
-                            >
-                                {feature.icon}
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-3">
-                                {feature.title}
-                            </h3>
-                            <p className="text-gray-400 leading-relaxed">
-                                {feature.description}
-                            </p>
-                        </div>
+                        <Card key={index} className="border-primary/15 bg-card/80 p-8 text-center transition-transform hover:-translate-y-1">
+                            <CardHeader className="items-center gap-6 p-0">
+                                <div className="flex size-16 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
+                                    <feature.icon />
+                                </div>
+                                <CardTitle className="text-xl text-foreground">{feature.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0 pt-3">
+                                <p className="leading-relaxed text-muted-foreground">{feature.description}</p>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             </div>

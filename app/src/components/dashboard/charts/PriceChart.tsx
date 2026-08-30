@@ -28,6 +28,7 @@ import {
     parseCalendarDate,
 } from '@/lib/format-utils';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
+import { Spinner } from '@/components/ui/spinner';
 import 'chartjs-adapter-date-fns'; // Import date adapter for potential time scale usage
 
 ChartJS.register(
@@ -542,8 +543,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
     return (
         <>
             {loading ? (
-                <div className="h-full flex items-center justify-center">
-                    <div className="loading-pulse text-gray-400">Loading chart...</div>
+                <div className="flex h-full items-center justify-center gap-2">
+                    <Spinner className="text-primary" />
+                    <span className="text-muted-foreground">Loading chart...</span>
                 </div>
             ) : (
                 <div className="h-full w-full" key={`${type}-${showRsi}-${data.length}`}>

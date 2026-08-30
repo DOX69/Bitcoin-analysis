@@ -15,8 +15,8 @@ const features = [
     },
     {
         icon: '📈',
-        title: 'Railway Preparation',
-        description: 'The application is prepared for Railway deployment.',
+        title: 'Railway Hosting',
+        description: 'The application and its daily data pipeline are hosted on Railway.',
     },
 ];
 

@@ -2,7 +2,7 @@
  * Module Resolution Tests
  * 
  * These tests verify that all path aliases (@/*) resolve correctly.
- * This prevents Vercel build failures due to module resolution errors.
+ * This prevents deployment failures due to module resolution errors.
  * 
  * IMPORTANT: Do not modify or remove these tests. They serve as a safety net
  * to catch module resolution issues before deployment.

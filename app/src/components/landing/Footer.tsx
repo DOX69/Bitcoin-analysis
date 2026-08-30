@@ -46,7 +46,7 @@ export default function Footer() {
                             className="font-medium"
                             style={{ color: theme.colors.primary.orange }}
                         >
-                            PostgreSQL · Prepared for Railway deployment
+                            PostgreSQL · Hosted on Railway
                         </span>
                     </div>
                 </div>

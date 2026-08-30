@@ -42,9 +42,9 @@ describe('landing truth', () => {
         path.join(SRC_ROOT, 'components', 'landing', 'Footer.tsx'),
     ];
 
-    it('makes no unsupported product or Railway deployment claims', () => {
+    it('makes no unsupported product claims', () => {
         const unsupportedClaim =
-            /forecast|neural networks?|machine learning|\bpredict(?:s|ed|ion|ive)?\b|AI-Powered|real[- ]time|\blive (?:data|prices?|analytics)|portfolio|hosted on Railway|PostgreSQL on Railway|deployed (?:on|to) Railway/i;
+            /forecast|neural networks?|machine learning|\bpredict(?:s|ed|ion|ive)?\b|AI-Powered|real[- ]time|\blive (?:data|prices?|analytics)|portfolio/i;
         const matches = landingSurfaces.filter(file =>
             unsupportedClaim.test(fs.readFileSync(file, 'utf8'))
         );
@@ -52,25 +52,20 @@ describe('landing truth', () => {
         expect(matches).toEqual([]);
     });
 
-    it('states the daily PostgreSQL update and Railway preparation accurately', () => {
+    it('states the daily PostgreSQL update and Railway hosting accurately', () => {
         const content = landingSurfaces
             .map(file => fs.readFileSync(file, 'utf8'))
             .join('\n');
 
         expect(content).toMatch(/updated daily/i);
         expect(content).toMatch(/PostgreSQL/i);
-        expect(content).toMatch(/prepared for Railway deployment/i);
+        expect(content).toMatch(/hosted on Railway/i);
     });
 });
 
 describe('Databricks adapter removal', () => {
-    it('leaves no Databricks, Delta, or Vercel text on landing surfaces', () => {
-        const landingSurfaces = [
-            path.join(SRC_ROOT, 'app', 'layout.tsx'),
-            path.join(SRC_ROOT, 'components', 'landing', 'Features.tsx'),
-            path.join(SRC_ROOT, 'components', 'landing', 'Footer.tsx'),
-        ].filter(file => !file.endsWith('.disabled'));
-        const matches = landingSurfaces.filter(file =>
+    it('leaves no Databricks, Delta, or Vercel text in production sources', () => {
+        const matches = getProductionSources(SRC_ROOT).filter(file =>
             /databricks|delta|vercel/i.test(fs.readFileSync(file, 'utf8'))
         );
 

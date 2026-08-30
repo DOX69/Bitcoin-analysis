@@ -29,7 +29,7 @@ export default function Error({
                         <p className="font-mono text-gray-500 text-xs">Digest: {error.digest}</p>
                     )}
                     <p className="text-gray-500 text-xs mt-4">
-                        Check Vercel logs for full stack trace.
+                        Check Railway logs for the full stack trace.
                     </p>
                 </div>
                 <div className="flex gap-4 justify-center">

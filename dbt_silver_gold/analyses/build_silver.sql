@@ -17,7 +17,7 @@ with source as (
 select 
 d as date_indicators,
 {% for src, alias in indicators %}
-round({{src}}, 2) as {{alias}},
+round({{ src }}::numeric, 2)::double precision as {{ alias }},
 {% endfor %}
-current_timestamp as ingest_date_time
+current_timestamp::timestamp without time zone as ingest_date_time
 from source

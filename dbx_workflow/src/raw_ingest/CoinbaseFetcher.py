@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
-from raw_ingest.BaseFetcher import BaseFetcher
+from raw_ingest.BaseFetcher import BaseFetcher, require_2xx
+from raw_ingest.api_models.coinbase import CoinbaseCandleResponse
 
 class CoinbaseFetcher(BaseFetcher):
     """
@@ -34,7 +35,7 @@ class CoinbaseFetcher(BaseFetcher):
         super().__init__(logger, ticker, currency, catalog, schema, base_url)
         
         self.table_name = ticker.lower() + "_" + currency.lower() + "_ohlcv"
-        self.full_path_table_name = f"{catalog}.{schema}.{self.table_name}"
+        self.full_path_table_name = self.qualify_table_name(self.table_name)
         self.price_endpoint = f"/products/{self.ticker_id}/candles"
 
         logger.info("-" * 80)
@@ -79,14 +80,17 @@ class CoinbaseFetcher(BaseFetcher):
                     "granularity": granularity
                 }
 
-                response = requests.get(self.base_url + self.price_endpoint, params=params)
-
-                if response.status_code == 200:
-                    data = response.json()
-                    all_data.extend(data)
-                else:
-                    self.logger.error(f"Error: {response.status_code} - {response.text}")
-                    break
+                response = requests.get(
+                    self.base_url + self.price_endpoint,
+                    params=params,
+                    timeout=10,
+                )
+                require_2xx(response)
+                data = response.json()
+                CoinbaseCandleResponse.model_validate(data)
+                if any(len(candle) != 6 for candle in data):
+                    raise ValueError("Invalid Coinbase candle width")
+                all_data.extend(data)
 
                 current_start = current_end
 

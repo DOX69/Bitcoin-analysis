@@ -18,7 +18,7 @@ import {
     LogarithmicScale
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
-import { BitcoinPrice, BitcoinForecast } from '@/lib/schemas';
+import { BitcoinPrice } from '@/lib/schemas';
 import { formatPrice, formatDate, formatTooltipTime } from '@/lib/format-utils';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns'; // Import date adapter for potential time scale usage
@@ -47,8 +47,6 @@ interface PriceChartProps {
     showRsi?: boolean;
     type?: 'line' | 'candlestick';
     currencySymbol?: string;
-    forecastData?: BitcoinForecast[];
-    showForecast?: boolean;
     showMacd?: boolean;
     showSma?: boolean;
     showEma?: boolean;
@@ -61,8 +59,6 @@ const PriceChart: React.FC<PriceChartProps> = ({
     showRsi = false,
     type = 'line',
     currencySymbol = '$',
-    forecastData = [],
-    showForecast = false,
     showMacd = false,
     showSma = false,
     showEma = false,
@@ -207,59 +203,6 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 pointHoverBackgroundColor: '#ffffff',
                 yAxisID: 'y1',
             }] : []),
-            ...(type === 'line' && showForecast && forecastData.length > 0 ? [
-                // Forecast - Regular
-                {
-                    type: 'line' as const,
-                    label: 'Forecast',
-                    data: forecastData.map((item) => ({
-                        x: new Date(item.date_prices).getTime(),
-                        y: item.predicted_close_usd
-                    })),
-                    borderColor: 'rgba(255, 107, 53, 1)',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    fill: false,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    pointHitRadius: 20,
-                    yAxisID: 'y',
-                },
-                // Forecast - Upper
-                {
-                    type: 'line' as const,
-                    label: 'Forecast Upper',
-                    data: forecastData.map((item) => ({
-                        x: new Date(item.date_prices).getTime(),
-                        y: item.predicted_close_usd_upper
-                    })),
-                    borderColor: 'rgba(255, 255, 255, 0.5)', // White with opacity for bounds
-                    borderWidth: 1,
-                    borderDash: [3, 3],
-                    fill: false,
-                    pointRadius: 0,
-                    pointHoverRadius: 0,
-                    pointHitRadius: 20,
-                    yAxisID: 'y',
-                },
-                // Forecast - Lower
-                {
-                    type: 'line' as const,
-                    label: 'Forecast Lower',
-                    data: forecastData.map((item) => ({
-                        x: new Date(item.date_prices).getTime(),
-                        y: item.predicted_close_usd_lower
-                    })),
-                    borderColor: 'rgba(255, 255, 255, 0.5)', // White with opacity for bounds
-                    borderWidth: 1,
-                    borderDash: [3, 3],
-                    fill: false,
-                    pointRadius: 0,
-                    pointHoverRadius: 0,
-                    pointHitRadius: 20,
-                    yAxisID: 'y',
-                }
-            ] : []),
             ...(showSma ? [
                 {
                     type: 'line' as const,
@@ -431,9 +374,6 @@ const PriceChart: React.FC<PriceChartProps> = ({
                                 `L: ${currencySymbol}${formatPrice(raw.l)}`,
                                 `C: ${currencySymbol}${formatPrice(raw.c)}`
                             ];
-                        }
-                        if (context.dataset.label && context.dataset.label.includes('Forecast')) {
-                            return `${context.dataset.label.replace('Forecast', '').trim() || 'Forecast'}: ${currencySymbol}${formatPrice(context.parsed.y)}`;
                         }
                         return currencySymbol + formatPrice(context.parsed.y);
                     },

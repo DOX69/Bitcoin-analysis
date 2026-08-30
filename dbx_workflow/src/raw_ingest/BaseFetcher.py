@@ -1,6 +1,15 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 import pandas as pd
+import requests
+
+
+def require_2xx(response):
+    if not 200 <= response.status_code < 300:
+        raise requests.exceptions.HTTPError(
+            f"HTTP {response.status_code}: {response.text}",
+            response=response,
+        )
 
 class BaseFetcher(ABC):
     """
@@ -12,7 +21,7 @@ class BaseFetcher(ABC):
             logger,
             ticker: str,
             currency: str,
-            catalog: str,
+            catalog: str | None,
             schema: str,
             base_url: str
     ):
@@ -31,6 +40,11 @@ class BaseFetcher(ABC):
         # Defaulting generic table name here or letting subclass define it.
         # CoinbaseFetcher defines table_name = ticker.lower() + "_" + currency.lower() + "_ohlcv"
         self.full_path_table_name = None 
+
+    def qualify_table_name(self, table_name: str) -> str:
+        if self.catalog is None:
+            return f"{self.schema}.{table_name}"
+        return f"{self.catalog}.{self.schema}.{table_name}"
 
     @abstractmethod
     def fetch_historical_data(

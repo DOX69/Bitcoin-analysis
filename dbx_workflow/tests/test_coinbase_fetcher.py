@@ -140,6 +140,9 @@ class TestCoinbaseFetcherFetchHistoricalData:
 
         # Verify multiple API calls were made (at least 2 for 400 days)
         assert mock_get.call_count >= 2
+        assert all(
+            0 < call.kwargs["timeout"] <= 30 for call in mock_get.call_args_list
+        )
 
     @patch('requests.get')
     def test_fetch_historical_data_type_casting(self, mock_get, mock_logger):
@@ -192,6 +195,9 @@ class TestCoinbaseFetcherFetchHistoricalData:
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "500 Server Error"
+        )
         mock_get.return_value = mock_response
 
         fetcher = CoinbaseFetcher(
@@ -202,11 +208,105 @@ class TestCoinbaseFetcherFetchHistoricalData:
             schema="bronze"
         )
 
-        df = fetcher.fetch_historical_data(days=1)
+        with pytest.raises(requests.exceptions.HTTPError):
+            fetcher.fetch_historical_data(days=1)
 
-        # Should return empty DataFrame on error
-        assert isinstance(df, pd.DataFrame)
-        assert len(df) == 0
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            requests.exceptions.Timeout("Request timed out"),
+            requests.exceptions.ConnectionError("Network unavailable"),
+        ],
+    )
+    @patch('requests.get')
+    def test_failure_after_a_successful_page_raises(
+        self, mock_get, failure, mock_logger
+    ):
+        successful_page = Mock(status_code=200)
+        successful_page.json.return_value = [
+            [1640995200, 46000.0, 47500.0, 46500.0, 47000.0, 1500.5]
+        ]
+        mock_get.side_effect = [successful_page, failure]
+        fetcher = CoinbaseFetcher(
+            logger=mock_logger,
+            ticker="BTC",
+            currency="USD",
+            catalog="dev",
+            schema="bronze",
+        )
+
+        with pytest.raises(type(failure)):
+            fetcher.fetch_historical_data(days=400)
+
+        assert mock_get.call_count == 2
+
+    @patch('requests.get')
+    def test_non_2xx_after_a_successful_page_raises(self, mock_get, mock_logger):
+        successful_page = Mock(status_code=200)
+        successful_page.json.return_value = [
+            [1640995200, 46000.0, 47500.0, 46500.0, 47000.0, 1500.5]
+        ]
+        failed_page = Mock(status_code=503, text="Service unavailable")
+        failed_page.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "503 Server Error"
+        )
+        mock_get.side_effect = [successful_page, failed_page]
+        fetcher = CoinbaseFetcher(
+            logger=mock_logger,
+            ticker="BTC",
+            currency="USD",
+            catalog="dev",
+            schema="bronze",
+        )
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            fetcher.fetch_historical_data(days=400)
+
+        assert mock_get.call_count == 2
+
+    @patch('requests.get')
+    def test_redirect_response_raises(self, mock_get, mock_logger):
+        response = Mock(status_code=302, text="Redirect")
+        response.json.return_value = [
+            [1640995200, 46000.0, 47500.0, 46500.0, 47000.0, 1500.5]
+        ]
+        mock_get.return_value = response
+        fetcher = CoinbaseFetcher(
+            logger=mock_logger,
+            ticker="BTC",
+            currency="USD",
+            catalog="dev",
+            schema="bronze",
+        )
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            fetcher.fetch_historical_data(days=1)
+
+    @patch('requests.get')
+    def test_invalid_payload_after_a_successful_page_raises(
+        self, mock_get, mock_logger
+    ):
+        successful_page = Mock(status_code=200)
+        successful_page.json.return_value = [
+            [1640995200, 46000.0, 47500.0, 46500.0, 47000.0, 1500.5]
+        ]
+        invalid_page = Mock(status_code=200)
+        invalid_page.json.return_value = [
+            [1641081600, 47000.0, 48000.0, 47000.0, 47800.0]
+        ]
+        mock_get.side_effect = [successful_page, invalid_page]
+        fetcher = CoinbaseFetcher(
+            logger=mock_logger,
+            ticker="BTC",
+            currency="USD",
+            catalog="dev",
+            schema="bronze",
+        )
+
+        with pytest.raises(ValueError):
+            fetcher.fetch_historical_data(days=400)
+
+        assert mock_get.call_count == 2
 
     @patch('requests.get')
     def test_fetch_historical_data_request_exception(self, mock_get, mock_logger):
@@ -250,7 +350,7 @@ class TestCoinbaseFetcherFetchHistoricalData:
 
     @patch('requests.get')
     def test_fetch_historical_data_null_value_warning(self, mock_get, mock_logger):
-        """Test that null values trigger a warning."""
+        """Test that null values invalidate the payload."""
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = [
@@ -266,9 +366,5 @@ class TestCoinbaseFetcherFetchHistoricalData:
             schema="bronze"
         )
 
-        # This should not raise but should log a warning
-        fetcher.fetch_historical_data(days=1)
-        
-        # Check that logger.warning was called for null values
-        warning_calls = [call for call in mock_logger.method_calls if 'warning' in str(call)]
-        assert len(warning_calls) > 0
+        with pytest.raises(ValueError):
+            fetcher.fetch_historical_data(days=1)

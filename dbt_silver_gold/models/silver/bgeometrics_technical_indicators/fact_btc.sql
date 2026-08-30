@@ -16,25 +16,38 @@
                 on_schema_change='sync_all_columns'
                 ) 
         }}
-with source as (
-    select * from {{ source('bronze', 'bgeometrics_btc_technical_indicators') }}
-)
-
-, increment_filter as (
-
-    select *
-    from source
-
-        {% if is_incremental() %}
+with source_rows as (
+    select
+        d,
+        macd,
+        macdsignal,
+        macdhist,
+        sma7,
+        sma50,
+        sma200,
+        ema7,
+        ema50,
+        ema200,
+        ingest_date_time
+    from {{ source('bronze', 'bgeometrics_btc_technical_indicators') }}
+    {% if is_incremental() %}
     where ingest_date_time > (select max(ingest_date_time) from {{ this }})
-        {% endif %}
-    qualify row_number() over (partition by d order by ingest_date_time desc) = 1
+    {% endif %}
+), ranked as (
+    select
+        *,
+        row_number() over (partition by d order by ingest_date_time desc) as row_number
+    from source_rows
+), deduplicated as (
+    select *
+    from ranked
+    where row_number = 1
 )
 select
     d as date_indicators,
     {% for src, alias in indicators %}
-    round({{src}}, 2) as {{alias}},
+    round({{ src }}::numeric, 2)::double precision as {{ alias }},
     {% endfor %}
-    current_timestamp as ingest_date_time,
+    current_timestamp::timestamp without time zone as ingest_date_time,
     '{{ invocation_id }}' as dbt_batch_id
-from increment_filter
+from deduplicated

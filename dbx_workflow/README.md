@@ -1,110 +1,67 @@
-# master_orchestrator_job
+# Raw ingestion and orchestration
 
-The 'master_orchestrator_job' project defines the Data Ingestion pipeline for crypto price data and technical indicators into the Delta Lake Bronze layer.
+`raw-ingest` loads cryptocurrency prices, exchange rates, and Bitcoin technical
+indicators into PostgreSQL. The same process then runs the
+`dbt_silver_gold` transformations.
 
-* `src/`: Python source code for data fetchers (`CoinbaseFetcher`, `FrankfurterFetcher`, `BGeometricsFetcher`) and Databricks entry points.
-* `scripts/`: Utilities such as `check_api_schemas.py` for API schema drift monitoring.
-* `resources/`: Resource configurations (jobs, pipelines, etc.), including `master_orchestrator_job.yml` which defines parallel tasks `raw_ingest_crypto` and `raw_ingest_technical_indicators`.
-* `api_models/`: Auto-generated Pydantic schemas tracking third-party API configurations.
-* `tests/`: Unit tests and mocks for local TDD verification.
-* `fixtures/`: Fixtures for data sets (primarily used for testing).
+## Orchestrator
 
+The `raw-ingest` console command runs one pipeline:
 
-## Getting started
+1. Connect to `DATABASE_URL` and acquire a PostgreSQL advisory lock.
+2. Ingest BTC/USD, ETH/USD, USD/EUR, and USD/CHF market data.
+3. Ingest Bitcoin technical indicators.
+4. Run:
 
-Choose how you want to work on this project:
-
-(a) Directly in your Databricks workspace, see
-    https://docs.databricks.com/dev-tools/bundles/workspace.
-
-(b) Locally with an IDE like Cursor or VS Code, see
-    https://docs.databricks.com/dev-tools/vscode-ext.html.
-
-(c) With command line tools, see https://docs.databricks.com/dev-tools/cli/databricks-cli.html
-
-If you're developing with an IDE, dependencies for this project should be installed using uv:
-
-*  Make sure you have the UV package manager installed.
-   It's an alternative to tools like pip: https://docs.astral.sh/uv/getting-started/installation/.
-*  Run `uv sync --dev` to install the project's dependencies.
-
-
-# Using this project using the CLI
-
-The Databricks workspace and IDE extensions provide a graphical interface for working
-with this project. It's also possible to interact with it directly using the CLI:
-
-1. Authenticate to your Databricks workspace, if you have not done so already:
-    ```
-    $ databricks configure
-    ```
-
-2. To deploy a development copy of this project, type:
-    ```
-    $ databricks bundle deploy --target dev
-    ```
-    (Note that "dev" is the default target, so the `--target` parameter
-    is optional here.)
-
-    This deploys everything that's defined for this project.
-    You can find that resource by opening your workspace and clicking on **Jobs & Pipelines**.
-    The primary job is `master_orchestrator_job` which concurrently runs:
-    - `raw_ingest_crypto`
-    - `raw_ingest_technical_indicators`
-
-3. Similarly, to deploy a production copy, type:
-   ```
-   $ databricks bundle deploy --target prod
-   ```
-   Note the default template has a includes a job that runs the pipeline every day
-   (defined in resources/sample_job.job.yml). The schedule
-   is paused when deploying in development mode (see
-   https://docs.databricks.com/dev-tools/bundles/deployment-modes.html).
-
-## Troubleshooting: Databricks `python_wheel_task` Configuration
-
-If you see an error like this during a Databricks Job run:
-
-```text
-AttributeError: module 'raw_ingest' has no attribute 'ingest_market_price_data'
----------------------------------------------------------------------------
-AttributeError                            Traceback (most recent call last)
-File ~/.ipykernel/3789/command--1-2525349055:23
-     21 import importlib
-     22 module = importlib.import_module("raw_ingest")
----> 23 module.ingest_market_price_data()
-
-AttributeError: module 'raw_ingest' has no attribute 'ingest_market_price_data'
-Workload failed, see run output for details
-```
-
-**Why it happens:**
-Databricks `python_wheel_task` uses the `entry_point` specified in `master_orchestrator_job.yml` differently than standard Python CLI scripts mapped in `pyproject.toml`. 
-Behind the scenes, Databricks generates a runner script that imports your root package (`import raw_ingest`) and attempts to call a function on it with the exact name of the `entry_point` (e.g., `raw_ingest.ingest_market_price_data()`).
-If the root `__init__.py` file of your package does not explicitly expose this function, the `AttributeError` is raised.
-
-**How to resolve:**
-Ensure that your entry point functions are imported into the root `__init__.py` file of the `src/raw_ingest` package:
-
-```python
-# src/raw_ingest/__init__.py
-from .ingest_market_price_data import main as ingest_market_price_data
-from .ingest_technical_indicators import main as ingest_technical_indicators
-```
-
-4. To run a job or pipeline, use the "run" command:
-   ```
-   $ databricks bundle run
+   ```powershell
+   uv run --locked --project dbx_workflow dbt build --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
    ```
 
-5.### Run unit tests
+The ingestion stages share one run ID. A second process exits with status 1 while
+the advisory lock is held. Any stage failure also returns status 1, skips the
+remaining stages, and releases the lock.
 
-To run unit tests, ensure you have initialized your Python environment from the repository root:
-```sh
-uv sync
+## PostgreSQL variables
+
+The process requires:
+
+- `DATABASE_URL`, a PostgreSQL connection URL used by the ingestors.
+- `DBT_TARGET_SCHEMA`, the dbt connection schema.
+
+Before dbt starts, the orchestrator derives `PGHOST`, `PGPORT`, `PGUSER`,
+`PGPASSWORD`, and `PGDATABASE` from `DATABASE_URL`. It also forwards
+`sslmode` as `PGSSLMODE` when the URL includes it.
+
+Keep credentials in the local shell or Railway variables. Do not store them in
+the repository.
+
+## Local development
+
+Run commands from the repository root so both `dbx_workflow` and
+`dbt_silver_gold` are available:
+
+```powershell
+uv sync --locked --project dbx_workflow --extra dev
+uv run --locked --project dbx_workflow pytest dbx_workflow/tests
+uv run --locked --project dbx_workflow raw-ingest
 ```
 
-Then, from the root or within this directory, run the tests using:
-```sh
-uv run pytest
-```
+Database-backed tests use `TEST_DATABASE_URL`.
+
+## Railway Cron
+
+Use the repository root as the Railway service root. The sibling dbt project is
+not available if the service root is `/dbx_workflow`.
+
+Suggested Railpack commands:
+
+- Build: `uv sync --locked --project dbx_workflow`
+- Start: `uv run --locked --project dbx_workflow raw-ingest`
+
+Set `DATABASE_URL` with a reference to the private Railway PostgreSQL service,
+and set `DBT_TARGET_SCHEMA` on the Cron service. Keep exactly one production
+scheduler active.
+
+The former Databricks job definition is archived as
+`resources/master_orchestrator_job.yml.disabled`. It is retained for reference
+and is not an active bundle resource.

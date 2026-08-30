@@ -8,12 +8,11 @@ import {
 } from '@/lib/bitcoin-data-server';
 import { BitcoinHistorySchema } from '@/lib/schemas';
 
-// Mock the databricks module
-jest.mock('@/lib/databricks', () => ({
+jest.mock('@/lib/postgres', () => ({
     executeQuery: jest.fn(),
 }));
 
-import { executeQuery } from '@/lib/databricks';
+import { executeQuery } from '@/lib/postgres';
 
 describe('Technical Indicators Data Fetching', () => {
     beforeEach(() => {

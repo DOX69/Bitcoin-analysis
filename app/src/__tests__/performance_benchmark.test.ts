@@ -1,14 +1,8 @@
 import { getHistoricalPrices } from '@/lib/bitcoin-data-server';
-import { executeQuery } from '@/lib/databricks';
+import { executeQuery } from '@/lib/postgres';
 
-// Mock the databricks module
-jest.mock('@/lib/databricks', () => ({
+jest.mock('@/lib/postgres', () => ({
     executeQuery: jest.fn(),
-    getDatabricksConfig: jest.fn(() => ({
-        host: 'https://test.databricks.com',
-        token: 'test-token',
-        httpPath: '/sql/1.0/warehouses/test',
-    })),
 }));
 
 describe('Performance Benchmark', () => {

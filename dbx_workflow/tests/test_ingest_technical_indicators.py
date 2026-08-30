@@ -1,105 +1,91 @@
-"""Tests for technical indicators ingestion entry point."""
+from datetime import date
 
-import pytest
-from unittest.mock import MagicMock, patch
-from datetime import datetime
 import pandas as pd
+import pytest
 
 from raw_ingest.ingest_technical_indicators import ingest_technical_indicators
 
-class TestIngestTechnicalIndicators:
-    """Test ingest_technical_indicators function."""
 
-    @patch('raw_ingest.ingest_technical_indicators.SparkSession')
-    @patch('raw_ingest.ingest_technical_indicators.DbWriter')
-    @patch('raw_ingest.ingest_technical_indicators.BGeometricsFetcher')
-    def test_ingest_tech_indicators_new_table(
-        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, sample_pandas_df
-    ):
-        """Test full historical fetch for a new table."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
+class IndicatorFetcherStub:
+    table_name = "bgeometrics_btc_technical_indicators"
 
-        # Setup mock for table not found
-        mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
-        
-        # Setup BGeometricsFetcher mock
-        mock_fetcher = MagicMock()
-        mock_fetcher.full_path_table_name = "dev.bronze.bgeometrics_btc_technical_indicators"
-        mock_fetcher.fetch_historical_data.return_value = sample_pandas_df # Any DF works to prove wiring
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        # Setup DbWriter mock
-        mock_writer = MagicMock()
-        mock_writer_class.return_value = mock_writer
-        
-        # Call the function
-        result = ingest_technical_indicators("dev", "bronze")
-        
-        # Verify success
-        assert result is True
-        
-        # Verify DbWriter was initialized appropriately
-        mock_writer_class.assert_called_once()
-        args, kwargs = mock_writer_class.call_args
-        assert args[0] is mock_spark 
+    def __init__(self):
+        self.start_dates = []
 
-        # Verify full fetch (no start_date_time)
-        mock_fetcher.fetch_historical_data.assert_called_once_with()
+    def fetch_historical_data(self, start_date_time=None):
+        self.start_dates.append(start_date_time)
+        return pd.DataFrame(
+            {
+                "d": ["2026-08-29"],
+                "unixTs": [1787961600],
+                "rsi": [52.1],
+                "macd": [100.0],
+                "macdsignal": [90.0],
+                "macdhist": [10.0],
+                "sma7": [111_000.0],
+                "sma50": [105_000.0],
+                "sma200": [98_000.0],
+                "ema7": [111_100.0],
+                "ema50": [105_100.0],
+                "ema200": [98_100.0],
+                "time": pd.to_datetime(["2026-08-29"]),
+            }
+        )
 
-        # Verify DbWriter.save_delta_table was called as a new table
-        mock_writer.save_delta_table.assert_called_once_with(False)
 
-    @patch('raw_ingest.ingest_technical_indicators.SparkSession')
-    @patch('raw_ingest.ingest_technical_indicators.DbWriter')
-    @patch('raw_ingest.ingest_technical_indicators.BGeometricsFetcher')
-    def test_ingest_tech_indicators_incremental(
-        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, sample_pandas_df
-    ):
-        """Test incremental fetch for an existing table."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
+def test_indicator_ingestion_resumes_from_max_date_and_upserts(
+    postgres_connection, mock_logger
+):
+    fetcher = IndicatorFetcherStub()
 
-        # Setup mock for existing table with latest date
-        latest_date = datetime(2026, 2, 24).date()
-        mock_result = MagicMock()
-        mock_result.__getitem__.return_value = latest_date
-        mock_spark.read.table.return_value.select.return_value.collect.return_value = [mock_result]
-        
-        mock_fetcher = MagicMock()
-        mock_fetcher.full_path_table_name = "dev.bronze.bgeometrics_btc_technical_indicators"
-        mock_fetcher.fetch_historical_data.return_value = sample_pandas_df
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        mock_writer = MagicMock()
-        mock_writer_class.return_value = mock_writer
-        
-        # Call the function
-        result = ingest_technical_indicators("dev", "bronze")
-        
-        assert result is True
-        
-        # Verify fetch was called with start_date_time
-        fetch_call = mock_fetcher.fetch_historical_data.call_args
-        assert fetch_call is not None
-        assert 'start_date_time' in fetch_call[1]
-        
-        mock_writer.save_delta_table.assert_called_once_with(True)
+    ingest_technical_indicators(
+        postgres_connection,
+        "indicator-run-1",
+        fetcher=fetcher,
+        logger=mock_logger,
+    )
+    ingest_technical_indicators(
+        postgres_connection,
+        "indicator-run-2",
+        fetcher=fetcher,
+        logger=mock_logger,
+    )
 
-    @patch('raw_ingest.ingest_technical_indicators.SparkSession')
-    @patch('raw_ingest.ingest_technical_indicators.BGeometricsFetcher')
-    def test_ingest_tech_indicators_fetcher_error(
-        self, mock_fetcher_class, mock_spark_session_cls
-    ):
-        """Test error handling when fetcher fails."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
-        mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
-        
-        mock_fetcher = MagicMock()
-        mock_fetcher.fetch_historical_data.side_effect = Exception("API Error")
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        result = ingest_technical_indicators("dev", "bronze")
-        
-        assert result is False
+    with postgres_connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT count(*), max(date)
+            FROM bronze.bgeometrics_btc_technical_indicators
+            """
+        )
+        count, latest_date = cursor.fetchone()
+
+    assert fetcher.start_dates == [None, pd.Timestamp(date(2026, 8, 29))]
+    assert count == 1
+    assert latest_date == date(2026, 8, 29)
+
+
+def test_indicator_ingestion_does_not_write_after_fetch_failure(
+    postgres_connection, mock_logger
+):
+    class FailedFetcher:
+        table_name = "bgeometrics_btc_technical_indicators"
+
+        def fetch_historical_data(self, start_date_time=None):
+            raise ValueError("invalid response item")
+
+    with pytest.raises(ValueError):
+        ingest_technical_indicators(
+            postgres_connection,
+            "failed-indicator-run",
+            fetcher=FailedFetcher(),
+            logger=mock_logger,
+        )
+
+    with postgres_connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT to_regclass('bronze.bgeometrics_btc_technical_indicators')"
+        )
+        table_name = cursor.fetchone()[0]
+
+    assert table_name is None

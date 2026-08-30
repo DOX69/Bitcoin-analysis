@@ -2,7 +2,7 @@
  * Module Resolution Tests
  * 
  * These tests verify that all path aliases (@/*) resolve correctly.
- * This prevents Vercel build failures due to module resolution errors.
+ * This prevents deployment failures due to module resolution errors.
  * 
  * IMPORTANT: Do not modify or remove these tests. They serve as a safety net
  * to catch module resolution issues before deployment.
@@ -21,8 +21,9 @@ describe('Module Resolution - Path Aliases', () => {
             expect(importModule).not.toThrow();
         });
 
-        it('should resolve @/lib/databricks', () => {
-            const importModule = () => require('@/lib/databricks');
+        it('should resolve @/lib/postgres', () => {
+            process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+            const importModule = () => require('@/lib/postgres');
             expect(importModule).not.toThrow();
         });
     });
@@ -61,25 +62,15 @@ describe('Module Resolution - Path Aliases', () => {
         });
     });
 
-    describe('@/lib/databricks exports', () => {
+    describe('@/lib/postgres exports', () => {
         it('should export executeQuery function', () => {
-            const { executeQuery } = require('@/lib/databricks');
+            const { executeQuery } = require('@/lib/postgres');
             expect(typeof executeQuery).toBe('function');
         });
 
-        it('should export getDatabricksConfig function', () => {
-            const { getDatabricksConfig } = require('@/lib/databricks');
-            expect(typeof getDatabricksConfig).toBe('function');
-        });
-
-        it('should export initDatabricksConnection function', () => {
-            const { initDatabricksConnection } = require('@/lib/databricks');
-            expect(typeof initDatabricksConnection).toBe('function');
-        });
-
-        it('should export closeDatabricksConnection function', () => {
-            const { closeDatabricksConnection } = require('@/lib/databricks');
-            expect(typeof closeDatabricksConnection).toBe('function');
+        it('should export createPostgresAdapter function', () => {
+            const { createPostgresAdapter } = require('@/lib/postgres');
+            expect(typeof createPostgresAdapter).toBe('function');
         });
     });
 });

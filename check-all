@@ -1,33 +1,23 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "=========================================="
-echo "Running ALL Tests"
-echo "=========================================="
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR"
 
-echo ""
-echo "[1/3] Running Backend Tests (pytest)..."
-echo "------------------------------------------"
-uv run pytest
+if ! command -v uv >/dev/null 2>&1; then
+  echo "Error: uv is required." >&2
+  exit 1
+fi
 
-echo ""
-echo "[2/3] Running Frontend Tests (npm test)..."
-echo "------------------------------------------"
-cd app
-npm test -- --watchAll=false
-cd ..
+if ! command -v npm >/dev/null 2>&1; then
+  echo "Error: npm is required." >&2
+  exit 1
+fi
 
-echo ""
-echo "[3/3] Running Data Transformations Tests (DBT)..."
-echo "------------------------------------------"
-cd dbt_silver_gold
-echo "Running dev tests..."
-uv run dbt test -t dev
-echo "Running prod tests..."
-uv run dbt test -t prod
-cd ..
+uv run --locked --package raw-ingest --extra dev pytest dbx_workflow/tests
+uv run --locked dbt build --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
+npm --prefix app ci
+npm --prefix app test -- --runInBand
+npm --prefix app run build
 
-echo ""
-echo "=========================================="
-echo "[SUCCESS] All tests passed!"
-echo "=========================================="
+echo "SUCCESS"

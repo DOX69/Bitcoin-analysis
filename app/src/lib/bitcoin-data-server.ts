@@ -1,40 +1,52 @@
-
-import { executeQuery } from './databricks';
 import { cache } from 'react';
-import { z } from 'zod';
-import { env } from './env';
+import { executeQuery } from './postgres';
 import {
-    BitcoinMetricsSchema,
-    BitcoinHistorySchema,
     AggregatedDataListSchema,
-    BitcoinForecastSchema
+    BitcoinHistorySchema,
+    BitcoinMetricsSchema,
 } from './schemas';
 
 export type Currency = 'USD' | 'CHF' | 'EUR';
 
-/**
- * Get currency exchange rates (USD to CHF and EUR)
- * Cached for efficiency
- */
-export const getCurrencyRates = cache(async () => {
-    try {
-        const query = `
-      SELECT
-        rate_usd_chf,
-        rate_usd_eur
-      FROM ${env.DATABRICKS_CATALOG}.dlh_silver__currency_rate.usd_to_other
-      ORDER BY date_rates DESC
-      LIMIT 1
-    `;
+const TABLES = {
+    daily: 'dlh_silver__crypto_prices.obt_fact_day_btc',
+    monthly: 'dlh_gold__crypto_prices.agg_month_btc',
+    rates: 'dlh_silver__currency_rate.usd_to_other',
+} as const;
 
-        const results = await executeQuery<any>(query);
+const AGGREGATIONS = {
+    weekly: {
+        table: 'dlh_gold__crypto_prices.agg_week_btc',
+        dateColumn: 'iso_week_start_date',
+    },
+    monthly: {
+        table: 'dlh_gold__crypto_prices.agg_month_btc',
+        dateColumn: 'month_start_date',
+    },
+    quarterly: {
+        table: 'dlh_gold__crypto_prices.agg_quarter_btc',
+        dateColumn: 'quarter_start_date',
+    },
+} as const;
+
+type CurrencyRates = { USD_CHF: number; USD_EUR: number };
+
+export const getCurrencyRates = cache(async (): Promise<CurrencyRates> => {
+    try {
+        const results = await executeQuery<{ rate_usd_chf: unknown; rate_usd_eur: unknown }>(`
+            SELECT rate_usd_chf, rate_usd_eur
+            FROM ${TABLES.rates}
+            ORDER BY date_rates DESC
+            LIMIT 1
+        `);
+
         if (results.length === 0) {
             throw new Error('No currency rates available');
         }
 
         return {
-            USD_CHF: results[0].rate_usd_chf,
-            USD_EUR: results[0].rate_usd_eur,
+            USD_CHF: Number(results[0].rate_usd_chf),
+            USD_EUR: Number(results[0].rate_usd_eur),
         };
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch currency rates:', error);
@@ -42,87 +54,86 @@ export const getCurrencyRates = cache(async () => {
     }
 });
 
-/**
- * Convert USD price to target currency
- */
-export const convertPrice = (usdPrice: number, currency: Currency, rates: { USD_CHF: number; USD_EUR: number }) => {
-    switch (currency) {
-        case 'USD':
-            return usdPrice;
-        case 'CHF':
-            return usdPrice * rates.USD_CHF;
-        case 'EUR':
-            return usdPrice * rates.USD_EUR;
-        default:
-            return usdPrice;
-    }
+export const convertPrice = (
+    usdPrice: number,
+    currency: Currency,
+    rates: CurrencyRates
+): number => {
+    if (currency === 'CHF') return usdPrice * rates.USD_CHF;
+    if (currency === 'EUR') return usdPrice * rates.USD_EUR;
+    return usdPrice;
 };
 
-/**
- * Get current Bitcoin price and 24h metrics
- * Cached per-request for deduplication
- */
 export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD') => {
     try {
-        const query = `
-      SELECT
-        close_usd as current_price,
-        high_usd as high_24h,
-        low_usd as low_24h,
-        volume as volume_24h,
-        rsi as rsi
-      FROM ${env.DATABRICKS_CATALOG}.dlh_silver__crypto_prices.obt_fact_day_btc
-      ORDER BY date_prices DESC
-      LIMIT 2
-    `;
-
-        // Start fetching currency rates early if needed
-        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
-
+        const ratesPromise = currency === 'USD' ? Promise.resolve(null) : getCurrencyRates();
         const [results, rates] = await Promise.all([
-            executeQuery<any>(query),
-            ratesPromise
+            executeQuery<{
+                current_price: unknown;
+                high_24h: unknown;
+                low_24h: unknown;
+                volume_24h: unknown;
+                rsi: unknown;
+            }>(`
+                SELECT
+                    close_usd AS current_price,
+                    high_usd AS high_24h,
+                    low_usd AS low_24h,
+                    volume AS volume_24h,
+                    rsi
+                FROM ${TABLES.daily}
+                ORDER BY date_prices DESC
+                LIMIT 2
+            `),
+            ratesPromise,
         ]);
 
         if (results.length < 2) {
             throw new Error('Insufficient data to calculate metrics');
         }
 
-        const latest = results[0];
-        const previous = results[1];
-
-        // Convert prices if currency is not USD
-        const convertIfNeeded = (price: number) => rates ? convertPrice(price, currency, rates) : price;
-
-        const currentPrice = convertIfNeeded(latest.current_price);
-        const previousPrice = convertIfNeeded(previous.current_price);
-        const high24h = convertIfNeeded(latest.high_24h);
-        const low24h = convertIfNeeded(latest.low_24h);
-
+        const convert = (value: unknown) => {
+            const price = Number(value);
+            return rates ? convertPrice(price, currency, rates) : price;
+        };
+        const currentPrice = convert(results[0].current_price);
+        const previousPrice = convert(results[1].current_price);
         const change24h = currentPrice - previousPrice;
-        const changePercent24h = (change24h / previousPrice) * 100;
 
-        const metrics = {
+        return BitcoinMetricsSchema.parse({
             currentPrice,
             change24h,
-            changePercent24h,
-            volume24h: latest.volume_24h,
-            high24h,
-            low24h,
-            rsi: latest.rsi || 50,
-        };
-
-        return BitcoinMetricsSchema.parse(metrics);
+            changePercent24h: (change24h / previousPrice) * 100,
+            volume24h: Number(results[0].volume_24h),
+            high24h: convert(results[0].high_24h),
+            low24h: convert(results[0].low_24h),
+            rsi: Number(results[0].rsi) || 50,
+        });
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch Bitcoin metrics:', error);
         throw error;
     }
 });
 
-/**
- * Get historical Bitcoin prices for charting
- * Cached based on arguments
- */
+function getDateFilter(
+    dateColumn: 'date_prices' | 'month_start_date',
+    days: number,
+    startDate?: string,
+    endDate?: string
+): { clause: string; parameters: unknown[] } {
+    if (startDate && endDate) {
+        return {
+            clause: `${dateColumn} BETWEEN $1::date AND $2::date`,
+            parameters: [startDate, endDate],
+        };
+    }
+
+    return {
+        clause: `${dateColumn} >= CURRENT_DATE - $1::integer`,
+        parameters: [days],
+    };
+}
+
 export const getHistoricalPrices = cache(async (
     days: number = 30,
     startDate?: string,
@@ -130,222 +141,94 @@ export const getHistoricalPrices = cache(async (
     currency: Currency = 'USD'
 ) => {
     try {
-        // Check if we should use monthly aggregation (for 'All' filter / > 1 years)
-        const useMonthlyAgg = days >= 1800; // 1 years
-
-        let query;
-        const namedParameters: Record<string, any> = {};
-
-        if (useMonthlyAgg) {
-            // Use aggregated monthly data for long-term views to smooth RSI
-            let whereClause;
-
-            if (startDate && endDate) {
-                whereClause = `month_start_date BETWEEN :startDate AND :endDate`;
-                namedParameters.startDate = startDate;
-                namedParameters.endDate = endDate;
-            } else {
-                whereClause = `month_start_date >= DATEADD(day, :days, CURRENT_DATE())`;
-                namedParameters.days = -days;
-            }
-
-            query = `
-              SELECT
-                month_start_date as date,
-                open_usd as open,
-                high_usd as high,
-                low_usd as low,
-                close_usd as close,
-                0 as volume,
-                rsi,
-                CASE 
+        const useMonthlyAggregation = days >= 1800;
+        const dateColumn = useMonthlyAggregation ? 'month_start_date' : 'date_prices';
+        const { clause, parameters } = getDateFilter(dateColumn, days, startDate, endDate);
+        const table = useMonthlyAggregation ? TABLES.monthly : TABLES.daily;
+        const volume = useMonthlyAggregation ? '0 AS volume' : 'volume';
+        const rsiStatus = useMonthlyAggregation
+            ? `CASE
                     WHEN rsi > 70 THEN 'Overbought'
                     WHEN rsi < 30 THEN 'Oversold'
                     ELSE 'Neutral'
-                END as rsi_status,
-                macd_usd as macd,
-                macd_signal_usd as macd_signal,
-                macd_hist_usd as macd_hist,
-                sma_7_usd as sma_7,
-                sma_50_usd as sma_50,
-                sma_200_usd as sma_200,
-                ema_7_usd as ema_7,
-                ema_50_usd as ema_50,
-                ema_200_usd as ema_200
-              FROM ${env.DATABRICKS_CATALOG}.dlh_gold__crypto_prices.agg_month_btc
-              WHERE ${whereClause}
-              ORDER BY month_start_date ASC
-            `;
-        } else {
-            // Use daily data for shorter periods
-            let whereClause;
+               END AS rsi_status`
+            : 'rsi_status';
 
-            if (startDate && endDate) {
-                whereClause = `date_prices BETWEEN :startDate AND :endDate`;
-                namedParameters.startDate = startDate;
-                namedParameters.endDate = endDate;
-            } else {
-                whereClause = `date_prices >= DATEADD(day, :days, CURRENT_DATE())`;
-                namedParameters.days = -days;
-            }
-
-            query = `
-              SELECT
-                date_prices as date,
-                open_usd as open,
-                high_usd as high,
-                low_usd as low,
-                close_usd as close,
-                volume,
-                rsi,
-                rsi_status,
-                macd_usd as macd,
-                macd_signal_usd as macd_signal,
-                macd_hist_usd as macd_hist,
-                sma_7_usd as sma_7,
-                sma_50_usd as sma_50,
-                sma_200_usd as sma_200,
-                ema_7_usd as ema_7,
-                ema_50_usd as ema_50,
-                ema_200_usd as ema_200
-              FROM ${env.DATABRICKS_CATALOG}.dlh_silver__crypto_prices.obt_fact_day_btc
-              WHERE ${whereClause}
-              ORDER BY date_prices ASC
-            `;
-        }
-
-        // Start fetching currency rates early if needed
-        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
-
+        const ratesPromise = currency === 'USD' ? Promise.resolve(null) : getCurrencyRates();
         const [results, rates] = await Promise.all([
-            executeQuery<any>(query, namedParameters),
-            ratesPromise
+            executeQuery<Record<string, unknown>>(`
+                SELECT
+                    ${dateColumn} AS date,
+                    open_usd AS open,
+                    high_usd AS high,
+                    low_usd AS low,
+                    close_usd AS close,
+                    ${volume},
+                    rsi,
+                    ${rsiStatus},
+                    macd_usd AS macd,
+                    macd_signal_usd AS macd_signal,
+                    macd_hist_usd AS macd_hist,
+                    sma_7_usd AS sma_7,
+                    sma_50_usd AS sma_50,
+                    sma_200_usd AS sma_200,
+                    ema_7_usd AS ema_7,
+                    ema_50_usd AS ema_50,
+                    ema_200_usd AS ema_200
+                FROM ${table}
+                WHERE ${clause}
+                ORDER BY ${dateColumn} ASC
+            `, parameters),
+            ratesPromise,
         ]);
 
-        // Convert prices if currency is not USD
-        if (currency !== 'USD' && rates) {
-            const convertedResults = results.map((item: any) => ({
-                ...item,
-                open: convertPrice(item.open, currency, rates),
-                high: convertPrice(item.high, currency, rates),
-                low: convertPrice(item.low, currency, rates),
-                close: convertPrice(item.close, currency, rates),
-                sma_7: item.sma_7 ? convertPrice(item.sma_7, currency, rates) : undefined,
-                sma_50: item.sma_50 ? convertPrice(item.sma_50, currency, rates) : undefined,
-                sma_200: item.sma_200 ? convertPrice(item.sma_200, currency, rates) : undefined,
-                ema_7: item.ema_7 ? convertPrice(item.ema_7, currency, rates) : undefined,
-                ema_50: item.ema_50 ? convertPrice(item.ema_50, currency, rates) : undefined,
-                ema_200: item.ema_200 ? convertPrice(item.ema_200, currency, rates) : undefined,
-                macd: item.macd ? convertPrice(item.macd, currency, rates) : undefined,
-                macd_signal: item.macd_signal ? convertPrice(item.macd_signal, currency, rates) : undefined,
-                macd_hist: item.macd_hist ? convertPrice(item.macd_hist, currency, rates) : undefined,
-            }));
-            return BitcoinHistorySchema.parse(convertedResults);
+        if (!rates) {
+            return BitcoinHistorySchema.parse(results);
         }
 
-        return BitcoinHistorySchema.parse(results);
+        const priceFields = [
+            'open', 'high', 'low', 'close',
+            'sma_7', 'sma_50', 'sma_200',
+            'ema_7', 'ema_50', 'ema_200',
+            'macd', 'macd_signal', 'macd_hist',
+        ] as const;
+        const convertedResults = results.map(row => {
+            const converted = { ...row };
+            for (const field of priceFields) {
+                if (row[field] !== null && row[field] !== undefined) {
+                    converted[field] = convertPrice(Number(row[field]), currency, rates);
+                }
+            }
+            return converted;
+        });
+
+        return BitcoinHistorySchema.parse(convertedResults);
     } catch (error) {
         console.error('Failed to fetch historical prices:', error);
         throw error;
     }
 });
 
-/**
- * Get aggregated data (weekly, monthly, etc.)
- */
 export const getAggregatedData = cache(async (
-    aggregation: 'weekly' | 'monthly' | 'quarterly' = 'weekly'
+    aggregation: keyof typeof AGGREGATIONS = 'weekly'
 ) => {
     try {
-        const tableSuffix = aggregation === 'weekly' ? 'week'
-            : aggregation === 'monthly' ? 'month'
-                : aggregation === 'quarterly' ? 'quarter'
-                    : 'week';
+        const { table, dateColumn } = AGGREGATIONS[aggregation];
+        const results = await executeQuery<Record<string, unknown>>(`
+            SELECT
+                ${dateColumn} AS period,
+                close_usd AS "avgPrice",
+                high_usd AS "maxPrice",
+                low_usd AS "minPrice",
+                0 AS "totalVolume"
+            FROM ${table}
+            ORDER BY ${dateColumn} DESC
+            LIMIT 12
+        `);
 
-        const tableName = `${env.DATABRICKS_CATALOG}.dlh_gold__crypto_prices.agg_${tableSuffix}_btc`;
-        const dateCol = aggregation === 'weekly' ? 'iso_week_start_date'
-            : aggregation === 'monthly' ? 'month_start_date'
-                : aggregation === 'quarterly' ? 'quarter_start_date'
-                    : 'iso_week_start_date';
-
-        const query = `
-      SELECT
-        ${dateCol} as period,
-        close_usd as avgPrice,
-        high_usd as maxPrice,
-        low_usd as minPrice,
-        0 as totalVolume
-      FROM ${tableName}
-      ORDER BY ${dateCol} DESC
-      LIMIT 12
-    `;
-
-        const results = await executeQuery<any>(query);
         return AggregatedDataListSchema.parse(results);
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch aggregated data:', error);
-        throw error;
-    }
-});
-
-/**
- * Get forecast data (1 years)
- */
-export const getForecastData = cache(async (currency: Currency = 'USD') => {
-    try {
-        const query = `
-      WITH ranked AS (
-        SELECT
-          date_prices,
-          predicted_close_usd,
-          predicted_close_usd_lower,
-          predicted_close_usd_upper,
-          predicted_at,
-          ROW_NUMBER() OVER (PARTITION BY date_prices ORDER BY predicted_at DESC) as rn
-        FROM ${env.DATABRICKS_CATALOG}.dlh_silver__crypto_prices.forcast_btc_price
-      )
-      SELECT
-        date_prices,
-        predicted_close_usd,
-        predicted_close_usd_lower,
-        predicted_close_usd_upper,
-        predicted_at
-      FROM ranked
-      WHERE rn = 1
-      ORDER BY date_prices ASC
-      LIMIT 365
-    `;
-
-        const queryPromise = executeQuery<any>(query);
-        const ratesPromise = currency !== 'USD' ? getCurrencyRates() : Promise.resolve(null);
-
-        const [results, rates] = await Promise.all([queryPromise, ratesPromise]);
-
-        // Deduplicate results by date_prices (keep the first one found if duplicates exist)
-        // Adjust logic if specific 'predicted_at' priority is needed.
-        const uniqueResults = Object.values(
-            results.reduce((acc: any, item: any) => {
-                const dateKey = new Date(item.date_prices).toISOString().split('T')[0];
-                if (!acc[dateKey]) {
-                    acc[dateKey] = item;
-                }
-                return acc;
-            }, {})
-        );
-
-        if (currency !== 'USD' && rates) {
-            const convertedResults = uniqueResults.map((item: any) => ({
-                ...item,
-                predicted_close_usd: convertPrice(item.predicted_close_usd, currency, rates),
-                predicted_close_usd_lower: convertPrice(item.predicted_close_usd_lower, currency, rates),
-                predicted_close_usd_upper: convertPrice(item.predicted_close_usd_upper, currency, rates),
-            }));
-            return z.array(BitcoinForecastSchema).parse(convertedResults);
-        }
-
-        return z.array(BitcoinForecastSchema).parse(uniqueResults);
-    } catch (error) {
-        console.error('DB_ERROR: Failed to fetch forecast data:', error);
         throw error;
     }
 });

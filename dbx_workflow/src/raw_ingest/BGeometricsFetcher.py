@@ -1,7 +1,8 @@
 from datetime import datetime
 import requests
 import pandas as pd
-from raw_ingest.BaseFetcher import BaseFetcher
+from raw_ingest.BaseFetcher import BaseFetcher, require_2xx
+from raw_ingest.api_models.bgeometrics import BGeometricsTechnicalIndicatorsResponse
 
 class BGeometricsFetcher(BaseFetcher):
     """
@@ -23,7 +24,7 @@ class BGeometricsFetcher(BaseFetcher):
         super().__init__(logger, ticker, currency, catalog, schema, base_url)
         
         self.table_name = "bgeometrics_btc_technical_indicators"
-        self.full_path_table_name = f"{catalog}.{schema}.{self.table_name}"
+        self.full_path_table_name = self.qualify_table_name(self.table_name)
         self.endpoint = "/v1/technical-indicators"
         
         self.logger.info("-" * 80)
@@ -59,31 +60,31 @@ class BGeometricsFetcher(BaseFetcher):
         try:
             self.logger.info(f"📥 Fetching BGeometrics {self.ticker_id} {msg} data from {url}")
             response = requests.get(url, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                
-                if not data: # Handle empty list
-                    self.logger.warning("⚠️ API returned empty data.")
-                    return pd.DataFrame(columns=["time"]) # Return empty DataFrame with required 'time' column
-                    
-                df = pd.DataFrame(data)
-                
-                # We need a 'time' column for the DbWriter partitioning mapping (col("time").cast("date"))
-                # BaseFetcher/DbWriter convention: the fetcher must return a 'time' column 
-                if 'd' in df.columns:
-                    df['time'] = pd.to_datetime(df['d'])
-                elif 'unixTs' in df.columns:
-                    df['time'] = pd.to_datetime(df['unixTs'], unit='s')
-                
-                self.logger.info(f"✓ Fetching {len(df)} rows of data succeeded")
-                if not df.empty and 'time' in df.columns:
-                    self.logger.info(f"  Date range: {df['time'].min()} to {df['time'].max()}")
-                
-                return df
-            else:
-                self.logger.error(f"Error: {response.status_code} - {response.text}")
-                raise ValueError(f"API Error {response.status_code}: {response.text}")
+            require_2xx(response)
+            data = response.json()
+            BGeometricsTechnicalIndicatorsResponse.model_validate(data)
+
+            if not data: # Handle empty list
+                self.logger.warning("⚠️ API returned empty data.")
+                return pd.DataFrame(columns=["time"]) # Return empty DataFrame with required 'time' column
+
+            df = pd.DataFrame(data)
+
+            if 'unixTs' in df.columns:
+                df['unixTs'] = pd.to_numeric(df['unixTs'], errors='raise').astype('int64')
+
+            # We need a 'time' column for the DbWriter partitioning mapping (col("time").cast("date"))
+            # BaseFetcher/DbWriter convention: the fetcher must return a 'time' column
+            if 'd' in df.columns:
+                df['time'] = pd.to_datetime(df['d'])
+            elif 'unixTs' in df.columns:
+                df['time'] = pd.to_datetime(df['unixTs'], unit='s')
+
+            self.logger.info(f"✓ Fetching {len(df)} rows of data succeeded")
+            if not df.empty and 'time' in df.columns:
+                self.logger.info(f"  Date range: {df['time'].min()} to {df['time'].max()}")
+
+            return df
                 
         except requests.exceptions.Timeout:
             self.logger.error("✗ Request timeout - BGeometrics API not responding")

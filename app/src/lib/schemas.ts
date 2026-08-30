@@ -19,15 +19,15 @@ export const BitcoinPriceSchema = z.object({
     volume: z.coerce.number().default(0),
     rsi: z.coerce.number().default(50),
     rsi_status: z.string().default('Neutral'),
-    macd: z.number().nullable().optional(),
-    macd_signal: z.number().nullable().optional(),
-    macd_hist: z.number().nullable().optional(),
-    sma_7: z.number().nullable().optional(),
-    sma_50: z.number().nullable().optional(),
-    sma_200: z.number().nullable().optional(),
-    ema_7: z.number().nullable().optional(),
-    ema_50: z.number().nullable().optional(),
-    ema_200: z.number().nullable().optional(),
+    macd: z.coerce.number().nullable().optional(),
+    macd_signal: z.coerce.number().nullable().optional(),
+    macd_hist: z.coerce.number().nullable().optional(),
+    sma_7: z.coerce.number().nullable().optional(),
+    sma_50: z.coerce.number().nullable().optional(),
+    sma_200: z.coerce.number().nullable().optional(),
+    ema_7: z.coerce.number().nullable().optional(),
+    ema_50: z.coerce.number().nullable().optional(),
+    ema_200: z.coerce.number().nullable().optional(),
 });
 
 export const BitcoinHistorySchema = z.array(BitcoinPriceSchema);
@@ -46,20 +46,54 @@ export type BitcoinPrice = z.infer<typeof BitcoinPriceSchema>;
 export type BitcoinMetrics = z.infer<typeof BitcoinMetricsSchema>;
 export type AggregatedData = z.infer<typeof AggregatedDataSchema>;
 
-export const BitcoinForecastSchema = z.object({
-    date_prices: z.any().transform(val => (val instanceof Date ? val.toISOString() : String(val))),
-    predicted_close_usd: z.coerce.number(),
-    predicted_close_usd_lower: z.coerce.number(),
-    predicted_close_usd_upper: z.coerce.number(),
-    predicted_at: z.any().transform(val => (val instanceof Date ? val.toISOString() : String(val))),
-});
+const MAX_QUERY_DAYS = 3650;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
-export type BitcoinForecast = z.infer<typeof BitcoinForecastSchema>;
+function isCalendarDate(value: string): boolean {
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+const queryDateSchema = z.string()
+    .regex(DATE_PATTERN)
+    .refine(isCalendarDate);
 
 export const BitcoinSearchParamsSchema = z.object({
-    type: z.enum(['metrics', 'history', 'aggregated', 'forecast']),
-    days: z.string().optional().transform(val => (val ? parseInt(val) : 30)),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
+    type: z.enum(['metrics', 'history', 'aggregated']),
+    days: z.string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .pipe(z.number().int().min(1).max(MAX_QUERY_DAYS))
+        .optional()
+        .default(30),
+    startDate: queryDateSchema.optional(),
+    endDate: queryDateSchema.optional(),
     period: z.enum(['weekly', 'monthly', 'quarterly']).optional().default('weekly'),
+}).superRefine((params, context) => {
+    if ((params.startDate === undefined) !== (params.endDate === undefined)) {
+        context.addIssue({
+            code: 'custom',
+            message: 'startDate and endDate must be provided together',
+            path: params.startDate === undefined ? ['startDate'] : ['endDate'],
+        });
+        return;
+    }
+
+    if (!params.startDate || !params.endDate ||
+        !isCalendarDate(params.startDate) || !isCalendarDate(params.endDate)) {
+        return;
+    }
+
+    const start = Date.parse(`${params.startDate}T00:00:00.000Z`);
+    const end = Date.parse(`${params.endDate}T00:00:00.000Z`);
+    const intervalDays = (end - start) / MILLISECONDS_PER_DAY;
+
+    if (intervalDays < 0 || intervalDays > MAX_QUERY_DAYS) {
+        context.addIssue({
+            code: 'custom',
+            message: `Date interval must be between 0 and ${MAX_QUERY_DAYS} days`,
+            path: ['endDate'],
+        });
+    }
 });

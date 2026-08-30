@@ -1,209 +1,174 @@
-"""Tests for DbWriter class."""
+from datetime import date
+import importlib
 
+import pandas as pd
+import psycopg
 import pytest
-from unittest.mock import MagicMock
-
-from raw_ingest.DbWriter import DbWriter
 
 
-class TestDbWriterInit:
-    """Test DbWriter initialization."""
+db_writer = importlib.import_module("raw_ingest.DbWriter")
 
-    def test_init_sets_attributes(self, mock_logger, sample_pandas_df):
-        """Test that initialization sets attributes correctly."""
-        mock_spark = MagicMock()
-        writer = DbWriter(
-            spark=mock_spark,
-            logger=mock_logger,
-            full_path_table_name="catalog.schema.table",
-            pandas_df=sample_pandas_df
+
+def test_latest_date_is_none_before_first_batch(postgres_connection):
+    assert db_writer.get_latest_date(postgres_connection, "btc_usd_ohlcv") is None
+
+
+def test_ohlcv_batch_is_idempotent_and_records_run_metadata(
+    postgres_connection, mock_logger
+):
+    first_batch = pd.DataFrame(
+        {
+            "time": pd.to_datetime(["2026-08-28", "2026-08-29"]),
+            "low": [110_000.0, 111_000.0],
+            "high": [112_000.0, 113_000.0],
+            "open": [111_000.0, 112_000.0],
+            "close": [111_500.0, 112_500.0],
+            "volume": [1_000.0, 1_100.0],
+        }
+    )
+    correction = first_batch.iloc[[1]].copy()
+    correction.loc[:, "close"] = 112_750.0
+
+    inserted = db_writer.DbWriter(
+        postgres_connection,
+        mock_logger,
+        "btc_usd_ohlcv",
+        first_batch,
+        "run-1",
+    ).save_batch()
+    updated = db_writer.DbWriter(
+        postgres_connection,
+        mock_logger,
+        "btc_usd_ohlcv",
+        correction,
+        "run-2",
+    ).save_batch()
+
+    with postgres_connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT date, close, run_id, ingest_date_time IS NOT NULL
+            FROM bronze.btc_usd_ohlcv
+            ORDER BY date
+            """
         )
+        rows = cursor.fetchall()
 
-        assert writer.full_path_table_name == "catalog.schema.table"
-        assert writer.pandas_df is sample_pandas_df
-        assert writer.logger is mock_logger
-        assert writer.spark is mock_spark
+    assert inserted == 2
+    assert updated == 1
+    assert rows == [
+        (date(2026, 8, 28), 111_500.0, "run-1", True),
+        (date(2026, 8, 29), 112_750.0, "run-2", True),
+    ]
+    assert db_writer.get_latest_date(postgres_connection, "btc_usd_ohlcv") == date(
+        2026, 8, 29
+    )
 
-    def test_init_logs_initialization(self, mock_logger, sample_pandas_df):
-        """Test that initialization logs the table name."""
-        mock_spark = MagicMock()
-        DbWriter(
-            spark=mock_spark,
-            logger=mock_logger,
-            full_path_table_name="dev.bronze.btc_usd_ohlcv",
-            pandas_df=sample_pandas_df
+
+@pytest.mark.parametrize(
+    ("table_name", "frame", "value_column", "expected_value"),
+    [
+        (
+            "eth_usd_ohlcv",
+            pd.DataFrame(
+                {
+                    "time": pd.to_datetime(["2026-08-29"]),
+                    "low": [4_500.0],
+                    "high": [4_700.0],
+                    "open": [4_550.0],
+                    "close": [4_650.0],
+                    "volume": [12_000.0],
+                }
+            ),
+            "close",
+            4_650.0,
+        ),
+        (
+            "usd_chf_rates",
+            pd.DataFrame(
+                {"time": pd.to_datetime(["2026-08-29"]), "rate": [0.80]}
+            ),
+            "rate",
+            0.80,
+        ),
+        (
+            "usd_eur_rates",
+            pd.DataFrame(
+                {"time": pd.to_datetime(["2026-08-29"]), "rate": [0.86]}
+            ),
+            "rate",
+            0.86,
+        ),
+        (
+            "bgeometrics_btc_technical_indicators",
+            pd.DataFrame(
+                {
+                    "d": ["2026-08-29"],
+                    "unixTs": [1787961600],
+                    "rsi": [52.1],
+                    "macd": [100.0],
+                    "macdsignal": [90.0],
+                    "macdhist": [10.0],
+                    "sma7": [111_000.0],
+                    "sma50": [105_000.0],
+                    "sma200": [98_000.0],
+                    "ema7": [111_100.0],
+                    "ema50": [105_100.0],
+                    "ema200": [98_100.0],
+                    "time": pd.to_datetime(["2026-08-29"]),
+                }
+            ),
+            "rsi",
+            52.1,
+        ),
+    ],
+)
+def test_writer_supports_each_allow_listed_bronze_table(
+    postgres_connection,
+    mock_logger,
+    table_name,
+    frame,
+    value_column,
+    expected_value,
+):
+    db_writer.DbWriter(
+        postgres_connection, mock_logger, table_name, frame, "run-all-tables"
+    ).save_batch()
+
+    with postgres_connection.cursor() as cursor:
+        cursor.execute(
+            f'SELECT "{value_column}" FROM bronze."{table_name}" WHERE date = %s',
+            (date(2026, 8, 29),),
         )
+        value = cursor.fetchone()[0]
 
-        # Check that info was logged with the table name
-        info_calls = [call for call in mock_logger.method_calls if 'info' in str(call)]
-        assert len(info_calls) > 0
+    assert value == expected_value
 
 
-class TestDbWriterSaveDeltaTable:
-    """Test DbWriter.save_delta_table method."""
+def test_batch_failure_rolls_back_every_row_and_logs(postgres_connection, mock_logger):
+    invalid_batch = pd.DataFrame(
+        {
+            "time": pd.to_datetime(["2026-08-28", "2026-08-29"]),
+            "low": [110_000.0, 111_000.0],
+            "high": [112_000.0, 113_000.0],
+            "open": [111_000.0, 112_000.0],
+            "close": [111_500.0, "not-a-number"],
+            "volume": [1_000.0, 1_100.0],
+        }
+    )
 
-    def test_save_delta_table_creates_new_table(self, mock_logger, sample_pandas_df):
-        """Test creating a new table with partitioning."""
-        mock_spark = MagicMock()
-        # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock()
-        mock_spark.createDataFrame.return_value = mock_spark_df
-        
-        # Setup method chaining
-        mock_spark_df.withColumn.return_value = mock_spark_df
-        mock_spark_df.count.return_value = 5
-        
-        # Setup write chain
-        mock_writer = MagicMock()
-        mock_spark_df.write = mock_writer
-        mock_writer.partitionBy.return_value = mock_writer
-        mock_writer.mode.return_value = mock_writer
-        mock_writer.option.return_value = mock_writer
+    with pytest.raises(psycopg.DataError):
+        db_writer.DbWriter(
+            postgres_connection,
+            mock_logger,
+            "btc_usd_ohlcv",
+            invalid_batch,
+            "failed-run",
+        ).save_batch()
 
-        # Create writer and save
-        writer = DbWriter(
-            spark=mock_spark,
-            logger=mock_logger,
-            full_path_table_name="test.bronze.btc_usd",
-            pandas_df=sample_pandas_df
-        )
-        writer.save_delta_table(is_table_found=False)
+    with postgres_connection.cursor() as cursor:
+        cursor.execute("SELECT to_regclass('bronze.btc_usd_ohlcv')")
+        table_name = cursor.fetchone()[0]
 
-        # Verify DataFrame was created from pandas
-        mock_spark.createDataFrame.assert_called_once()
-
-        # Verify columns were added
-        assert mock_spark_df.withColumn.call_count == 2
-        
-        # Verify write operations for new table
-        mock_writer.partitionBy.assert_called_once_with("date")
-        mock_writer.mode.assert_called_once_with("overwrite")
-        mock_writer.option.assert_called_once_with("mergeSchema", "true")
-
-    def test_save_delta_table_appends_to_existing_table(self, mock_logger, sample_pandas_df):
-        """Test appending to an existing table."""
-        mock_spark = MagicMock()
-        # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock()
-        mock_spark.createDataFrame.return_value = mock_spark_df
-        
-        # Setup method chaining
-        mock_spark_df.withColumn.return_value = mock_spark_df
-        mock_spark_df.count.return_value = 5
-        
-        # Setup write chain
-        mock_writer = MagicMock()
-        mock_spark_df.write = mock_writer
-        mock_writer.mode.return_value = mock_writer
-        mock_writer.option.return_value = mock_writer
-
-        # Create writer and save
-        writer = DbWriter(
-            spark=mock_spark,
-            logger=mock_logger,
-            full_path_table_name="test.bronze.btc_usd",
-            pandas_df=sample_pandas_df
-        )
-        writer.save_delta_table(is_table_found=True)
-
-        # Verify append mode was used
-        mock_writer.mode.assert_called_once_with("append")
-        mock_writer.option.assert_called_once_with("mergeSchema", "true")
-        mock_writer.saveAsTable.assert_called_once_with("test.bronze.btc_usd")
-
-    def test_save_delta_table_adds_date_column(self, mock_logger, sample_pandas_df):
-        """Test that date column is added from time column."""
-        mock_spark = MagicMock()
-        # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock()
-        mock_spark.createDataFrame.return_value = mock_spark_df
-        
-        # Track withColumn calls
-        with_column_calls = []
-        def track_with_column(col_name, col_expr):
-            with_column_calls.append(col_name)
-            return mock_spark_df
-        
-        mock_spark_df.withColumn.side_effect = track_with_column
-        mock_spark_df.count.return_value = 5
-        
-        # Setup write chain
-        mock_writer = MagicMock()
-        mock_spark_df.write = mock_writer
-        mock_writer.mode.return_value = mock_writer
-        mock_writer.option.return_value = mock_writer
-
-        # Create writer and save
-        writer = DbWriter(
-            spark=mock_spark,
-            logger=mock_logger,
-            full_path_table_name="test.bronze.btc_usd",
-            pandas_df=sample_pandas_df
-        )
-        writer.save_delta_table(is_table_found=True)
-
-        # Verify both columns were added
-        assert "date" in with_column_calls
-        assert "ingest_date_time" in with_column_calls
-
-    def test_save_delta_table_handles_exceptions(self, mock_logger, sample_pandas_df):
-        """Test exception handling during save."""
-        mock_spark = MagicMock()
-        # Setup mock to raise exception
-        mock_spark_df = MagicMock()
-        mock_spark.createDataFrame.return_value = mock_spark_df
-        mock_spark_df.withColumn.return_value = mock_spark_df
-        
-        # Make write raise an exception
-        mock_writer = MagicMock()
-        mock_spark_df.write = mock_writer
-        mock_writer.mode.return_value = mock_writer
-        mock_writer.option.return_value = mock_writer
-        mock_writer.saveAsTable.side_effect = Exception("Database connection failed")
-
-        writer = DbWriter(
-            spark=mock_spark,
-            logger=mock_logger,
-            full_path_table_name="test.bronze.btc_usd",
-            pandas_df=sample_pandas_df
-        )
-
-        # Should raise the exception
-        with pytest.raises(Exception, match="Database connection failed"):
-            writer.save_delta_table(is_table_found=True)
-
-        # Verify error was logged
-        error_calls = [call for call in mock_logger.method_calls if 'error' in str(call)]
-        assert len(error_calls) > 0
-
-    def test_save_delta_table_logs_row_count(self, mock_logger, sample_pandas_df):
-        """Test that row count is logged."""
-        mock_spark = MagicMock()
-        # Setup mock Spark DataFrame
-        mock_spark_df = MagicMock()
-        mock_spark.createDataFrame.return_value = mock_spark_df
-        
-        mock_spark_df.withColumn.return_value = mock_spark_df
-        mock_spark_df.count.return_value = 42  # Specific count to verify
-        
-        # Setup write chain
-        mock_writer = MagicMock()
-        mock_spark_df.write = mock_writer
-        mock_writer.mode.return_value = mock_writer
-        mock_writer.option.return_value = mock_writer
-
-        writer = DbWriter(
-            spark=mock_spark,
-            logger=mock_logger,
-            full_path_table_name="test.bronze.btc_usd",
-            pandas_df=sample_pandas_df
-        )
-        writer.save_delta_table(is_table_found=True)
-
-        # Verify count was called
-        mock_spark_df.count.assert_called()
-
-        # Verify logging included row count
-        info_calls = [str(call) for call in mock_logger.method_calls if 'info' in str(call)]
-        # Should have logged the count in one of the info messages
-        assert any('42' in call for call in info_calls)
+    assert table_name is None
+    mock_logger.exception.assert_called_once()

@@ -10,7 +10,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Bitcoin Analysis Dashboard",
-  description: "Professional Bitcoin price analysis with real-time data from Databricks",
+  description: "Bitcoin price analysis with PostgreSQL data updated daily. Hosted on Railway.",
 };
 
 export default function RootLayout({

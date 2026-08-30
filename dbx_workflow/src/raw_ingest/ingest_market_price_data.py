@@ -1,133 +1,88 @@
-import argparse
 import logging
 import os
-import sys
-from pathlib import Path
+from uuid import uuid4
+
 import pandas as pd
-from dotenv import load_dotenv
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as f
+import psycopg
+
 from raw_ingest.CoinbaseFetcher import CoinbaseFetcher
+from raw_ingest.DbWriter import BRONZE_SCHEMA, DbWriter, get_latest_date
 from raw_ingest.FrankfurterFetcher import FrankfurterFetcher
-from raw_ingest.DbWriter import DbWriter
-from raw_ingest.logger import CustomFormatter
 
-# Charger config
-load_dotenv()
-
-# Setup logging
-log_dir = Path(os.getenv("LOG_DIR", "logs"))
-log_dir.mkdir(exist_ok=True)
-
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(pathname)s:%(lineno)d - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
-)
 
 logger = logging.getLogger(__name__)
+MARKET_PAIRS = (
+    ("BTC", "USD"),
+    ("ETH", "USD"),
+    ("USD", "EUR"),
+    ("USD", "CHF"),
+)
 
-for handler in logger.handlers:
-    handler.setFormatter(CustomFormatter())
 
-for handler in logging.root.handlers:
-    handler.setFormatter(CustomFormatter())
+def get_fetcher(ticker, currency, pipeline_logger=logger):
+    fetcher_class = (
+        FrankfurterFetcher
+        if ticker == "USD" and currency in {"CHF", "EUR"}
+        else CoinbaseFetcher
+    )
+    return fetcher_class(
+        pipeline_logger,
+        ticker,
+        currency,
+        None,
+        BRONZE_SCHEMA,
+    )
 
-def get_fetcher(ticker, currency, catalog, schema):
-    """Factory to get the correct fetcher based on pair"""
-    # Frankfurter pairs: USD-EUR, USD-CHF
-    # Note: Logic assumes if it's NOT a crypto pair (usually involving BTC/ETH/AAVE), it might be FX?
-    # Or explicit check.
-    # User added: USD/EUR, USD/CHF.
-    # Ticker=USD, Currency=EUR -> Frankfurter
-    # Ticker=USD, Currency=CHF -> Frankfurter
-    
-    if ticker == "USD" and currency in ["EUR", "CHF"]:
-        return FrankfurterFetcher(logger, ticker, currency, catalog, schema)
+
+def ingest_ticker_data(
+    connection,
+    ticker,
+    currency,
+    run_id,
+    *,
+    fetcher=None,
+    logger=logger,
+):
+    ticker = ticker.upper()
+    currency = currency.upper()
+    fetcher = fetcher or get_fetcher(ticker, currency, logger)
+    latest_date = get_latest_date(connection, fetcher.table_name)
+
+    if latest_date is None:
+        logger.info("Fetching full history for %s-%s", ticker, currency)
+        frame = fetcher.fetch_historical_data()
     else:
-        return CoinbaseFetcher(logger, ticker, currency, catalog, schema)
+        logger.info("Fetching %s-%s from %s", ticker, currency, latest_date)
+        frame = fetcher.fetch_historical_data(
+            start_date_time=pd.Timestamp(latest_date)
+        )
 
-def ingest_ticker_data(ticker: str, currency: str,catalog: str, schema: str) -> bool:
-    """
-    Pipeline d'ingestion crypto
-    À appeler tous les jours
-    """
-    try:
-        spark = SparkSession.builder.getOrCreate()
-        # Initialiser fetcher
-        fetcher = get_fetcher(ticker, currency, catalog, schema)
-        
-        full_path_table_name: str = fetcher.full_path_table_name
+    return DbWriter(
+        connection,
+        logger,
+        fetcher.table_name,
+        frame,
+        run_id,
+    ).save_batch()
 
-        try:
-            latest_date = spark.read.table(full_path_table_name).select(f.max("date")).collect()[0][0]
-        except Exception :
-            logger.info(f"🔎 No table {full_path_table_name} found for {ticker}-{currency}.")
-            latest_date = None
-            pass
-        is_table_found = True if latest_date is not None else False
 
-        # ÉTAPE 1 : Fetch dernière date dans la table bronze
-        logger.info(f"[1/2] Fetching latest ingested data date for {full_path_table_name} ...")
-        if is_table_found:
-            latest_date_time = pd.to_datetime(latest_date)
-            logger.info(f"[2/2] Historical data already exists - skipping full fetch - Incremental fetch from {latest_date}...")
-            fetched_pandas_df = fetcher.fetch_historical_data(start_date_time=latest_date_time)
-        else:
-            logger.info("[2/2] First run detected - Fetching full historical ... ")
-            fetched_pandas_df = fetcher.fetch_historical_data()
-
-        # Save delta table
-        if not fetched_pandas_df.empty:
-            DbWriter(spark, logger, full_path_table_name, fetched_pandas_df).save_delta_table(is_table_found)
-        else:
-            logger.warning("No new data fetched.")
-
-        logger.info("-" * 80)
-        logger.info(f"End ingesting {ticker.upper()}-{currency.upper()} data.")
-        logger.info("-" * 80)
-
-        return True
-
-    except Exception as e:
-        logger.error(f"\n❌ PIPELINE FAILED: {e}", exc_info=True)
-        return False
+def ingest_market_data(connection, run_id, pipeline_logger=logger):
+    return sum(
+        ingest_ticker_data(
+            connection,
+            ticker,
+            currency,
+            run_id,
+            logger=pipeline_logger,
+        )
+        for ticker, currency in MARKET_PAIRS
+    )
 
 
 def main():
-    logger.info("=" * 80)
-    logger.info("🚀 CRYPTO DATA INGESTION PIPELINE STARTED")
-    logger.info("=" * 80)
-
-    # Process command-line arguments
-    parser = argparse.ArgumentParser(
-        description="Databricks job with catalog and schema parameters",
-    )
-    parser.add_argument("--catalog", required=True, default="dev")
-    parser.add_argument("--schema", required=True)
-    args = parser.parse_args()
-
-    ticker_ids = [
-        ("BTC", "USD"),
-        # ("BTC", "EUR"),
-        ("AAVE", "USD"),
-        ("ETH", "USD"),
-        # ("ETH", "EUR"),
-        ("ETH", "BTC"),
-        ("USD", "EUR"),
-        ("USD", "CHF"),
-    ]
-    for ticker, currency in ticker_ids:
-        succeed = ingest_ticker_data(ticker.upper(),currency.upper(),args.catalog,args.schema)
-        if not succeed:
-            # If one fails, do we stop everything? User code had sys.exit(0) on failure.
-            # I will keep that behavior.
-            sys.exit(0)
-
-    logger.info("=" * 80)
-    logger.info("🚀 CRYPTO DATA INGESTION PIPELINE ENDED")
-    logger.info("=" * 80)
-
+    database_url = os.environ["DATABASE_URL"]
+    with psycopg.connect(database_url, autocommit=True) as connection:
+        ingest_market_data(connection, str(uuid4()))
 
 
 if __name__ == "__main__":

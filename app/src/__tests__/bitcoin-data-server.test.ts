@@ -13,17 +13,11 @@ import {
 } from '@/lib/schemas';
 
 
-// Mock the databricks module
-jest.mock('@/lib/databricks', () => ({
+jest.mock('@/lib/postgres', () => ({
     executeQuery: jest.fn(),
-    getDatabricksConfig: jest.fn(() => ({
-        host: 'https://test.databricks.com',
-        token: 'test-token',
-        httpPath: '/sql/1.0/warehouses/test',
-    })),
 }));
 
-import { executeQuery } from '@/lib/databricks';
+import { executeQuery } from '@/lib/postgres';
 
 describe('Bitcoin API', () => {
     beforeEach(() => {
@@ -41,18 +35,18 @@ describe('Bitcoin API', () => {
             // Mock query response (matches the aliases in the query)
             const mockData = [
                 {
-                    current_price: 43500,
-                    high_24h: 44000,
-                    low_24h: 42000,
-                    volume_24h: 30000000000,
-                    rsi: 65,
+                    current_price: '43500',
+                    high_24h: '44000',
+                    low_24h: '42000',
+                    volume_24h: '30000000000',
+                    rsi: '65',
                 },
                 {
-                    current_price: 42000,
-                    high_24h: 42500,
-                    low_24h: 41500,
-                    volume_24h: 28000000000,
-                    rsi: 60,
+                    current_price: '42000',
+                    high_24h: '42500',
+                    low_24h: '41500',
+                    volume_24h: '28000000000',
+                    rsi: '60',
                 },
             ];
 
@@ -174,12 +168,12 @@ describe('Bitcoin API', () => {
 
             await getAggregatedData('monthly');
             expect(executeQuery).toHaveBeenCalledWith(
-                expect.stringContaining('.dlh_gold__crypto_prices.agg_month_btc')
+                expect.stringContaining('dlh_gold__crypto_prices.agg_month_btc')
             );
 
             await getAggregatedData('quarterly');
             expect(executeQuery).toHaveBeenCalledWith(
-                expect.stringContaining('.dlh_gold__crypto_prices.agg_quarter_btc')
+                expect.stringContaining('dlh_gold__crypto_prices.agg_quarter_btc')
             );
         });
 
@@ -239,40 +233,24 @@ describe('Bitcoin API', () => {
     });
 });
 
-describe('namedParameters format verification', () => {
-    it('should pass primitive values without { value: ... } wrapper to prevent writeString error', async () => {
+describe('PostgreSQL parameters', () => {
+    it('passes date filters as positional values', async () => {
+        (executeQuery as jest.Mock).mockResolvedValue([]);
         await getHistoricalPrices(30, '2023-01-01', '2023-01-31', 'USD');
 
-        // Get the last call to executeQuery
         const lastCall = (executeQuery as jest.Mock).mock.calls[(executeQuery as jest.Mock).mock.calls.length - 1];
-        const passedParameters = lastCall[1];
 
-        // Assert that the parameters are passed correctly
-        expect(passedParameters).toBeDefined();
-        expect(passedParameters).toHaveProperty('startDate', '2023-01-01');
-        expect(passedParameters).toHaveProperty('endDate', '2023-01-31');
-
-        // Specifically assert that it's NOT wrapped in an object
-        expect(typeof passedParameters.startDate).toBe('string');
-        expect(typeof passedParameters.endDate).toBe('string');
-        expect(passedParameters.startDate).not.toHaveProperty('value');
+        expect(lastCall[0]).toContain('BETWEEN $1::date AND $2::date');
+        expect(lastCall[1]).toEqual(['2023-01-01', '2023-01-31']);
     });
-});
 
-describe('namedParameters format verification for days parameter', () => {
-    it('should pass days as primitive number without { value: ... } wrapper', async () => {
+    it('passes the day count as a positional value', async () => {
+        (executeQuery as jest.Mock).mockResolvedValue([]);
         await getHistoricalPrices(30, undefined, undefined, 'USD');
 
-        // Get the last call to executeQuery
         const lastCall = (executeQuery as jest.Mock).mock.calls[(executeQuery as jest.Mock).mock.calls.length - 1];
-        const passedParameters = lastCall[1];
 
-        // Assert that the parameters are passed correctly
-        expect(passedParameters).toBeDefined();
-        expect(passedParameters).toHaveProperty('days', -30);
-
-        // Specifically assert that it's NOT wrapped in an object
-        expect(typeof passedParameters.days).toBe('number');
-        expect(passedParameters.days).not.toHaveProperty('value');
+        expect(lastCall[0]).toContain('CURRENT_DATE - $1::integer');
+        expect(lastCall[1]).toEqual([30]);
     });
 });

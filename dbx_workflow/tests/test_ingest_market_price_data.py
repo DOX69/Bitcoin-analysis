@@ -1,306 +1,99 @@
-"""Tests for main pipeline orchestration."""
+from datetime import date
 
+import pandas as pd
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-from datetime import datetime
 
-from raw_ingest.ingest_market_price_data import ingest_ticker_data, main
-
-
-class TestIngestTickerData:
-    """Test ingest_ticker_data function."""
-
-    @patch('raw_ingest.ingest_market_price_data.SparkSession')
-    @patch('raw_ingest.ingest_market_price_data.DbWriter')
-    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
-    def test_ingest_ticker_data_new_table(
-        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
-    ):
-        """Test full historical fetch for a new ticker table."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
-
-        # Setup mock for table not found
-        mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
-        
-        # Setup CoinbaseFetcher mock
-        mock_fetcher = MagicMock()
-        mock_fetcher.full_path_table_name = "dev.bronze.btc_usd_ohlcv"
-        mock_fetcher.fetch_historical_data.return_value = sample_pandas_df
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        # Setup DbWriter mock
-        mock_writer = MagicMock()
-        mock_writer_class.return_value = mock_writer
-        
-        # Call the function
-        result = ingest_ticker_data("BTC", "USD", "dev", "bronze")
-        
-        # Verify success
-        assert result is True
-        
-        # Verify DbWriter was initialized with spark
-        mock_writer_class.assert_called_once()
-        args, kwargs = mock_writer_class.call_args
-        assert args[0] is mock_spark # First arg should be spark
-
-        # Verify DbWriter.save_delta_table was called
-        mock_writer.save_delta_table.assert_called_once_with(False)  # is_table_found=False
-
-    @patch('raw_ingest.ingest_market_price_data.SparkSession')
-    @patch('raw_ingest.ingest_market_price_data.DbWriter')
-    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
-    def test_ingest_ticker_data_incremental_fetch(
-        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
-    ):
-        """Test incremental fetch for an existing table."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
-
-        # Setup mock for existing table with latest date
-        latest_date = datetime(2022, 1, 5).date()
-        mock_result = MagicMock()
-        mock_result.__getitem__.return_value = latest_date
-        mock_spark.read.table.return_value.select.return_value.collect.return_value = [mock_result]
-        
-        # Setup CoinbaseFetcher mock
-        mock_fetcher = MagicMock()
-        mock_fetcher.full_path_table_name = "dev.bronze.eth_usd_ohlcv"
-        mock_fetcher.fetch_historical_data.return_value = sample_pandas_df
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        # Setup DbWriter mock
-        mock_writer = MagicMock()
-        mock_writer_class.return_value = mock_writer
-        
-        # Call the function
-        result = ingest_ticker_data("ETH", "USD", "dev", "bronze")
-        
-        # Verify success
-        assert result is True
-        
-        # Verify fetch was called with start_date_time (incremental)
-        fetch_call = mock_fetcher.fetch_historical_data.call_args
-        assert fetch_call is not None
-        assert 'start_date_time' in fetch_call[1]
-        
-        # Verify DbWriter was called with is_table_found=True
-        mock_writer.save_delta_table.assert_called_once_with(True)
-
-    @patch('raw_ingest.ingest_market_price_data.SparkSession')
-    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
-    def test_ingest_ticker_data_handles_fetcher_error(
-        self, mock_fetcher_class, mock_spark_session_cls, mock_logger
-    ):
-        """Test error handling when fetcher fails."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
-
-        # Setup mock for table not found
-        mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
-        
-        # Setup CoinbaseFetcher to raise exception
-        mock_fetcher = MagicMock()
-        mock_fetcher.full_path_table_name = "dev.bronze.btc_usd_ohlcv"
-        mock_fetcher.fetch_historical_data.side_effect = Exception("API Error")
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        # Call the function
-        result = ingest_ticker_data("BTC", "USD", "dev", "bronze")
-        
-        # Verify failure
-        assert result is False
-
-    @patch('raw_ingest.ingest_market_price_data.SparkSession')
-    @patch('raw_ingest.ingest_market_price_data.DbWriter')
-    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
-    def test_ingest_ticker_data_handles_writer_error(
-        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
-    ):
-        """Test error handling when writer fails."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
-
-        # Setup mocks
-        mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
-        
-        mock_fetcher = MagicMock()
-        mock_fetcher.full_path_table_name = "dev.bronze.btc_usd_ohlcv"
-        mock_fetcher.fetch_historical_data.return_value = sample_pandas_df
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        # Setup DbWriter to raise exception
-        mock_writer = MagicMock()
-        mock_writer.save_delta_table.side_effect = Exception("Write failed")
-        mock_writer_class.return_value = mock_writer
-        
-        # Call the function
-        result = ingest_ticker_data("BTC", "USD", "dev", "bronze")
-        
-        # Verify failure
-        assert result is False
-
-    @patch('raw_ingest.ingest_market_price_data.SparkSession')
-    @patch('raw_ingest.ingest_market_price_data.DbWriter')
-    @patch('raw_ingest.ingest_market_price_data.CoinbaseFetcher')
-    def test_ingest_ticker_data_uppercase_conversion(
-        self, mock_fetcher_class, mock_writer_class, mock_spark_session_cls, mock_logger, sample_pandas_df
-    ):
-        """Test that ticker and currency are properly handled."""
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
-
-        mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
-        
-        mock_fetcher = MagicMock()
-        mock_fetcher.full_path_table_name = "dev.bronze.aave_usd_ohlcv"
-        mock_fetcher.fetch_historical_data.return_value = sample_pandas_df
-        mock_fetcher_class.return_value = mock_fetcher
-        
-        mock_writer = MagicMock()
-        mock_writer_class.return_value = mock_writer
-        
-        # Call with lowercase (should work fine)
-        result = ingest_ticker_data("aave", "usd", "dev", "bronze")
-        
-        assert result is True
+from raw_ingest.ingest_market_price_data import get_fetcher, ingest_ticker_data
+from raw_ingest.ingest_technical_indicators import get_fetcher as get_indicator_fetcher
 
 
-class TestMain:
-    """Test main function."""
+class MarketFetcherStub:
+    table_name = "btc_usd_ohlcv"
 
-    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
-    @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
-    def test_main_processes_all_tickers(self, mock_ingest):
-        """Test that all ticker pairs are processed."""
-        # Setup mock to always succeed
-        mock_ingest.return_value = True
-        
-        # Call main
-        main()
-        
-        # Verify all 6 ticker pairs were processed
-        assert mock_ingest.call_count == 6
-        
-        # Verify the expected ticker pairs
-        expected_pairs = [
-            ("BTC", "USD"),
-            ("AAVE", "USD"),
-            ("ETH", "USD"),
-            ("ETH", "BTC"),
-            ("USD", "EUR"),
-            ("USD", "CHF"),
-        ]
-        
-        actual_calls = [
-            (call[0][0], call[0][1]) for call in mock_ingest.call_args_list
-        ]
-        
-        for expected in expected_pairs:
-            assert expected in actual_calls
+    def __init__(self):
+        self.start_dates = []
 
-    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
-    @patch('sys.argv', ['main.py', '--catalog', 'prod', '--schema', 'raw'])
-    def test_main_command_line_args(self, mock_ingest):
-        """Test that command line arguments are parsed correctly."""
-        mock_ingest.return_value = True
-        
-        # Call main
-        main()
-        
-        # Verify catalog and schema were passed correctly
-        first_call = mock_ingest.call_args_list[0]
-        assert first_call[0][2] == 'prod'  # catalog
-        assert first_call[0][3] == 'raw'   # schema
-
-    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
-    @patch('sys.exit')
-    @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
-    def test_main_exits_on_failure(self, mock_exit, mock_ingest):
-        """Test that main exits when a ticker ingestion fails."""
-        # Setup mock to fail on second ticker
-        mock_ingest.side_effect = [True, False, True, True, True, True]
-        mock_exit.side_effect = SystemExit(0)
-        
-        # Call main and expect it to exit
-        with pytest.raises(SystemExit):
-            main()
-        
-        # Verify sys.exit was called
-        mock_exit.assert_called_once_with(0)
-        
-        # Verify processing stopped after failure (only 2 calls made)
-        assert mock_ingest.call_count == 2
-
-    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
-    @patch('sys.argv', ['main.py', '--catalog', 'test_catalog', '--schema', 'test_schema'])
-    def test_main_passes_args_to_ingest(self, mock_ingest):
-        """Test that main passes catalog and schema to ingest_ticker_data."""
-        mock_ingest.return_value = True
-        
-        # Call main
-        main()
-        
-        # Verify all calls received correct catalog and schema
-        for call_args in mock_ingest.call_args_list:
-            assert call_args[0][2] == 'test_catalog'
-            assert call_args[0][3] == 'test_schema'
-
-    @patch('raw_ingest.ingest_market_price_data.ingest_ticker_data')
-    @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
-    def test_main_processes_in_correct_order(self, mock_ingest):
-        """Test that tickers are processed in the expected order."""
-        mock_ingest.return_value = True
-        
-        # Call main
-        main()
-        
-        # Get the order of ticker pairs
-        actual_order = [
-            (call[0][0], call[0][1]) for call in mock_ingest.call_args_list
-        ]
-        
-        expected_order = [
-            ("BTC", "USD"),
-            ("AAVE", "USD"),
-            ("ETH", "USD"),
-            ("ETH", "BTC"),
-            ("USD", "EUR"),
-            ("USD", "CHF"),
-        ]
-        
-        assert actual_order == expected_order
+    def fetch_historical_data(self, start_date_time=None):
+        self.start_dates.append(start_date_time)
+        return pd.DataFrame(
+            {
+                "time": pd.to_datetime(["2026-08-28", "2026-08-29"]),
+                "low": [110_000.0, 111_000.0],
+                "high": [112_000.0, 113_000.0],
+                "open": [111_000.0, 112_000.0],
+                "close": [111_500.0, 112_500.0],
+                "volume": [1_000.0, 1_100.0],
+            }
+        )
 
 
-class TestMainIntegration:
-    """Integration tests for main pipeline."""
+def test_runtime_fetchers_target_bronze_without_a_catalog(mock_logger):
+    assert (
+        get_fetcher("BTC", "USD", mock_logger).full_path_table_name
+        == "bronze.btc_usd_ohlcv"
+    )
+    assert (
+        get_fetcher("USD", "CHF", mock_logger).full_path_table_name
+        == "bronze.usd_chf_rates"
+    )
+    assert (
+        get_indicator_fetcher(mock_logger).full_path_table_name
+        == "bronze.bgeometrics_btc_technical_indicators"
+    )
 
-    @patch('raw_ingest.ingest_market_price_data.SparkSession')
-    @patch('raw_ingest.ingest_market_price_data.DbWriter')
-    @patch('requests.get')
-    @patch('sys.argv', ['main.py', '--catalog', 'dev', '--schema', 'bronze'])
-    def test_main_integration_with_mocked_dependencies(
-        self, mock_requests_get, mock_writer_class, mock_spark_session_cls, mock_coinbase_api_response
-    ):
-        """Integration test with all external dependencies mocked."""
-        # Setup Spark mock
-        mock_spark = MagicMock()
-        mock_spark_session_cls.builder.getOrCreate.return_value = mock_spark
-        mock_spark.read.table.return_value.select.return_value.collect.side_effect = Exception("Table not found")
-        
-        # Setup requests mock
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_coinbase_api_response
-        mock_requests_get.return_value = mock_response
-        
-        # Setup DbWriter mock
-        mock_writer = MagicMock()
-        mock_writer_class.return_value = mock_writer
-        
-        # This should run the full pipeline without errors
-        # Note: This would actually call main() but we can test individual ingestion
-        result = ingest_ticker_data("BTC", "USD", "dev", "bronze")
-        
-        assert result is True
-        mock_writer.save_delta_table.assert_called_once()
+
+def test_market_ingestion_resumes_from_max_date_and_upserts(
+    postgres_connection, mock_logger
+):
+    fetcher = MarketFetcherStub()
+
+    ingest_ticker_data(
+        postgres_connection,
+        "BTC",
+        "USD",
+        "market-run-1",
+        fetcher=fetcher,
+        logger=mock_logger,
+    )
+    ingest_ticker_data(
+        postgres_connection,
+        "BTC",
+        "USD",
+        "market-run-2",
+        fetcher=fetcher,
+        logger=mock_logger,
+    )
+
+    with postgres_connection.cursor() as cursor:
+        cursor.execute("SELECT count(*), max(date) FROM bronze.btc_usd_ohlcv")
+        count, latest_date = cursor.fetchone()
+
+    assert fetcher.start_dates == [None, pd.Timestamp(date(2026, 8, 29))]
+    assert count == 2
+    assert latest_date == date(2026, 8, 29)
+
+
+def test_market_ingestion_does_not_write_after_fetch_failure(
+    postgres_connection, mock_logger
+):
+    class FailedFetcher:
+        table_name = "btc_usd_ohlcv"
+
+        def fetch_historical_data(self, start_date_time=None):
+            raise ValueError("invalid second page")
+
+    with pytest.raises(ValueError):
+        ingest_ticker_data(
+            postgres_connection,
+            "BTC",
+            "USD",
+            "failed-market-run",
+            fetcher=FailedFetcher(),
+            logger=mock_logger,
+        )
+
+    with postgres_connection.cursor() as cursor:
+        cursor.execute("SELECT to_regclass('bronze.btc_usd_ohlcv')")
+        table_name = cursor.fetchone()[0]
+
+    assert table_name is None

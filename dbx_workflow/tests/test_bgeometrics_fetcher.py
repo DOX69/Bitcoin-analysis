@@ -51,6 +51,28 @@ class TestBGeometricsFetcher:
         assert "/v1/technical-indicators" in args[0]
         assert "startday" not in kwargs.get("params", {}) 
         assert "endday" not in kwargs.get("params", {})
+        assert 0 < kwargs["timeout"] <= 30
+
+    @patch('requests.get')
+    def test_fetch_normalizes_scientific_unix_timestamp(
+        self,
+        mock_requests_get,
+        mock_logger,
+        mock_bgeometrics_api_response,
+    ):
+        response = Mock(status_code=200)
+        response.json.return_value = [
+            {
+                **mock_bgeometrics_api_response[0],
+                "unixTs": "1.7879616E9",
+            }
+        ]
+        mock_requests_get.return_value = response
+        fetcher = BGeometricsFetcher(mock_logger, "BTC", "USD", "dev", "bronze")
+
+        frame = fetcher.fetch_historical_data()
+
+        assert frame.loc[0, "unixTs"] == 1_787_961_600
 
     @patch('requests.get')
     def test_fetch_historical_data_incremental(self, mock_requests_get, mock_logger, mock_bgeometrics_api_response):
@@ -101,4 +123,56 @@ class TestBGeometricsFetcher:
         mock_requests_get.side_effect = requests.exceptions.RequestException("API completely down")
 
         with pytest.raises(requests.exceptions.RequestException):
+            fetcher.fetch_historical_data()
+
+    @patch('requests.get')
+    def test_non_2xx_raises(self, mock_requests_get, mock_logger):
+        response = Mock(status_code=503, text="Service unavailable")
+        response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "503 Server Error"
+        )
+        mock_requests_get.return_value = response
+        fetcher = BGeometricsFetcher(mock_logger, "BTC", "USD", "dev", "bronze")
+
+        with pytest.raises((requests.exceptions.HTTPError, ValueError)):
+            fetcher.fetch_historical_data()
+
+    @patch('requests.get')
+    def test_redirect_response_raises(
+        self,
+        mock_requests_get,
+        mock_logger,
+        mock_bgeometrics_api_response,
+    ):
+        response = Mock(status_code=302, text="Redirect")
+        response.json.return_value = mock_bgeometrics_api_response
+        mock_requests_get.return_value = response
+        fetcher = BGeometricsFetcher(mock_logger, "BTC", "USD", "dev", "bronze")
+
+        with pytest.raises(requests.exceptions.HTTPError):
+            fetcher.fetch_historical_data()
+
+    @patch('requests.get')
+    def test_timeout_raises(self, mock_requests_get, mock_logger):
+        mock_requests_get.side_effect = requests.exceptions.Timeout(
+            "Request timed out"
+        )
+        fetcher = BGeometricsFetcher(mock_logger, "BTC", "USD", "dev", "bronze")
+
+        with pytest.raises(requests.exceptions.Timeout):
+            fetcher.fetch_historical_data()
+
+    @patch('requests.get')
+    def test_invalid_element_after_a_valid_element_raises(
+        self, mock_requests_get, mock_logger, mock_bgeometrics_api_response
+    ):
+        response = Mock(status_code=200)
+        response.json.return_value = [
+            mock_bgeometrics_api_response[0],
+            {"d": "2026-02-25"},
+        ]
+        mock_requests_get.return_value = response
+        fetcher = BGeometricsFetcher(mock_logger, "BTC", "USD", "dev", "bronze")
+
+        with pytest.raises(ValueError):
             fetcher.fetch_historical_data()

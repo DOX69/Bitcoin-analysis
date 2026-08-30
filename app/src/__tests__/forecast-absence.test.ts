@@ -33,7 +33,6 @@ describe('forecast removal', () => {
         expect(fs.existsSync(path.join(SRC_ROOT, 'lib', 'forecast-utils.ts'))).toBe(false);
     });
 });
-
 describe('landing truth', () => {
     const landingSurfaces = [
         path.join(SRC_ROOT, 'app', 'layout.tsx'),
@@ -121,14 +120,5 @@ describe('Databricks adapter removal', () => {
         );
 
         expect(publicMatches).toEqual([]);
-    });
-});
-
-describe('source formatting', () => {
-    it('leaves no boundary blank line in bitcoin-api', () => {
-        const source = fs.readFileSync(path.join(SRC_ROOT, 'lib', 'bitcoin-api.ts'), 'utf8');
-
-        expect(source.startsWith('\n') || source.startsWith('\r\n')).toBe(false);
-        expect(source).not.toMatch(/\r?\n\r?\n$/);
     });
 });

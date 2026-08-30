@@ -8,8 +8,12 @@ interface EnergyBeamProps {
 }
 
 declare global {
+    interface UnicornStudioApi {
+        init: () => void;
+    }
+
     interface Window {
-        UnicornStudio?: any;
+        UnicornStudio?: UnicornStudioApi;
     }
 }
 
@@ -18,34 +22,24 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({
     className = ""
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const scriptLoadedRef = useRef(false);
 
     useEffect(() => {
-        const loadScript = () => {
-            if (scriptLoadedRef.current) return;
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.5.2/dist/unicornStudio.umd.js';
+        script.async = true;
 
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.5.2/dist/unicornStudio.umd.js';
-            script.async = true;
-
-            script.onload = () => {
-                scriptLoadedRef.current = true;
-                if (window.UnicornStudio && containerRef.current) {
-                    // Initialize the Unicorn Studio project
-                    window.UnicornStudio.init();
-                }
-            };
-
-            document.head.appendChild(script);
-
-            return () => {
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
-            };
+        script.onload = () => {
+            if (window.UnicornStudio && containerRef.current) {
+                window.UnicornStudio.init();
+            }
         };
 
-        loadScript();
+        document.head.appendChild(script);
+
+        return () => {
+            script.onload = null;
+            script.remove();
+        };
     }, [projectId]);
 
     return (

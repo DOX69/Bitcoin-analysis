@@ -15,16 +15,13 @@ import {
     endOfWeek,
     subDays,
     startOfDay,
-    endOfDay,
     isValid,
-    parseISO,
     subYears,
     addYears,
     setYear,
     setMonth,
     getYear,
     getMonth,
-    formatISO
 } from 'date-fns';
 
 interface DateRangePickerProps {
@@ -49,21 +46,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ startDate, endDate, o
     const [rightViewMode, setRightViewMode] = useState<'days' | 'months' | 'years'>('days');
 
     const [hoverDate, setHoverDate] = useState<Date | null>(null);
-    const [inputValue, setInputValue] = useState('');
+    const [inputValue, setInputValue] = useState(
+        startDate && endDate ? `${startDate} ~ ${endDate}` : '',
+    );
 
     const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (startDate && endDate) {
-            setTempStart(new Date(startDate));
-            setTempEnd(new Date(endDate));
-            setInputValue(`${startDate} ~ ${endDate}`);
-        } else {
-            if (startDate) setTempStart(new Date(startDate));
-            if (endDate) setTempEnd(new Date(endDate));
-            setInputValue('');
-        }
-    }, [startDate, endDate]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

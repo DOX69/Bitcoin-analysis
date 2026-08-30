@@ -6,11 +6,8 @@ import {
     getCurrentBitcoinMetrics,
     getHistoricalPrices,
     getAggregatedData,
+    type Currency,
 } from '@/lib/bitcoin-data-server';
-import {
-    BitcoinMetrics,
-    BitcoinPrice,
-} from '@/lib/schemas';
 
 
 jest.mock('@/lib/postgres', () => ({
@@ -31,6 +28,54 @@ describe('Bitcoin API', () => {
     });
 
     describe('getCurrentBitcoinMetrics', () => {
+        it('preserves an RSI value of zero', async () => {
+            const mockData = [
+                {
+                    current_price: '43500',
+                    high_24h: '44000',
+                    low_24h: '42000',
+                    volume_24h: '30000000000',
+                    rsi: 0,
+                },
+                {
+                    current_price: '42000',
+                    high_24h: '42500',
+                    low_24h: '41500',
+                    volume_24h: '28000000000',
+                    rsi: 60,
+                },
+            ];
+
+            (executeQuery as jest.Mock).mockResolvedValue(mockData);
+
+            const result = await getCurrentBitcoinMetrics();
+
+            expect(result.rsi).toBe(0);
+        });
+
+        it('rejects current metrics when RSI is missing', async () => {
+            const mockData = [
+                {
+                    current_price: '43500',
+                    high_24h: '44000',
+                    low_24h: '42000',
+                    volume_24h: '30000000000',
+                    rsi: null,
+                },
+                {
+                    current_price: '42000',
+                    high_24h: '42500',
+                    low_24h: '41500',
+                    volume_24h: '28000000000',
+                    rsi: 60,
+                },
+            ];
+
+            (executeQuery as jest.Mock).mockResolvedValue(mockData);
+
+            await expect(getCurrentBitcoinMetrics()).rejects.toThrow();
+        });
+
         it('should return current Bitcoin metrics with correct calculations', async () => {
             // Mock query response (matches the aliases in the query)
             const mockData = [
@@ -79,6 +124,104 @@ describe('Bitcoin API', () => {
     });
 
     describe('getHistoricalPrices', () => {
+        it('falls back to USD columns for an unknown runtime currency', async () => {
+            (executeQuery as jest.Mock).mockResolvedValue([]);
+
+            await getHistoricalPrices(30, undefined, undefined, 'GBP' as unknown as Currency);
+
+            const [query] = (executeQuery as jest.Mock).mock.calls[0];
+
+            expect(query).toMatch(/open_usd\s+AS\s+open/i);
+            expect(query).not.toMatch(/open_gbp/i);
+        });
+
+        it('uses the stored CHF values for each historical date', async () => {
+            const mockPrices = [
+                {
+                    date: '2024-01-01',
+                    open: 90,
+                    high: 100,
+                    low: 80,
+                    close: 95,
+                    volume: 10,
+                    rsi: 40,
+                    rsi_status: 'Neutral',
+                },
+                {
+                    date: '2024-01-02',
+                    open: 110,
+                    high: 120,
+                    low: 100,
+                    close: 115,
+                    volume: 11,
+                    rsi: 45,
+                    rsi_status: 'Neutral',
+                },
+            ];
+
+            (executeQuery as jest.Mock).mockResolvedValue(mockPrices);
+
+            const result = await getHistoricalPrices(30, undefined, undefined, 'CHF');
+            const [query] = (executeQuery as jest.Mock).mock.calls[0];
+
+            expect(executeQuery).toHaveBeenCalledTimes(1);
+            expect(query).toMatch(/open_chf\s+AS\s+open/i);
+            expect(query).toMatch(/close_chf\s+AS\s+close/i);
+            expect(result.map(price => price.close)).toEqual([95, 115]);
+        });
+
+        it('uses the real custom span to select monthly history', async () => {
+            (executeQuery as jest.Mock).mockResolvedValue([]);
+
+            await getHistoricalPrices(30, '2014-01-15', '2024-01-15', 'USD');
+
+            const [query, parameters] = (executeQuery as jest.Mock).mock.calls[0];
+
+            expect(query).toContain('dlh_gold__crypto_prices.agg_month_btc');
+            expect(query).toMatch(/month_start_date\s+AS\s+date/i);
+            expect(parameters).toEqual(['2014-01-15', '2024-01-15']);
+        });
+
+        it('uses the real custom span to keep short history daily', async () => {
+            (executeQuery as jest.Mock).mockResolvedValue([]);
+
+            await getHistoricalPrices(3650, '2024-01-01', '2024-01-31', 'USD');
+
+            const [query] = (executeQuery as jest.Mock).mock.calls[0];
+
+            expect(query).toContain('dlh_silver__crypto_prices.obt_fact_day_btc');
+            expect(query).toMatch(/date_prices\s+AS\s+date/i);
+        });
+
+        it('preserves zero and exposes missing historical RSI as null', async () => {
+            (executeQuery as jest.Mock).mockResolvedValue([
+                {
+                    date: '2024-01-01',
+                    open: 90,
+                    high: 100,
+                    low: 80,
+                    close: 95,
+                    volume: 10,
+                    rsi: 0,
+                    rsi_status: 'Oversold',
+                },
+                {
+                    date: '2024-01-02',
+                    open: 110,
+                    high: 120,
+                    low: 100,
+                    close: 115,
+                    volume: 11,
+                    rsi: null,
+                    rsi_status: 'Neutral',
+                },
+            ]);
+
+            const result = await getHistoricalPrices(30);
+
+            expect(result.map(price => price.rsi)).toEqual([0, null]);
+        });
+
         it('should return historical price data for specified days', async () => {
             const mockPrices = Array.from({ length: 30 }, (_, i) => ({
                 date_prices: `2024-01-${String(i + 1).padStart(2, '0')}`,
@@ -138,6 +281,18 @@ describe('Bitcoin API', () => {
     });
 
     describe('getAggregatedData', () => {
+        it('computes average price and total volume from daily source data', async () => {
+            (executeQuery as jest.Mock).mockResolvedValue([]);
+
+            await getAggregatedData('weekly');
+
+            const [query] = (executeQuery as jest.Mock).mock.calls[0];
+
+            expect(query).toMatch(/AVG\(daily\.close_usd\)/i);
+            expect(query).toMatch(/SUM\(daily\.volume\)/i);
+            expect(query).not.toMatch(/0\s+AS\s+"totalVolume"/i);
+        });
+
         it('should return weekly aggregated data', async () => {
             const mockAggregated = [
                 {

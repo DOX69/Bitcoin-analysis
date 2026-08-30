@@ -17,7 +17,7 @@ export const BitcoinPriceSchema = z.object({
     low: z.coerce.number().default(0),
     close: z.coerce.number().default(0),
     volume: z.coerce.number().default(0),
-    rsi: z.coerce.number().default(50),
+    rsi: z.coerce.number().nullable().optional(),
     rsi_status: z.string().default('Neutral'),
     macd: z.coerce.number().nullable().optional(),
     macd_signal: z.coerce.number().nullable().optional(),

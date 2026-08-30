@@ -20,4 +20,49 @@ describe('DateRangePicker Component', () => {
         // Check for Apply button
         expect(screen.getByText('Apply')).toBeInTheDocument();
     });
+
+    it('initializes from the current range when the parent remounts it', () => {
+        const { rerender } = render(
+            <DateRangePicker
+                key="first-range"
+                startDate="2026-01-01"
+                endDate="2026-01-07"
+                onChange={() => { }}
+            />,
+        );
+
+        expect(screen.getByDisplayValue('2026-01-01 ~ 2026-01-07')).toBeInTheDocument();
+
+        rerender(
+            <DateRangePicker
+                key="second-range"
+                startDate="2026-02-01"
+                endDate="2026-02-07"
+                onChange={() => { }}
+            />,
+        );
+
+        expect(screen.getByDisplayValue('2026-02-01 ~ 2026-02-07')).toBeInTheDocument();
+    });
+
+    it('restores the committed range when canceling a draft', () => {
+        const onChange = jest.fn();
+        render(
+            <DateRangePicker
+                startDate="2026-01-01"
+                endDate="2026-01-07"
+                onChange={onChange}
+            />,
+        );
+
+        const input = screen.getByDisplayValue('2026-01-01 ~ 2026-01-07');
+        fireEvent.click(input);
+        fireEvent.change(input, {
+            target: { value: '2026-02-01 ~ 2026-02-07' },
+        });
+        fireEvent.click(screen.getByText('Cancel'));
+
+        expect(input).toHaveValue('2026-01-01 ~ 2026-01-07');
+        expect(onChange).not.toHaveBeenCalled();
+    });
 });

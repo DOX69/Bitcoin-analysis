@@ -1,6 +1,3 @@
-import React from 'react';
-import { theme } from '@/theme';
-
 const KPI_DATA = [
     { label: 'BTC Price', value: '$68,429.15', change: '+2.4%', isPositive: true },
     { label: '24h Volume', value: '$24.5B', change: '+5.1%', isPositive: true },

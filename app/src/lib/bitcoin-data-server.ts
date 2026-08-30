@@ -7,6 +7,13 @@ import {
 } from './schemas';
 
 export type Currency = 'USD' | 'CHF' | 'EUR';
+type CurrencyColumnSuffix = 'usd' | 'chf' | 'eur';
+
+const CURRENCY_COLUMN_SUFFIXES = new Map<Currency, CurrencyColumnSuffix>([
+    ['USD', 'usd'],
+    ['CHF', 'chf'],
+    ['EUR', 'eur'],
+]);
 
 const TABLES = {
     daily: 'dlh_silver__crypto_prices.obt_fact_day_btc',
@@ -18,18 +25,23 @@ const AGGREGATIONS = {
     weekly: {
         table: 'dlh_gold__crypto_prices.agg_week_btc',
         dateColumn: 'iso_week_start_date',
+        dateTrunc: 'week',
     },
     monthly: {
         table: 'dlh_gold__crypto_prices.agg_month_btc',
         dateColumn: 'month_start_date',
+        dateTrunc: 'month',
     },
     quarterly: {
         table: 'dlh_gold__crypto_prices.agg_quarter_btc',
         dateColumn: 'quarter_start_date',
+        dateTrunc: 'quarter',
     },
 } as const;
 
 type CurrencyRates = { USD_CHF: number; USD_EUR: number };
+const MONTHLY_HISTORY_THRESHOLD_DAYS = 1800;
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const getCurrencyRates = cache(async (): Promise<CurrencyRates> => {
     try {
@@ -107,7 +119,7 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
             volume24h: Number(results[0].volume_24h),
             high24h: convert(results[0].high_24h),
             low24h: convert(results[0].low_24h),
-            rsi: Number(results[0].rsi) || 50,
+            rsi: results[0].rsi == null ? undefined : Number(results[0].rsi),
         });
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch Bitcoin metrics:', error);
@@ -122,8 +134,11 @@ function getDateFilter(
     endDate?: string
 ): { clause: string; parameters: unknown[] } {
     if (startDate && endDate) {
+        const monthRange = dateColumn === 'month_start_date'
+            ? `date_trunc('month', $1::date)::date AND date_trunc('month', $2::date)::date`
+            : '$1::date AND $2::date';
         return {
-            clause: `${dateColumn} BETWEEN $1::date AND $2::date`,
+            clause: `${dateColumn} BETWEEN ${monthRange}`,
             parameters: [startDate, endDate],
         };
     }
@@ -134,6 +149,16 @@ function getDateFilter(
     };
 }
 
+function getCustomRangeDays(startDate?: string, endDate?: string): number | undefined {
+    if (!startDate || !endDate) return undefined;
+
+    const start = Date.parse(`${startDate}T00:00:00.000Z`);
+    const end = Date.parse(`${endDate}T00:00:00.000Z`);
+    if (Number.isNaN(start) || Number.isNaN(end)) return undefined;
+
+    return Math.floor((end - start) / MILLISECONDS_PER_DAY) + 1;
+}
+
 export const getHistoricalPrices = cache(async (
     days: number = 30,
     startDate?: string,
@@ -141,11 +166,13 @@ export const getHistoricalPrices = cache(async (
     currency: Currency = 'USD'
 ) => {
     try {
-        const useMonthlyAggregation = days >= 1800;
+        const effectiveDays = getCustomRangeDays(startDate, endDate) ?? days;
+        const useMonthlyAggregation = effectiveDays >= MONTHLY_HISTORY_THRESHOLD_DAYS;
         const dateColumn = useMonthlyAggregation ? 'month_start_date' : 'date_prices';
         const { clause, parameters } = getDateFilter(dateColumn, days, startDate, endDate);
         const table = useMonthlyAggregation ? TABLES.monthly : TABLES.daily;
         const volume = useMonthlyAggregation ? '0 AS volume' : 'volume';
+        const currencySuffix = CURRENCY_COLUMN_SUFFIXES.get(currency) ?? 'usd';
         const rsiStatus = useMonthlyAggregation
             ? `CASE
                     WHEN rsi > 70 THEN 'Overbought'
@@ -154,55 +181,31 @@ export const getHistoricalPrices = cache(async (
                END AS rsi_status`
             : 'rsi_status';
 
-        const ratesPromise = currency === 'USD' ? Promise.resolve(null) : getCurrencyRates();
-        const [results, rates] = await Promise.all([
-            executeQuery<Record<string, unknown>>(`
-                SELECT
-                    ${dateColumn} AS date,
-                    open_usd AS open,
-                    high_usd AS high,
-                    low_usd AS low,
-                    close_usd AS close,
-                    ${volume},
-                    rsi,
-                    ${rsiStatus},
-                    macd_usd AS macd,
-                    macd_signal_usd AS macd_signal,
-                    macd_hist_usd AS macd_hist,
-                    sma_7_usd AS sma_7,
-                    sma_50_usd AS sma_50,
-                    sma_200_usd AS sma_200,
-                    ema_7_usd AS ema_7,
-                    ema_50_usd AS ema_50,
-                    ema_200_usd AS ema_200
-                FROM ${table}
-                WHERE ${clause}
-                ORDER BY ${dateColumn} ASC
-            `, parameters),
-            ratesPromise,
-        ]);
+        const results = await executeQuery<Record<string, unknown>>(`
+            SELECT
+                ${dateColumn} AS date,
+                open_${currencySuffix} AS open,
+                high_${currencySuffix} AS high,
+                low_${currencySuffix} AS low,
+                close_${currencySuffix} AS close,
+                ${volume},
+                rsi,
+                ${rsiStatus},
+                macd_${currencySuffix} AS macd,
+                macd_signal_${currencySuffix} AS macd_signal,
+                macd_hist_${currencySuffix} AS macd_hist,
+                sma_7_${currencySuffix} AS sma_7,
+                sma_50_${currencySuffix} AS sma_50,
+                sma_200_${currencySuffix} AS sma_200,
+                ema_7_${currencySuffix} AS ema_7,
+                ema_50_${currencySuffix} AS ema_50,
+                ema_200_${currencySuffix} AS ema_200
+            FROM ${table}
+            WHERE ${clause}
+            ORDER BY ${dateColumn} ASC
+        `, parameters);
 
-        if (!rates) {
-            return BitcoinHistorySchema.parse(results);
-        }
-
-        const priceFields = [
-            'open', 'high', 'low', 'close',
-            'sma_7', 'sma_50', 'sma_200',
-            'ema_7', 'ema_50', 'ema_200',
-            'macd', 'macd_signal', 'macd_hist',
-        ] as const;
-        const convertedResults = results.map(row => {
-            const converted = { ...row };
-            for (const field of priceFields) {
-                if (row[field] !== null && row[field] !== undefined) {
-                    converted[field] = convertPrice(Number(row[field]), currency, rates);
-                }
-            }
-            return converted;
-        });
-
-        return BitcoinHistorySchema.parse(convertedResults);
+        return BitcoinHistorySchema.parse(results);
     } catch (error) {
         console.error('Failed to fetch historical prices:', error);
         throw error;
@@ -213,16 +216,19 @@ export const getAggregatedData = cache(async (
     aggregation: keyof typeof AGGREGATIONS = 'weekly'
 ) => {
     try {
-        const { table, dateColumn } = AGGREGATIONS[aggregation];
+        const { table, dateColumn, dateTrunc } = AGGREGATIONS[aggregation];
         const results = await executeQuery<Record<string, unknown>>(`
             SELECT
-                ${dateColumn} AS period,
-                close_usd AS "avgPrice",
-                high_usd AS "maxPrice",
-                low_usd AS "minPrice",
-                0 AS "totalVolume"
-            FROM ${table}
-            ORDER BY ${dateColumn} DESC
+                aggregated.${dateColumn} AS period,
+                AVG(daily.close_usd) AS "avgPrice",
+                aggregated.high_usd AS "maxPrice",
+                aggregated.low_usd AS "minPrice",
+                COALESCE(SUM(daily.volume), 0) AS "totalVolume"
+            FROM ${table} AS aggregated
+            LEFT JOIN ${TABLES.daily} AS daily
+                ON date_trunc('${dateTrunc}', daily.date_prices)::date = aggregated.${dateColumn}
+            GROUP BY aggregated.${dateColumn}, aggregated.high_usd, aggregated.low_usd
+            ORDER BY aggregated.${dateColumn} DESC
             LIMIT 12
         `);
 

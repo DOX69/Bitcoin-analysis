@@ -2,4 +2,7 @@ import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
 
 global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as any;
+Object.defineProperty(global, 'TextDecoder', {
+    configurable: true,
+    value: TextDecoder,
+});

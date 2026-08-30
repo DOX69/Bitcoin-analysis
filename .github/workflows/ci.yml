@@ -113,6 +113,9 @@ jobs:
       - name: Type-check application
         run: npx tsc --noEmit
 
+      - name: Lint application
+        run: npm run lint
+
       - name: Run Jest tests
         run: npm test -- --ci --watchAll=false --runInBand
 

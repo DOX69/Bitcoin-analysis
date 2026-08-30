@@ -19,7 +19,7 @@ describe('Theme System', () => {
         expect(theme.typography).toBeDefined();
         expect(theme.spacing).toBeDefined();
         expect(theme.typography.sizes.base).toBe('16px');
-        expect((theme.spacing as any).start).toBeUndefined(); // ensure no random props
+        expect(theme.spacing).not.toHaveProperty('start');
         expect(theme.spacing.md).toBe('16px');
     });
 });

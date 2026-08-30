@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BitcoinMetrics } from '@/lib/bitcoin-api';
+import type { BitcoinMetrics } from '@/lib/schemas';
 
 interface StatsPanelProps {
     metrics: BitcoinMetrics | null;

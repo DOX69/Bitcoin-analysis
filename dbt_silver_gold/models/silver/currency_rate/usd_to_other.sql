@@ -56,7 +56,11 @@ with ranked_eur as (
     where rate_usd_chf is not null
       and rate_usd_eur is not null
     {% if is_incremental() %}
-      and ingest_date_time > (select max(update_date_time) from {{ this }})
+      and (
+          date_rates > coalesce((select max(date_rates) from {{ this }}), date '1900-01-01')
+          or date_rates >= current_date - interval '10 days'
+          or ingest_date_time > (select max(update_date_time) from {{ this }})
+      )
     {% endif %}
 )
 select *

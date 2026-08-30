@@ -27,9 +27,18 @@ export const formatPriceWithCurrency = (value: number, currency: Currency): stri
     return `${symbol}${formatted}`;
 };
 
+export const parseCalendarDate = (value: string): Date => {
+    const calendarDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+    return new Date(calendarDate ? `${calendarDate}T00:00:00.000Z` : value);
+};
+
+export const getCalendarDateTimestamp = (value: string): number => {
+    return parseCalendarDate(value).getTime();
+};
+
 export const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const day = date.getDate().toString().padStart(2, '0');
+    const date = parseCalendarDate(dateStr);
+    const day = date.getUTCDate().toString().padStart(2, '0');
     const monthMap: Record<number, string> = {
         0: 'Janv',
         1: 'Févr',
@@ -44,8 +53,8 @@ export const formatDate = (dateStr: string): string => {
         10: 'Nov',
         11: 'Déc'
     };
-    const month = monthMap[date.getMonth()];
-    const year = date.getFullYear().toString().slice(-2);
+    const month = monthMap[date.getUTCMonth()];
+    const year = date.getUTCFullYear().toString().slice(-2);
     return `${day} ${month} '${year}`;
 };
 

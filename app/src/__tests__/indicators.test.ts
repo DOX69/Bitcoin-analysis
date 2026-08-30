@@ -60,19 +60,14 @@ describe('Technical Indicators Data Fetching', () => {
         });
     });
 
-    it('should convert indicators to CHF', async () => {
-        const mockRatesData = [{ rate_usd_chf: 0.90, rate_usd_eur: 0.85 }];
-
-        // Mock executeQuery to handle both the rates fetch (getCurrencyRates) 
-        // and the prices fetch (getHistoricalPrices)
-        (executeQuery as jest.Mock)
-            .mockResolvedValueOnce(mockRatesData) // Call from getCurrencyRates
-            .mockResolvedValueOnce(mockDataWithIndicators); // Call from getHistoricalPrices
+    it('should use the stored CHF indicator values for historical data', async () => {
+        (executeQuery as jest.Mock).mockResolvedValue(mockDataWithIndicators);
 
         const result = await getHistoricalPrices(30, undefined, undefined, 'CHF');
 
-        expect(result[0].sma_7).toBeCloseTo(60100 * 0.9, 0);
-        expect(result[0].ema_50).toBeCloseTo(58500 * 0.9, 0);
+        expect(result[0].sma_7).toBe(60100);
+        expect(result[0].ema_50).toBe(58500);
+        expect(executeQuery).toHaveBeenCalledTimes(1);
     });
 
     it('should include technical indicators in monthly aggregation ("ALL" timeframe)', async () => {

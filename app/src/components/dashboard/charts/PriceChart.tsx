@@ -19,7 +19,13 @@ import {
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { BitcoinPrice } from '@/lib/schemas';
-import { formatPrice, formatDate, formatTooltipTime } from '@/lib/format-utils';
+import {
+    formatPrice,
+    formatDate,
+    formatTooltipTime,
+    getCalendarDateTimestamp,
+    parseCalendarDate,
+} from '@/lib/format-utils';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import 'chartjs-adapter-date-fns'; // Import date adapter for potential time scale usage
 
@@ -66,7 +72,13 @@ const PriceChart: React.FC<PriceChartProps> = ({
 }) => {
     const { sanitizedData, shouldSmooth } = useMemo(() => {
         const sanitized = data.map((item: BitcoinPrice) => {
-            const isProblematic = item.low <= 0 || (new Date(item.date).getFullYear() === 2017 && new Date(item.date).getMonth() === 3 && new Date(item.date).getDate() === 1 && item.low < 100);
+            const date = parseCalendarDate(item.date);
+            const isProblematic = item.low <= 0 || (
+                date.getUTCFullYear() === 2017 &&
+                date.getUTCMonth() === 3 &&
+                date.getUTCDate() === 1 &&
+                item.low < 100
+            );
 
             if (isProblematic) {
                 const values = [item.open, item.high, item.close].sort((a, b) => a - b);
@@ -78,9 +90,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
 
         let smooth = false;
         if (data.length > 1) {
-            const start = new Date(data[0].date);
-            const end = new Date(data[data.length - 1].date);
-            const yearsDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365);
+            const start = getCalendarDateTimestamp(data[0].date);
+            const end = getCalendarDateTimestamp(data[data.length - 1].date);
+            const yearsDiff = (end - start) / (1000 * 60 * 60 * 24 * 365);
             smooth = yearsDiff >= 2;
         }
 
@@ -90,23 +102,27 @@ const PriceChart: React.FC<PriceChartProps> = ({
     const rsiPoints = useMemo(() => {
         if (!shouldSmooth) {
             return sanitizedData.filter(item => item.rsi !== null && item.rsi !== undefined).map((item: BitcoinPrice) => ({
-                x: new Date(item.date).getTime(),
+                x: getCalendarDateTimestamp(item.date),
                 y: item.rsi
             }));
         }
 
         const monthlyGroups: Record<string, { sum: number, count: number, date: number }> = {};
         sanitizedData.forEach((item: BitcoinPrice) => {
-            const d = new Date(item.date);
-            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (item.rsi === null || item.rsi === undefined) return;
+
+            const d = parseCalendarDate(item.date);
+            const year = d.getUTCFullYear();
+            const month = d.getUTCMonth();
+            const key = `${year}-${month}`;
             if (!monthlyGroups[key]) {
                 monthlyGroups[key] = {
                     sum: 0,
                     count: 0,
-                    date: new Date(d.getFullYear(), d.getMonth(), 15).getTime()
+                    date: Date.UTC(year, month, 15)
                 };
             }
-            monthlyGroups[key].sum += (item.rsi || 50);
+            monthlyGroups[key].sum += item.rsi;
             monthlyGroups[key].count += 1;
         });
 
@@ -124,7 +140,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 type: 'line' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
                 data: sanitizedData.map((item) => ({
-                    x: new Date(item.date).getTime(),
+                    x: getCalendarDateTimestamp(item.date),
                     y: item.close
                 })),
                 borderColor: 'rgba(255, 107, 53, 1)',
@@ -149,7 +165,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 type: 'candlestick' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
                 data: sanitizedData.map((item) => ({
-                    x: new Date(item.date).getTime(),
+                    x: getCalendarDateTimestamp(item.date),
                     o: item.open,
                     h: item.high,
                     l: item.low,
@@ -207,7 +223,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'SMA 7',
-                    data: sanitizedData.filter(item => item.sma_7 !== null && item.sma_7 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.sma_7 })),
+                    data: sanitizedData.filter(item => item.sma_7 !== null && item.sma_7 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_7 })),
                     borderColor: 'rgba(56, 189, 248, 0.8)', // cyan
                     borderWidth: 1,
                     pointRadius: 0,
@@ -218,7 +234,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'SMA 50',
-                    data: sanitizedData.filter(item => item.sma_50 !== null && item.sma_50 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.sma_50 })),
+                    data: sanitizedData.filter(item => item.sma_50 !== null && item.sma_50 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_50 })),
                     borderColor: 'rgba(168, 85, 247, 0.8)', // purple
                     borderWidth: 1,
                     pointRadius: 0,
@@ -229,7 +245,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'SMA 200',
-                    data: sanitizedData.filter(item => item.sma_200 !== null && item.sma_200 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.sma_200 })),
+                    data: sanitizedData.filter(item => item.sma_200 !== null && item.sma_200 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_200 })),
                     borderColor: 'rgba(236, 72, 153, 0.8)', // pink
                     borderWidth: 1,
                     pointRadius: 0,
@@ -242,7 +258,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'EMA 7',
-                    data: sanitizedData.filter(item => item.ema_7 !== null && item.ema_7 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.ema_7 })),
+                    data: sanitizedData.filter(item => item.ema_7 !== null && item.ema_7 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_7 })),
                     borderColor: 'rgba(56, 189, 248, 0.6)',
                     borderDash: [2, 2],
                     borderWidth: 2,
@@ -254,7 +270,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'EMA 50',
-                    data: sanitizedData.filter(item => item.ema_50 !== null && item.ema_50 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.ema_50 })),
+                    data: sanitizedData.filter(item => item.ema_50 !== null && item.ema_50 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_50 })),
                     borderColor: 'rgba(168, 85, 247, 0.6)',
                     borderDash: [2, 2],
                     borderWidth: 2,
@@ -266,7 +282,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'EMA 200',
-                    data: sanitizedData.filter(item => item.ema_200 !== null && item.ema_200 !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.ema_200 })),
+                    data: sanitizedData.filter(item => item.ema_200 !== null && item.ema_200 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_200 })),
                     borderColor: 'rgba(236, 72, 153, 0.6)',
                     borderDash: [2, 2],
                     borderWidth: 2,
@@ -280,7 +296,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'MACD',
-                    data: sanitizedData.filter(item => item.macd !== null && item.macd !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.macd })),
+                    data: sanitizedData.filter(item => item.macd !== null && item.macd !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd })),
                     borderColor: '#3b82f6', // blue-500
                     borderWidth: 1.5,
                     pointRadius: 0,
@@ -291,7 +307,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'line' as const,
                     label: 'Signal',
-                    data: sanitizedData.filter(item => item.macd_signal !== null && item.macd_signal !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.macd_signal })),
+                    data: sanitizedData.filter(item => item.macd_signal !== null && item.macd_signal !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd_signal })),
                     borderColor: '#f97316', // orange-500
                     borderWidth: 1,
                     pointRadius: 0,
@@ -302,7 +318,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 {
                     type: 'bar' as const,
                     label: 'Histogram',
-                    data: sanitizedData.filter(item => item.macd_hist !== null && item.macd_hist !== undefined).map(item => ({ x: new Date(item.date).getTime(), y: item.macd_hist })),
+                    data: sanitizedData.filter(item => item.macd_hist !== null && item.macd_hist !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd_hist })),
                     backgroundColor: (context: any) => {
                         const val = context.raw?.y;
                         return val >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)';

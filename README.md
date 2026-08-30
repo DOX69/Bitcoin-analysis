@@ -1,63 +1,75 @@
 # Bitcoin Analysis
 
-Bitcoin Analysis ingests public cryptocurrency and exchange-rate data into PostgreSQL, transforms it with dbt, and serves the results through a Next.js application hosted on Railway.
+Bitcoin Analysis collects public Bitcoin OHLCV, exchange-rate, and technical-indicator data. It stores the raw data in PostgreSQL, transforms it with dbt, and serves the dashboard through Next.js on Railway.
 
-Production dashboard: <https://bitcoin-web-prod-production.up.railway.app/dashboard>
+## Production
 
-Development dashboard: <https://bitcoin-web-development.up.railway.app/dashboard>
+- Production dashboard: <https://bitcoin-web-prod-production.up.railway.app/dashboard>
+- Development dashboard: <https://bitcoin-web-development.up.railway.app/dashboard>
+- GitHub default branch: `main`
+- Production ingestion schedule: `0 1 * * *` (01:00 UTC)
 
-The pre-migration Databricks configuration is retained in two disabled archives:
+Railway is the production platform. Vercel is not part of the deployment path.
+
+## Architecture
+
+The Railway project has separate Development and production environments. Each environment contains a PostgreSQL service, a Next.js web service, and a Python/dbt ingestion service.
+
+Production services are:
+
+- `bitcoin-web-prod`: Next.js web application, using `/app` as its root directory.
+- `bitcoin-cron-prod`: daily ingestion service, using the repository root so it can access both `dbx_workflow` and `dbt_silver_gold`.
+- `Postgres-r3OB`: private PostgreSQL database.
+
+The web service is built and started by Railpack from the Next.js package scripts. The ingestion service runs `raw-ingest`, which fetches market prices and technical indicators before running the dbt build. The orchestrator derives the `PG*` variables from `DATABASE_URL` before invoking dbt.
+
+Keep the production cron as the only production scheduler. Do not move the cron root directory to `/dbx_workflow`; that would hide the dbt project and the root workspace lockfile.
+
+The old Databricks configuration remains only as disabled files:
 
 - `databricks.yml.disabled`
 - `dbx_workflow/resources/master_orchestrator_job.yml.disabled`
 
-## Architecture
+These files are not part of the active runtime.
 
-Production uses one private PostgreSQL service and two Railway services:
+## Railway configuration
 
-- The web service runs the Next.js application from `/app`.
-- The daily Cron uses the repository root as its build and runtime context. The `raw-ingest` console command runs market ingestion, technical-indicator ingestion, then `dbt build`.
-- Both services connect to the same private PostgreSQL database.
-- GitHub Actions validates every change. Railway deploys the web and ingestion services from `main`.
-
-The Cron must keep the repository root as its context. The root `uv.lock` covers the workspace, including `dbx_workflow` and `dbt_silver_gold`. Setting the Cron root to `/dbx_workflow` would hide the dbt project.
-
-## Railway and Railpack settings
-
-Use Railpack for both services. Do not add a Dockerfile.
-
-| Setting | Web | Daily Cron |
+| Setting | Web service | Daily cron |
 | --- | --- | --- |
 | Root directory | `/app` | Repository root |
-| Build command | `npm run build` | `uv sync --locked --package raw-ingest` |
-| Start command | `npm run start` | `uv run --locked --package raw-ingest raw-ingest` |
-| Watch paths | `app/**` | `dbx_workflow/**`, `dbt_silver_gold/**`, `pyproject.toml`, `uv.lock` |
+| Build | Railpack detects `npm run build` | `uv sync --locked --package raw-ingest` |
+| Start | Railpack detects `npm run start` | `uv run --locked --package raw-ingest raw-ingest` |
+| Schedule | None | `0 1 * * *` |
 
-Production has exactly one Railway Cron schedule: `0 1 * * *` (01:00 UTC daily).
+Required Railway variables:
 
-### Variables
-
-Keep PostgreSQL private and use Railway variable references.
-
-| Service | Required variables |
+| Service | Variables |
 | --- | --- |
 | Web | `DATABASE_URL` |
-| Daily Cron | `DATABASE_URL`, `DBT_TARGET_SCHEMA` |
+| Daily cron | `DATABASE_URL`, `DBT_TARGET_SCHEMA` |
 
-The orchestrator derives `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, and `PGDATABASE` from `DATABASE_URL` before it starts dbt. Database credentials are server-side only.
+Database credentials stay server-side. Do not commit `.env` files or credentials.
+
+## Repository layout
+
+- `app/`: Next.js dashboard and API route.
+- `dbx_workflow/`: Python fetchers, ingestion services, PostgreSQL writer, and tests.
+- `dbt_silver_gold/`: dbt project, models, macros, and data tests.
+- `example_response_api_data/`: example external API payloads.
+- `.github/workflows/`: CI and scheduled API schema checks.
 
 ## Local setup
 
 Required tools:
 
 - Python 3.11
-- uv 0.9.17
+- uv 0.9.17 or a compatible newer version
 - Node.js 20 and npm
 - PostgreSQL 16
 
-Set `DATABASE_URL`, `TEST_DATABASE_URL`, `DBT_TARGET_SCHEMA`, and the `PG*` variables in the current shell. Do not commit local credentials.
+Set `DATABASE_URL`, `TEST_DATABASE_URL`, `DBT_TARGET_SCHEMA`, and the `PG*` variables in the current shell. Use local values only and keep them out of Git.
 
-Install and test the Python workspace from the repository root:
+From the repository root:
 
 ```powershell
 uv sync --locked --package raw-ingest --extra dev
@@ -68,48 +80,41 @@ uv run --locked --package raw-ingest dbt build --full-refresh --project-dir dbt_
 uv run --locked --package raw-ingest dbt build --project-dir dbt_silver_gold --profiles-dir dbt_silver_gold
 ```
 
-Run the complete ingestion pipeline:
+Run the complete ingestion pipeline with:
 
 ```powershell
 uv run --locked --package raw-ingest raw-ingest
 ```
 
-Install, test, and run the web application:
+Run the web application with:
 
 ```powershell
 Set-Location app
 npm ci
 npx tsc --noEmit
+npm run lint
 npm test -- --ci --watchAll=false --runInBand
 npm run build
 npm run dev
 ```
 
-## Production deployment
-
-Railway contains isolated Development and production environments. Each environment has a private PostgreSQL database, a Next.js web service, and a Python/dbt ingestion service. Production data was initialized from the validated Development database before the public dashboard was enabled.
-
-Keep one production scheduler active. The Railway Cron service is the canonical daily ingestion path.
-
-## Rollback
-
-1. Disable the Railway Cron schedule.
-2. Redeploy the recorded pre-migration tag or commit.
-3. Restore the tested backup if the cutover changed production data or schemas incompatibly.
-4. Verify database reads and the previous pipeline before re-enabling its schedule.
-5. Keep only one production scheduler active.
-
-The backup is not a rollback plan until a restore has passed on a separate database.
+The local dashboard is available at <http://localhost:3000/dashboard>.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` uses Python 3.11, Node.js 20, and PostgreSQL 16. It runs:
+`.github/workflows/ci.yml` runs on pushes to all branches. It provisions PostgreSQL 16, verifies the Python lockfile, runs the Python tests, prepares dbt fixtures, compiles and builds dbt twice, then installs and validates the Next.js application with typecheck, lint, Jest, and a production build.
 
-- `uv lock --check`, then installs the Python workspace with `uv sync --locked`;
-- raw-ingest tests with `TEST_DATABASE_URL`;
-- dbt debug and compile, then `dbt build --full-refresh` followed by `dbt build` to check idempotence;
-- `npm ci`, `npx tsc --noEmit`, Jest, and a production Next.js build.
+`.github/workflows/daily_schema_check.yml` runs every day and can be started manually. It compares the public Coinbase, BGeometrics, and Frankfurter response shapes with the checked-in Pydantic models. When models change, it opens a pull request. It does not deploy the application.
 
-CI validates locks, tests, transformations, types, and builds. Railway owns production infrastructure and deployment.
+## Deployment and rollback
 
-`.github/workflows/daily_schema_check.yml` checks public API response schemas with Python 3.11 and opens a review pull request when generated Pydantic models change. It does not deploy the application.
+Railway deploys the web and ingestion services from `main`. After a production deployment, verify the dashboard URL, the web service health, PostgreSQL reads, and the next cron schedule.
+
+To roll back:
+
+1. Disable the production cron.
+2. Deploy a known-good commit to the affected Railway service.
+3. Verify the application and database reads.
+4. Re-enable the cron only after the web and data paths are healthy.
+
+A database backup is part of rollback only after a restore has been tested on a separate database.

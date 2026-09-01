@@ -44,7 +44,6 @@ ChartJS.register(
     CandlestickController,
     CandlestickElement,
     TimeScale,
-    TimeScale,
     TimeSeriesScale,
     LogarithmicScale
 );
@@ -59,6 +58,13 @@ interface PriceChartProps {
     showSma?: boolean;
     showEma?: boolean;
     scaleType?: 'linear' | 'logarithmic';
+}
+
+function formatAccessiblePrice(value: number, currencySymbol: string): string {
+    return `${currencySymbol}${value.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
 }
 
 type SupportedChartType = 'line' | 'bar' | 'candlestick';
@@ -209,12 +215,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     x: getCalendarDateTimestamp(item.date),
                     y: item.close
                 })),
-                borderColor: 'rgba(255, 107, 53, 1)',
+                borderColor: '#F7931A',
                 borderWidth: 1.5,
                 backgroundColor: (context: LineScriptableContext) => {
                     const ctx = context.chart.ctx;
                     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                    gradient.addColorStop(0, 'rgba(255, 107, 53, 0.15)');
+                    gradient.addColorStop(0, 'rgba(247, 147, 26, 0.15)');
                     gradient.addColorStop(0.5, 'rgba(247, 183, 49, 0.05)');
                     gradient.addColorStop(1, 'rgba(255, 165, 0, 0.0)');
                     return gradient;
@@ -223,7 +229,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#ffa500',
+                pointHoverBackgroundColor: '#FFA42D',
                 pointHoverBorderColor: '#fff',
                 pointHoverBorderWidth: 2,
                 yAxisID: 'y',
@@ -548,12 +554,48 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     <span className="text-muted-foreground">Loading chart...</span>
                 </div>
             ) : (
-                <div className="h-full w-full" key={`${type}-${showRsi}-${data.length}`}>
-                    <Chart
-                        type={type === 'candlestick' ? 'candlestick' : 'line'}
-                        data={chartData}
-                        options={options}
-                    />
+                <div className="w-full" key={`${type}-${showRsi}-${data.length}`}>
+                    <div className="h-[320px] w-full md:h-[360px]" aria-hidden="true">
+                        <Chart
+                            type={type === 'candlestick' ? 'candlestick' : 'line'}
+                            data={chartData}
+                            options={options}
+                        />
+                    </div>
+                    {data.length > 0 && (
+                        <>
+                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
+                                <span>Latest close <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
+                                <span>Period high <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.max(...data.map((item) => item.high)))}</strong></span>
+                                <span>Period low <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.min(...data.map((item) => item.low)))}</strong></span>
+                            </div>
+                            <div className="sr-only">
+                                <table aria-label="Recent Bitcoin market data">
+                                    <caption>Ten most recent Bitcoin market records for the selected filters.</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Date</th>
+                                            <th scope="col">Close</th>
+                                            <th scope="col">High</th>
+                                            <th scope="col">Low</th>
+                                            <th scope="col">RSI</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.slice(-10).reverse().map((item) => (
+                                            <tr key={item.date}>
+                                                <th scope="row">{formatDate(item.date)}</th>
+                                                <td>{formatAccessiblePrice(item.close, currencySymbol || '$')}</td>
+                                                <td>{formatAccessiblePrice(item.high, currencySymbol || '$')}</td>
+                                                <td>{formatAccessiblePrice(item.low, currencySymbol || '$')}</td>
+                                                <td>{item.rsi == null ? 'Unavailable' : item.rsi.toFixed(1)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </>

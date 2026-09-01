@@ -1,54 +1,45 @@
 'use client';
 
-import { BarChart3, Database, Cloud } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart3, Database, Gauge } from 'lucide-react';
 
 const features = [
     {
         icon: BarChart3,
-        title: 'Daily Market Data',
-        description: 'Track Bitcoin prices and market trends with data updated daily.',
+        title: 'Daily market snapshots',
+        description: 'Review Bitcoin prices, volume, 24-hour change, highs, lows, and RSI from the PostgreSQL dataset.',
     },
     {
         icon: Database,
-        title: 'PostgreSQL History',
-        description: 'Review historical Bitcoin market data stored in PostgreSQL.',
+        title: 'Historical context',
+        description: 'Change the period, date range, currency, scale, and chart type without leaving the timeline.',
     },
     {
-        icon: Cloud,
-        title: 'Railway Hosting',
-        description: 'The application and its daily data pipeline are hosted on Railway.',
+        icon: Gauge,
+        title: 'Technical layers',
+        description: 'Compare RSI, MACD, SMA, and EMA overlays against the same Bitcoin price history.',
     },
 ];
 
 export default function Features() {
     return (
-        <section id="features" className="relative py-24 px-4">
+        <section id="capabilities" className="relative px-4 py-24">
             <div className="max-w-6xl mx-auto">
-                {/* Section Header */}
-                <div className="text-center mb-16">
+                <div className="mb-12 max-w-2xl">
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                        Powerful Features
+                        What the dashboard shows
                     </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Everything you need for professional cryptocurrency analysis
+                    <p className="text-muted-foreground">
+                        A read-only view of Bitcoin market data. It does not place trades or create personal positions.
                     </p>
                 </div>
 
-                {/* Features Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {features.map((feature, index) => (
-                        <Card key={index} className="border-primary/15 bg-card/80 p-8 text-center transition-transform hover:-translate-y-1">
-                            <CardHeader className="items-center gap-6 p-0">
-                                <div className="flex size-16 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
-                                    <feature.icon />
-                                </div>
-                                <CardTitle className="text-xl text-foreground">{feature.title}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0 pt-3">
-                                <p className="leading-relaxed text-muted-foreground">{feature.description}</p>
-                            </CardContent>
-                        </Card>
+                <div className="border-y border-border md:grid md:grid-cols-3">
+                    {features.map((feature) => (
+                        <article key={feature.title} className="border-b border-border px-2 py-8 last:border-b-0 md:border-b-0 md:border-r md:px-8 md:first:pl-0 md:last:border-r-0 md:last:pr-0">
+                            <feature.icon className="mx-auto mb-6 size-6 text-primary" aria-hidden="true" />
+                            <h3 className="text-xl font-semibold text-foreground">{feature.title}</h3>
+                            <p className="mt-3 max-w-[38ch] leading-relaxed text-muted-foreground">{feature.description}</p>
+                        </article>
                     ))}
                 </div>
             </div>

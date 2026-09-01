@@ -36,14 +36,14 @@ const StatCard: React.FC<StatCardProps> = ({
         <Card className="stat-card">
             <CardHeader className="flex-row items-start justify-between p-0">
                 <div className="flex items-center gap-2">
-                    <CardTitle className="text-xs uppercase tracking-wide text-gray-400">{title}</CardTitle>
+                    <CardTitle className="text-xs font-medium text-muted-foreground">{title}</CardTitle>
                     {trend && trend !== 'neutral' && <Badge variant={trend === 'down' ? 'destructive' : 'secondary'}>{getTrendIcon()}</Badge>}
                 </div>
-                {icon && <div className="text-gray-500">{icon}</div>}
+                {icon && <div className="text-muted-foreground">{icon}</div>}
             </CardHeader>
             <CardContent className="p-0 pt-2">
                 {loading ? (
-                    <Skeleton className="h-8 w-full bg-gray-700/50" />
+                    <Skeleton className="h-8 w-full bg-muted/70" />
                 ) : (
                     <div className="text-xl font-bold text-white">
                         {typeof value === 'number'
@@ -51,7 +51,7 @@ const StatCard: React.FC<StatCardProps> = ({
                             : value}
                     </div>
                 )}
-                {subtitle && <div className="mt-1 text-xs text-gray-500">{subtitle}</div>}
+                {subtitle && <div className="mt-1 text-xs text-muted-foreground">{subtitle}</div>}
             </CardContent>
         </Card>
     );

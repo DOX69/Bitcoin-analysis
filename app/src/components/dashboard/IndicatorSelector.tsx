@@ -28,7 +28,7 @@ const INDICATORS = [
 export default function IndicatorSelector({ selectedIndicators, onToggleIndicator }: IndicatorSelectorProps) {
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="min-h-11" />}>
                 <BarChart3
                     data-icon="inline-start"
                     className={cn(selectedIndicators.size > 0 ? 'text-primary' : 'text-muted-foreground')}

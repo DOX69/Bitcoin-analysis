@@ -1,15 +1,15 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import DashboardHeader from '../DashboardHeader';
 
 describe('DashboardHeader', () => {
-    it('opens an accessible shadcn profile menu', () => {
+    it('keeps navigation on shipped routes and labels the read-only state', () => {
         render(<DashboardHeader />);
 
-        fireEvent.click(screen.getByRole('button', { name: /user/i }));
-
-        expect(screen.getByRole('menu')).toBeInTheDocument();
-        expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeInTheDocument();
-        expect(screen.getByRole('menuitem', { name: 'Settings' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
+        expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard');
+        expect(screen.getByText('Read-only data')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /Screener|Terminal|Stats|FAQ|Profile|Settings/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Settings|Notifications|User/i })).not.toBeInTheDocument();
     });
 });

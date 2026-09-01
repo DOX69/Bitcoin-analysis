@@ -3,10 +3,6 @@ import { render, screen } from '@testing-library/react';
 import LoginPage from '../login/page';
 import SignupPage from '../signup/page';
 
-jest.mock('@/components/dashboard', () => ({
-    AuthKPIs: () => React.createElement('div', null, 'KPIs'),
-}));
-
 jest.mock('@/components/landing/EnergyGraph', () => {
     function MockEnergyGraph() {
         return React.createElement('div');
@@ -15,26 +11,22 @@ jest.mock('@/components/landing/EnergyGraph', () => {
     return MockEnergyGraph;
 });
 
-jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: jest.fn() }),
-}));
-
 describe('authentication UI', () => {
-    it('uses shadcn controls on the login form', () => {
+    it('states that sign-in is unavailable and offers read-only access', () => {
         render(<LoginPage />);
 
-        expect(screen.getByLabelText('Email')).toHaveAttribute('data-slot', 'input');
-        expect(screen.getByLabelText('Password')).toHaveAttribute('data-slot', 'input');
-        expect(screen.getByRole('checkbox', { name: 'Remember me' })).toHaveAttribute('data-slot', 'checkbox');
-        expect(screen.getByRole('button', { name: 'Sign in' })).toHaveAttribute('data-slot', 'button');
+        expect(screen.getByRole('heading', { name: 'Read-only demo' })).toBeInTheDocument();
+        expect(screen.getByText(/accounts and sign-in are not available/i)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Open market dashboard' })).toHaveAttribute('href', '/dashboard');
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
-    it('uses shadcn controls on the signup form', () => {
+    it('does not pretend to create an account', () => {
         render(<SignupPage />);
 
-        expect(screen.getByLabelText('Email')).toHaveAttribute('data-slot', 'input');
-        expect(screen.getByLabelText('Password')).toHaveAttribute('data-slot', 'input');
-        expect(screen.getByLabelText('Confirm Password')).toHaveAttribute('data-slot', 'input');
-        expect(screen.getByRole('button', { name: 'Sign up' })).toHaveAttribute('data-slot', 'button');
+        expect(screen.getByRole('heading', { name: 'Read-only demo' })).toBeInTheDocument();
+        expect(screen.getByText(/account creation is not available/i)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Open market dashboard' })).toHaveAttribute('href', '/dashboard');
+        expect(screen.queryByLabelText(/Password|Confirm Password/i)).not.toBeInTheDocument();
     });
 });

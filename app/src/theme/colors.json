@@ -1,29 +1,29 @@
 {
     "primary": {
-        "orange": "#FF6B35",
-        "dark": "#1A1A1A",
+        "orange": "#F7931A",
+        "dark": "#07090A",
         "light": "#FFFFFF"
     },
     "secondary": {
         "black": "#000000",
-        "charcoal": "#2C2C2C",
-        "gray": "#666666"
+        "charcoal": "#1B1E20",
+        "gray": "#737373"
     },
     "accents": {
-        "success": "#22C55E",
-        "error": "#EF4444",
+        "success": "#34D399",
+        "error": "#F87171",
         "warning": "#F59E0B",
         "info": "#3B82F6"
     },
     "backgrounds": {
-        "primary": "#FFFFFF",
-        "secondary": "#F5F5F5",
-        "dark": "#1A1A1A",
-        "gradient_landing": "linear-gradient(135deg, #FF6B35 0%, #1A1A1A 100%)"
+        "primary": "#07090A",
+        "secondary": "#0B0D0F",
+        "dark": "#07090A",
+        "gradient_landing": "linear-gradient(135deg, #F7931A 0%, #07090A 100%)"
     },
     "text": {
-        "primary": "#1A1A1A",
-        "secondary": "#666666",
+        "primary": "#FFFFFF",
+        "secondary": "#B8B8B8",
         "light": "#FFFFFF"
     }
 }

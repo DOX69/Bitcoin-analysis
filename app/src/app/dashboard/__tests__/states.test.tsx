@@ -22,12 +22,13 @@ describe('dashboard states', () => {
         expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
     });
 
-    it('uses a shadcn Alert for errors', () => {
+    it('uses a shadcn Alert without exposing internal error details', () => {
         const { container } = render(
-            <ErrorState error={new Error('Database unavailable')} reset={jest.fn()} />,
+            <ErrorState error={Object.assign(new Error('Database password leaked'), { digest: 'secret-digest' })} reset={jest.fn()} />,
         );
 
         expect(container.querySelector('[data-slot="alert"]')).toBeInTheDocument();
-        expect(screen.getByText('Database unavailable')).toBeInTheDocument();
+        expect(screen.getByText('Dashboard unavailable')).toBeInTheDocument();
+        expect(screen.queryByText(/password leaked|secret-digest/i)).not.toBeInTheDocument();
     });
 });

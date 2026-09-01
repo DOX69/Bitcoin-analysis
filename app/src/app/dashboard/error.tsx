@@ -21,16 +21,14 @@ export default function Error({
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
-            <Alert variant="destructive" className="max-w-md gap-4 p-8 shadow-2xl">
+            <Alert variant="destructive" className="max-w-md gap-4 p-8">
                 <TriangleAlert />
-                <AlertTitle className="text-xl">Error: {error.name}</AlertTitle>
+                <AlertTitle className="text-xl">Dashboard unavailable</AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
-                    <p className="max-h-60 overflow-auto font-mono">{error.message}</p>
-                    {error.digest && <p className="font-mono text-xs">Digest: {error.digest}</p>}
-                    <p className="text-xs">Check Railway logs for the full stack trace.</p>
+                    <p>Market data could not be loaded. Try again, or return to the home page.</p>
                     <div className="flex justify-center gap-4 pt-2">
                         <Button onClick={() => reset()}>Try again</Button>
-                        <Link href="/" className={cn(buttonVariants({ variant: 'secondary' }))}>Go Home</Link>
+                        <Link href="/" className={cn(buttonVariants({ variant: 'secondary' }))}>Go home</Link>
                     </div>
                 </AlertDescription>
             </Alert>

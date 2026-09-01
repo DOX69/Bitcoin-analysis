@@ -6,13 +6,13 @@ describe('Theme System', () => {
         expect(theme.colors).toEqual(colors);
     });
 
-    it('should have correct primary orange color', () => {
-        expect(theme.colors.primary.orange).toBe('#FF6B35');
+    it('should have the canonical Bitcoin signal color', () => {
+        expect(theme.colors.primary.orange).toBe('#F7931A');
     });
 
     it('should generate correct usage css variables', () => {
-        expect(theme.cssVariables['--color-primary-orange']).toBe('#FF6B35');
-        expect(theme.cssVariables['--color-bg-landing-gradient']).toBeDefined();
+        expect(theme.cssVariables['--color-primary-orange']).toBe('#F7931A');
+        expect(theme.cssVariables['--color-primary-black']).toBe('#07090A');
     });
 
     it('should export typography and spacing', () => {

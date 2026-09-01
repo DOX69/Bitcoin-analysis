@@ -254,3 +254,6 @@ social_post.md
 # screenshot
 screenshot/
 *.png
+
+# Local dashboard prototypes
+app/src/components/dashboard/prototype/

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Geist } from "next/font/google";
 import "./globals.css";
-import EnergyBeam from "@/components/EnergyBeam";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +24,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <EnergyBeam />
         <div className="relative z-10">
           <TooltipProvider>{children}</TooltipProvider>
         </div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChartCandlestick, ChevronRight, Info, LineChart, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { ChartCandlestick, ChevronRight, Info, LineChart, TrendingDown, TrendingUp } from 'lucide-react';
 import {
     DashboardHeader,
     StatsPanel,
@@ -104,7 +104,7 @@ export default function DashboardClient({
         });
     };
 
-    const toggleItemClassName = 'data-[state=on]:bg-primary data-[state=on]:text-primary-foreground';
+    const toggleItemClassName = 'min-h-11 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground';
 
     return (
         <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
@@ -112,35 +112,55 @@ export default function DashboardClient({
 
             <main className="flex flex-1 overflow-hidden">
                 <div className="flex h-[calc(100vh-64px)] flex-1 flex-col overflow-hidden">
-                    <div className="scrollbar-hide flex-1 overflow-y-auto p-6">
-                        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                            <ToggleGroup
-                                value={initialTime === 'custom' ? [] : [initialTime]}
-                                onValueChange={(values) => values[0] && handleTimeFilter(values[0])}
-                                variant="outline"
-                                size="sm"
-                                spacing={1}
-                                aria-label="Time range"
-                                className="bg-muted/50 p-1"
-                            >
-                                {TIME_FILTERS.map((filter) => (
-                                    <ToggleGroupItem key={filter.value} value={filter.value} className={toggleItemClassName}>
-                                        {filter.label}
-                                    </ToggleGroupItem>
-                                ))}
-                            </ToggleGroup>
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                        <div className="mb-5">
+                            <div>
+                                <h1 className="text-2xl font-semibold tracking-tight text-white">Bitcoin market dashboard</h1>
+                                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                                    Price history and technical indicators for the selected period.
+                                </p>
+                            </div>
+                        </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
+                        <div className="mb-6 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto]">
+                            <section className="min-w-0 rounded-xl bg-card p-3" aria-labelledby="timeline-controls">
+                                <h2 id="timeline-controls" className="mb-2 text-xs font-medium text-muted-foreground">Timeline</h2>
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <ToggleGroup
+                                        value={initialTime === 'custom' ? [] : [initialTime]}
+                                        onValueChange={(values) => values[0] && handleTimeFilter(values[0])}
+                                        variant="outline"
+                                        size="sm"
+                                        spacing={1}
+                                        aria-label="Time range"
+                                        className="max-w-full bg-muted/50 p-1"
+                                    >
+                                        {TIME_FILTERS.map((filter) => (
+                                            <ToggleGroupItem key={filter.value} value={filter.value} className={toggleItemClassName}>
+                                                {filter.label}
+                                            </ToggleGroupItem>
+                                        ))}
+                                    </ToggleGroup>
                                 <DateRangePicker
                                     key={dateRangeKey}
                                     startDate={startDate}
                                     endDate={endDate}
                                     onChange={handleRangeChange}
                                 />
+                                </div>
+                            </section>
+
+                            <section className="rounded-xl bg-card p-3" aria-labelledby="layer-controls">
+                                <h2 id="layer-controls" className="mb-2 text-xs font-medium text-muted-foreground">Layers</h2>
                                 <IndicatorSelector
                                     selectedIndicators={selectedIndicators}
                                     onToggleIndicator={handleToggleIndicator}
                                 />
+                            </section>
+
+                            <section className="rounded-xl bg-card p-3" aria-labelledby="display-controls">
+                                <h2 id="display-controls" className="mb-2 text-xs font-medium text-muted-foreground">Display</h2>
+                                <div className="flex flex-wrap items-center gap-2">
                                 <ToggleGroup
                                     value={[scaleType]}
                                     onValueChange={(values) => values[0] && setScaleType(values[0] as typeof scaleType)}
@@ -154,7 +174,7 @@ export default function DashboardClient({
                                     <ToggleGroupItem value="logarithmic" className={toggleItemClassName}>Log</ToggleGroupItem>
                                 </ToggleGroup>
                                 <Tooltip>
-                                    <TooltipTrigger render={<Button variant="ghost" size="icon-xs" aria-label="Scale type information" />}>
+                                    <TooltipTrigger render={<Button variant="ghost" size="icon" aria-label="Scale type information" />}>
                                         <Info />
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -192,11 +212,12 @@ export default function DashboardClient({
                                         <ChartCandlestick />
                                     </ToggleGroupItem>
                                 </ToggleGroup>
-                            </div>
+                                </div>
+                            </section>
                         </div>
 
-                        <Card className="mb-6 h-[420px] bg-card/80">
-                            <CardContent className="h-full p-6">
+                        <Card className="mb-6 bg-card">
+                            <CardContent className="p-4 md:p-6">
                                 <PriceChart
                                     data={initialHistoricalData}
                                     loading={false}
@@ -213,11 +234,10 @@ export default function DashboardClient({
 
                         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <StatCard
-                                title="PNL - Daily"
+                                title="Current Bitcoin price"
                                 value={formatPriceWithCurrency(initialMetrics.currentPrice, initialCurrency)}
                                 trend={initialMetrics.change24h >= 0 ? 'up' : 'down'}
-                                subtitle={`${initialMetrics.change24h >= 0 ? '+' : ''}${initialMetrics.changePercent24h.toFixed(2)}%`}
-                                icon={<Wallet />}
+                                subtitle={`24h change ${initialMetrics.changePercent24h >= 0 ? '+' : ''}${initialMetrics.changePercent24h.toFixed(2)}%`}
                             />
                             <StatCard
                                 title={`Variation (${initialTime.toUpperCase()})`}
@@ -225,16 +245,24 @@ export default function DashboardClient({
                                 trend={variation >= 0 ? 'up' : 'down'}
                             />
                             <StatCard
-                                title={`ATH (${initialTime.toUpperCase()})`}
+                                title={`Period high (${initialTime.toUpperCase()})`}
                                 value={periodStats ? formatPriceWithCurrency(periodStats.high, initialCurrency) : '-'}
                                 trend="neutral"
                                 icon={<TrendingUp />}
                             />
                             <StatCard
-                                title={`ATL (${initialTime.toUpperCase()})`}
+                                title={`Period low (${initialTime.toUpperCase()})`}
                                 value={periodStats ? formatPriceWithCurrency(periodStats.low, initialCurrency) : '-'}
                                 trend="neutral"
                                 icon={<TrendingDown />}
+                            />
+                        </div>
+
+                        <div className="mb-6 xl:hidden">
+                            <StatsPanel
+                                metrics={initialMetrics}
+                                loading={false}
+                                currencySymbol={CURRENCY_SYMBOLS[initialCurrency]}
                             />
                         </div>
                     </div>
@@ -242,7 +270,7 @@ export default function DashboardClient({
 
                 <div className="hidden h-[calc(100vh-64px)] flex-row overflow-hidden xl:flex">
                     <div className="relative flex h-full w-3 flex-col items-center justify-center px-1 text-primary">
-                        <Separator orientation="vertical" className="h-32 bg-current transition-all" />
+                        <Separator orientation="vertical" className="h-32 bg-current" />
                         <Button
                             variant="outline"
                             size="icon-xs"
@@ -253,11 +281,17 @@ export default function DashboardClient({
                             <ChevronRight className={cn('transition-transform', !isRightPanelOpen && 'rotate-180')} />
                         </Button>
                     </div>
-                    <div className={cn('overflow-hidden transition-all duration-300', isRightPanelOpen ? 'w-[360px]' : 'w-0')}>
-                        <div className="h-full overflow-y-auto">
-                            <StatsPanel metrics={initialMetrics} loading={false} />
+                    {isRightPanelOpen && (
+                        <div className="w-[360px] overflow-hidden">
+                            <div className="h-full overflow-y-auto">
+                                <StatsPanel
+                                    metrics={initialMetrics}
+                                    loading={false}
+                                    currencySymbol={CURRENCY_SYMBOLS[initialCurrency]}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </main>
         </div>

@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-01T00:00:00+02:00",
+  "title": "Design System: Bitcoin Analysis",
+  "extensions": {
+    "colorMeta": {
+      "bitcoin-signal": {
+        "role": "primary",
+        "displayName": "Bitcoin Signal",
+        "canonical": "#F7931A",
+        "tonalRamp": ["#2B1802", "#4A2904", "#713F08", "#9C590D", "#C97512", "#F7931A", "#FFB45A", "#FFE3BC"]
+      },
+      "bitcoin-hover": {
+        "role": "primary",
+        "displayName": "Bitcoin Hover",
+        "canonical": "#FFA42D",
+        "tonalRamp": ["#2E1C04", "#4D3008", "#75490D", "#A26414", "#D1821F", "#FFA42D", "#FFC477", "#FFE8C4"]
+      },
+      "bitcoin-soft": {
+        "role": "primary",
+        "displayName": "Bitcoin Soft",
+        "canonical": "#FFB45A",
+        "tonalRamp": ["#302007", "#51370C", "#795314", "#A87220", "#D99335", "#FFB45A", "#FFD094", "#FFEDCF"]
+      },
+      "ledger-black": {
+        "role": "neutral",
+        "displayName": "Ledger Black",
+        "canonical": "#07090A",
+        "tonalRamp": ["#07090A", "#111416", "#1D2124", "#30363A", "#4C5358", "#747C82", "#ABB0B4", "#EEF0F1"]
+      },
+      "panel-black": {
+        "role": "neutral",
+        "displayName": "Panel Black",
+        "canonical": "#0B0D0F",
+        "tonalRamp": ["#080A0B", "#0B0D0F", "#181B1E", "#2A2F33", "#454B50", "#6E757B", "#A8ADB1", "#EFF0F1"]
+      },
+      "track-charcoal": {
+        "role": "neutral",
+        "displayName": "Track Charcoal",
+        "canonical": "#1B1E20",
+        "tonalRamp": ["#0B0C0D", "#1B1E20", "#2C3033", "#41464A", "#5D6469", "#828A90", "#B5B9BC", "#F0F1F2"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Primary Text",
+        "canonical": "#FFFFFF",
+        "tonalRamp": ["#262626", "#444444", "#666666", "#888888", "#AAAAAA", "#CCCCCC", "#E8E8E8", "#FFFFFF"]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Text",
+        "canonical": "#FFFFFFB8",
+        "tonalRamp": ["#262626B8", "#444444B8", "#666666B8", "#888888B8", "#AAAAAAB8", "#CCCCCCB8", "#E8E8E8B8", "#FFFFFFB8"]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Muted Text",
+        "canonical": "#FFFFFF73",
+        "tonalRamp": ["#26262673", "#44444473", "#66666673", "#88888873", "#AAAAAA73", "#CCCCCC73", "#E8E8E873", "#FFFFFF73"]
+      },
+      "divider": {
+        "role": "neutral",
+        "displayName": "Divider",
+        "canonical": "#FFFFFF12",
+        "tonalRamp": ["#26262612", "#44444412", "#66666612", "#88888812", "#AAAAAA12", "#CCCCCC12", "#E8E8E812", "#FFFFFF12"]
+      },
+      "gain": {
+        "role": "tertiary",
+        "displayName": "Gain",
+        "canonical": "#34D399",
+        "tonalRamp": ["#06281C", "#0A4430", "#106449", "#188762", "#23AD7D", "#34D399", "#7BE7BD", "#C9F8E7"]
+      },
+      "loss": {
+        "role": "tertiary",
+        "displayName": "Loss",
+        "canonical": "#F87171",
+        "tonalRamp": ["#300A0A", "#511111", "#771B1B", "#A12828", "#CB4242", "#F87171", "#FBA5A5", "#FEDADA"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Dashboard page titles only." },
+      "headline": { "displayName": "Headline", "purpose": "Major values and panel emphasis." },
+      "title": { "displayName": "Title", "purpose": "Panel headings and selected records." },
+      "body": { "displayName": "Body", "purpose": "Explanations and decision notes." },
+      "label": { "displayName": "Label", "purpose": "Navigation, controls, status, and table headers." },
+      "numeric": { "displayName": "Numeric", "purpose": "Tabular prices, percentages, quantities, and risk values." }
+    },
+    "shadows": [
+      { "name": "overlay", "value": "0 8px 24px rgba(0, 0, 0, 0.28)", "purpose": "Popovers, command results, and menus above the app shell." },
+      { "name": "focus-halo", "value": "0 0 0 3px rgba(247, 147, 26, 0.18)", "purpose": "Keyboard focus paired with a solid outline." }
+    ],
+    "motion": [
+      { "name": "duration-fast", "value": "150ms", "purpose": "Hover, focus, and compact feedback." },
+      { "name": "duration-standard", "value": "200ms", "purpose": "Selection, disclosure, and layer changes." },
+      { "name": "ease-out", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Default exit curve for product state transitions." },
+      { "name": "reduced-motion", "value": "0ms", "purpose": "Instant state changes when reduced motion is requested." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single dominant action within a task region.",
+      "html": "<button class=\"ds-btn-primary\">View report</button>",
+      "css": ".ds-btn-primary { height: 32px; border: 0; border-radius: 10px; padding: 0 12px; background: #F7931A; color: #07090A; font: 600 11px/1 Inter, system-ui, sans-serif; transition: background 150ms cubic-bezier(0.25,1,0.5,1), transform 150ms cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { background: #FFA42D; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid #F7931A; outline-offset: 2px; box-shadow: 0 0 0 3px rgba(247,147,26,.18); } .ds-btn-primary:disabled { opacity: .45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "A quiet secondary action that does not compete with analysis.",
+      "html": "<button class=\"ds-btn-ghost\">Add record</button>",
+      "css": ".ds-btn-ghost { height: 32px; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; padding: 0 12px; background: transparent; color: rgba(255,255,255,.72); font: 500 11px/1 Inter, system-ui, sans-serif; transition: background 150ms cubic-bezier(0.25,1,0.5,1), color 150ms cubic-bezier(0.25,1,0.5,1); } .ds-btn-ghost:hover { background: rgba(255,255,255,.04); color: #fff; } .ds-btn-ghost:focus-visible { outline: 2px solid #F7931A; outline-offset: 2px; }"
+    },
+    {
+      "name": "Layer Chip",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "A toggle for chart overlays and time ranges.",
+      "html": "<button class=\"ds-layer-chip\" aria-pressed=\"true\">Purchases</button>",
+      "css": ".ds-layer-chip { border: 1px solid rgba(247,147,26,.25); border-radius: 8px; padding: 6px 8px; background: rgba(247,147,26,.12); color: #FFB45A; font: 500 11px/1 Inter, system-ui, sans-serif; transition: background 150ms cubic-bezier(0.25,1,0.5,1); } .ds-layer-chip:hover { background: rgba(247,147,26,.17); } .ds-layer-chip:focus-visible { outline: 2px solid #F7931A; outline-offset: 2px; }"
+    },
+    {
+      "name": "Analytical Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A flat tonal container for chart, risk, ledger, or account data.",
+      "html": "<section class=\"ds-panel\"><h3>Portfolio risk</h3><p>Exposure remains within the current limit.</p></section>",
+      "css": ".ds-panel { border: 0; border-radius: 14px; padding: 20px; background: #0B0D0F; color: #fff; font-family: Inter, system-ui, sans-serif; } .ds-panel h3 { margin: 0; font-size: 14px; line-height: 1.35; font-weight: 600; } .ds-panel p { margin: 8px 0 0; max-width: 70ch; color: rgba(255,255,255,.72); font-size: 13px; line-height: 1.5; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "A compact search field inside the utility header.",
+      "html": "<label class=\"ds-search\"><span>Search</span><input placeholder=\"Assets, positions, reports\"></label>",
+      "css": ".ds-search { display: grid; gap: 6px; color: rgba(255,255,255,.72); font: 500 11px/1.35 Inter, system-ui, sans-serif; } .ds-search input { height: 36px; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; padding: 0 12px; background: #07090A; color: #fff; font: 400 13px/1 Inter, system-ui, sans-serif; } .ds-search input::placeholder { color: rgba(255,255,255,.45); } .ds-search input:focus-visible { outline: 2px solid #F7931A; outline-offset: 1px; box-shadow: 0 0 0 3px rgba(247,147,26,.18); }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "The current destination in desktop or mobile navigation.",
+      "html": "<a class=\"ds-nav-active\" href=\"#\" aria-current=\"page\"><span>Overview</span><i></i></a>",
+      "css": ".ds-nav-active { display: flex; align-items: center; justify-content: space-between; min-height: 36px; border-radius: 10px; padding: 0 12px; background: rgba(247,147,26,.12); color: #fff; text-decoration: none; font: 500 11px/1 Inter, system-ui, sans-serif; } .ds-nav-active i { width: 6px; height: 6px; border-radius: 9999px; background: #F7931A; } .ds-nav-active:hover { background: rgba(247,147,26,.17); } .ds-nav-active:focus-visible { outline: 2px solid #F7931A; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ledger Row",
+      "kind": "custom",
+      "description": "A synchronized personal event linked to a chart waypoint.",
+      "html": "<button class=\"ds-ledger-row\"><span><strong>Spot buy</strong><small>22 Aug 2026</small></span><span><strong>0.032 BTC</strong><small>Settled</small></span></button>",
+      "css": ".ds-ledger-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; width: 100%; border: 0; border-top: 1px solid rgba(255,255,255,.07); padding: 12px 0; background: transparent; color: #fff; text-align: left; font-family: Inter, system-ui, sans-serif; } .ds-ledger-row span:last-child { text-align: right; } .ds-ledger-row strong { display: block; font-size: 13px; line-height: 1.35; font-weight: 600; font-variant-numeric: tabular-nums; } .ds-ledger-row small { display: block; margin-top: 4px; color: rgba(255,255,255,.45); font-size: 11px; } .ds-ledger-row:hover { background: rgba(255,255,255,.025); } .ds-ledger-row:focus-visible { outline: 2px solid #F7931A; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Orange Ledger",
+    "overview": "The interface is a precise Bitcoin ledger viewed through a modern analytical command center. Prototype A defines the reading order, prototype C supplies the interaction grammar, and prototype D defines the visual finish. The system rejects exchange urgency, generic crypto noise, neon terminal cosplay, and interchangeable SaaS cards.",
+    "keyCharacteristics": [
+      "Bitcoin-only and evidence-led",
+      "Dense, calm, and immediately scannable",
+      "One continuous timeline across market and personal data",
+      "Tonal depth instead of decorative glass or wide shadows",
+      "Orange reserved for Bitcoin, active state, and primary action"
+    ],
+    "rules": [
+      { "name": "The Ten Percent Orange Rule", "body": "Bitcoin Signal occupies no more than roughly ten percent of a screen. Its rarity creates hierarchy.", "section": "colors" },
+      { "name": "The Semantic Override Rule", "body": "Gains stay green and losses stay red. Brand orange never replaces financial meaning.", "section": "colors" },
+      { "name": "The No Glass Rule", "body": "Panels use opaque tonal surfaces. Decorative blur, transparent glass cards, gradient text, and wide orange glow are prohibited.", "section": "colors" },
+      { "name": "The Stable Number Rule", "body": "Every changing financial value uses tabular figures so updates never shift adjacent content.", "section": "typography" },
+      { "name": "The Quiet Label Rule", "body": "Labels use sentence case. Uppercase is limited to tickers, time ranges, and short scale markers.", "section": "typography" },
+      { "name": "The No Terminal Costume Rule", "body": "Monospace may identify source IDs or raw timestamps, but never becomes the default interface face.", "section": "typography" },
+      { "name": "The Tonal First Rule", "body": "Use Ledger Black beside Panel Black before adding any shadow.", "section": "elevation" },
+      { "name": "The Earned Shadow Rule", "body": "Static cards never cast shadows. Only overlays and keyboard focus may leave the surface plane.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use prototype A's reading order: market evidence, personal ledger, exposure, risk, and provenance.",
+      "Do keep prototype C's layer toggles and waypoints synchronized to one continuous timeline.",
+      "Do use the restrained black and Bitcoin Signal system from prototype D, with orange limited to Bitcoin, selection, and primary action.",
+      "Do keep desktop dense and mobile sequential while preserving labels, task order, and essential risk information.",
+      "Do label demo, delayed, estimated, incomplete, and read-only data at the point where it appears.",
+      "Do use familiar financial controls, visible keyboard focus, readable contrast, and tabular figures."
+    ],
+    "donts": [
+      "Don't build generic multi-asset crypto dashboards where Bitcoin competes with token rankings, promotions, or market noise.",
+      "Don't copy exchange interfaces that prioritize order placement, leverage promotion, or urgency over analysis and risk context.",
+      "Don't use neon trading-terminal cosplay, decorative glass panels, excessive glow, or motion without a state change.",
+      "Don't use gamified profit language, confetti, streaks, fear-of-missing-out prompts, or implied financial certainty.",
+      "Don't create dense screens with no clear reading order, unexplained indicators, or metrics detached from source and time.",
+      "Don't use generic AI or SaaS dashboard patterns built around oversized hero metrics and interchangeable cards.",
+      "Don't use gradient text, colored side stripes, custom scrollbars, nested cards, or card radii above 16px.",
+      "Don't use orange for gain or loss, or rely on color alone to communicate financial state."
+    ]
+  }
+}

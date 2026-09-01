@@ -6,43 +6,37 @@ import { buttonVariants } from '@/components/ui/button';
 
 export default function Header() {
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-black/50 border-b border-white/5">
+        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/90">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2">
+                    <Link href="/" className="flex items-center gap-2" aria-label="B.ai home">
                         <Image
                             src="/logo_B_ai_bg_removed.png"
-                            alt="B.ai - Bitcoin AI Analysis"
-                            width={80}
-                            height={40}
-                            className="h-10 w-auto object-contain"
+                            alt=""
+                            width={48}
+                            height={45}
+                            className="object-contain"
                             priority
                         />
                     </Link>
 
-                    {/* Navigation */}
-                    <nav className="hidden md:flex items-center gap-8">
-                        <Link href="#features" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                            Getting started
+                    <nav className="hidden items-center gap-2 md:flex" aria-label="Landing navigation">
+                        <Link href="#capabilities" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                            Capabilities
                         </Link>
-                        <Link href="#components" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                            Components
-                        </Link>
-                        <Link href="#docs" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                            Documentation
+                        <Link
+                            href="https://github.com/DOX69/Bitcoin-analysis"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                        >
+                            Source code
                         </Link>
                     </nav>
 
-                    {/* Auth Buttons */}
-                    <div className="flex items-center gap-3">
-                        <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                            Sign in
-                        </Link>
-                        <Link href="/signup" className={buttonVariants({ size: 'sm' })}>
-                            Sign up
-                        </Link>
-                    </div>
+                    <Link href="/dashboard" className={buttonVariants({ size: 'sm', className: 'min-h-11' })}>
+                        Open dashboard
+                    </Link>
                 </div>
             </div>
         </header>

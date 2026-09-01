@@ -171,7 +171,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ startDate, endDate, o
     return (
         <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger
-                render={<div className="flex w-72 items-center gap-2 rounded-lg border border-input bg-card px-3 py-1.5 transition-colors hover:border-primary/50" />}
+                render={<div className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-input bg-card px-3 py-1.5 transition-colors hover:border-primary/50 sm:w-72" />}
                 nativeButton={false}
             >
                 <CalendarDays className="text-muted-foreground" />

@@ -80,4 +80,42 @@ describe('PriceChart calendar dates and RSI values', () => {
 
         expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
     });
+
+    it('provides a synchronized table alternative to the canvas', () => {
+        render(
+            <PriceChart
+                currencySymbol="$"
+                data={[
+                    {
+                        date: '2026-08-31',
+                        open: 75_000,
+                        high: 78_000,
+                        low: 74_000,
+                        close: 77_000,
+                        volume: 10,
+                        rsi: 51.2,
+                        rsi_status: 'Neutral',
+                    },
+                    {
+                        date: '2026-09-01',
+                        open: 77_000,
+                        high: 80_000,
+                        low: 76_000,
+                        close: 78_623,
+                        volume: 11,
+                        rsi: 54.2,
+                        rsi_status: 'Neutral',
+                    },
+                ]}
+            />,
+        );
+
+        const table = screen.getByRole('table', { name: 'Recent Bitcoin market data' });
+        expect(table).toBeInTheDocument();
+        expect(table).not.toHaveClass('sr-only');
+        expect(table.parentElement).toHaveClass('sr-only');
+        expect(screen.getByRole('columnheader', { name: 'Close' })).toBeInTheDocument();
+        expect(screen.getByText('$78,623.00')).toBeInTheDocument();
+        expect(screen.getByText('54.2')).toBeInTheDocument();
+    });
 });

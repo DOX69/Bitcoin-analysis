@@ -115,15 +115,15 @@ export default function DashboardClient({
                     <div className="flex-1 overflow-y-auto p-4 md:p-6">
                         <div className="mb-5">
                             <div>
-                                <h1 className="text-2xl font-semibold tracking-tight text-white">Bitcoin market dashboard</h1>
-                                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                                <h1 className="text-balance text-2xl font-semibold tracking-tight text-white">Bitcoin market dashboard</h1>
+                                <p className="mt-1 max-w-2xl text-pretty text-sm text-muted-foreground">
                                     Price history and technical indicators for the selected period.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="mb-6 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto]">
-                            <section className="min-w-0 rounded-xl bg-card p-3" aria-labelledby="timeline-controls">
+                        <div className="mb-6 grid gap-3 xl:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_auto_auto]">
+                            <section className="control-surface" aria-labelledby="timeline-controls">
                                 <h2 id="timeline-controls" className="mb-2 text-xs font-medium text-muted-foreground">Timeline</h2>
                                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                                     <ToggleGroup
@@ -133,7 +133,7 @@ export default function DashboardClient({
                                         size="sm"
                                         spacing={1}
                                         aria-label="Time range"
-                                        className="max-w-full bg-muted/50 p-1"
+                                        className="max-w-full flex-wrap bg-muted/50 p-1"
                                     >
                                         {TIME_FILTERS.map((filter) => (
                                             <ToggleGroupItem key={filter.value} value={filter.value} className={toggleItemClassName}>
@@ -150,7 +150,7 @@ export default function DashboardClient({
                                 </div>
                             </section>
 
-                            <section className="rounded-xl bg-card p-3" aria-labelledby="layer-controls">
+                            <section className="control-surface" aria-labelledby="layer-controls">
                                 <h2 id="layer-controls" className="mb-2 text-xs font-medium text-muted-foreground">Layers</h2>
                                 <IndicatorSelector
                                     selectedIndicators={selectedIndicators}
@@ -158,7 +158,7 @@ export default function DashboardClient({
                                 />
                             </section>
 
-                            <section className="rounded-xl bg-card p-3" aria-labelledby="display-controls">
+                            <section className="control-surface xl:col-span-2 2xl:col-span-1" aria-labelledby="display-controls">
                                 <h2 id="display-controls" className="mb-2 text-xs font-medium text-muted-foreground">Display</h2>
                                 <div className="flex flex-wrap items-center gap-2">
                                 <ToggleGroup
@@ -282,7 +282,7 @@ export default function DashboardClient({
                         </Button>
                     </div>
                     {isRightPanelOpen && (
-                        <div className="w-[360px] overflow-hidden">
+                        <div className="w-[360px] overflow-hidden border-l border-border/60">
                             <div className="h-full overflow-y-auto">
                                 <StatsPanel
                                     metrics={initialMetrics}

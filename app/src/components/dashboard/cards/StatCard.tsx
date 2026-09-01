@@ -45,7 +45,7 @@ const StatCard: React.FC<StatCardProps> = ({
                 {loading ? (
                     <Skeleton className="h-8 w-full bg-muted/70" />
                 ) : (
-                    <div className="text-xl font-bold text-white">
+                    <div className="text-xl font-bold tabular-nums text-white">
                         {typeof value === 'number'
                             ? value.toLocaleString('en-US', { minimumFractionDigits: 2 })
                             : value}

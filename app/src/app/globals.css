@@ -60,17 +60,25 @@
   padding: 1.25rem;
 }
 
+.control-surface {
+  min-width: 0;
+  border-radius: 1.25rem;
+  background: #0b0d0f;
+  padding: 0.75rem;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 6%), 0 10px 24px -18px rgb(0 0 0 / 90%);
+}
+
 .stat-card {
-  border: 1px solid var(--border);
   border-radius: 12px;
   background: #0b0d0f;
   padding: 1rem 1.25rem;
-  transition: border-color 180ms ease-out, background-color 180ms ease-out;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 8%), 0 8px 20px -16px rgb(0 0 0 / 90%);
+  transition: box-shadow 180ms ease-out, background-color 180ms ease-out;
 }
 
 .stat-card:hover {
-  border-color: rgb(247 147 26 / 32%);
   background: #0e1113;
+  box-shadow: 0 0 0 1px rgb(247 147 26 / 32%), 0 12px 28px -18px rgb(247 147 26 / 18%);
 }
 
 @theme inline {

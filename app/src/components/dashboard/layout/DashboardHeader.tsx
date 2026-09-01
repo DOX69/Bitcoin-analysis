@@ -20,13 +20,17 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ currentPage = 'Dashbo
     return (
         <header className="dashboard-header">
             <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2 md:px-6">
-                <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="B.ai home">
+                <Link
+                    href="/"
+                    className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-1 outline-none transition-opacity duration-200 hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50"
+                    aria-label="B.ai home"
+                >
                         <Image
                             src="/logo_B_ai_bg_removed.png"
                             alt=""
                             width={38}
                             height={36}
-                            className="rounded-lg"
+                            className="rounded-lg outline outline-1 -outline-offset-1 outline-white/10"
                         />
                         <span className="text-lg font-semibold text-white">B.ai</span>
                 </Link>

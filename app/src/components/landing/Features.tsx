@@ -25,10 +25,10 @@ export default function Features() {
         <section id="capabilities" className="relative px-4 py-24">
             <div className="max-w-6xl mx-auto">
                 <div className="mb-12 max-w-2xl">
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                    <h2 className="mb-4 text-balance text-3xl font-bold text-white md:text-4xl">
                         What the dashboard shows
                     </h2>
-                    <p className="text-muted-foreground">
+                    <p className="text-pretty text-muted-foreground">
                         A read-only view of Bitcoin market data. It does not place trades or create personal positions.
                     </p>
                 </div>

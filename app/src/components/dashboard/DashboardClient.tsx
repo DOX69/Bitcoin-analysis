@@ -12,7 +12,7 @@ import {
 } from '@/components/dashboard';
 import type { BitcoinMetrics, BitcoinPrice } from '@/lib/schemas';
 import type { Currency } from '@/lib/bitcoin-data-server';
-import { formatMarketDate, formatPriceWithCurrency } from '@/lib/format-utils';
+import { formatMarketDate, formatPriceDate, formatPriceWithCurrency } from '@/lib/format-utils';
 import IndicatorSelector from '@/components/dashboard/IndicatorSelector';
 import MobileChartSettings from '@/components/dashboard/MobileChartSettings';
 import { Button } from '@/components/ui/button';
@@ -90,6 +90,7 @@ export default function DashboardClient({
         if (start) params.set('start', start); else params.delete('start');
         if (end) params.set('end', end); else params.delete('end');
         if (start && end) params.set('time', 'custom');
+        else if (!start && !end) params.set('time', '6m');
         startTransition(() => router.push(`?${params.toString()}`, { scroll: false }));
     };
 
@@ -128,7 +129,7 @@ export default function DashboardClient({
                         <section className="mb-5 md:hidden" aria-label="Bitcoin price">
                             <h1 className="flex items-center gap-2 text-sm font-medium"><span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden="true">₿</span> Bitcoin <span className="text-muted-foreground">BTC</span></h1>
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                                <p className="text-[2rem] font-semibold leading-tight tracking-tight tabular-nums"><span className="sr-only">Latest daily close </span>{formatPriceWithCurrency(initialMetrics.currentPrice, initialCurrency)}</p>
+                                <p className="text-[2rem] font-semibold leading-tight tracking-tight tabular-nums"><span className="sr-only">Latest observed price </span>{formatPriceWithCurrency(initialMetrics.currentPrice, initialCurrency)}</p>
                                 {variation !== null ? (
                                     <span className={cn('flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-semibold tabular-nums', variation >= 0 ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive')}>
                                         <span className="sr-only">{periodLabel} performance: </span>
@@ -270,7 +271,7 @@ export default function DashboardClient({
 
                         <section className="mb-5 rounded-xl bg-card p-4 md:hidden" aria-label="Period statistics">
                             <h2 className="text-sm font-medium">Period statistics <span className="ml-1 text-xs text-muted-foreground">{periodLabel}</span></h2>
-                            {periodStats && <p className="mt-1 text-xs text-muted-foreground">Through {formatMarketDate(periodStats.end.date)}</p>}
+                            {periodStats && <p className="mt-1 text-xs text-muted-foreground">Through {formatPriceDate(periodStats.end)}</p>}
                             <dl className="mt-3 grid grid-cols-3 divide-x divide-border text-xs">
                                 <div className="pr-2"><dt className="text-muted-foreground">Close</dt><dd className="mt-2 font-semibold tabular-nums">{periodStats ? formatPriceWithCurrency(periodStats.end.close, initialCurrency) : '-'}</dd></div>
                                 <div className="px-2"><dt className="text-muted-foreground">High</dt><dd className="mt-2 font-semibold tabular-nums">{periodStats ? formatPriceWithCurrency(periodStats.high, initialCurrency) : '-'}</dd></div>
@@ -280,7 +281,7 @@ export default function DashboardClient({
 
                         <div className="mb-6 hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-4">
                             <StatCard
-                                    title="Latest daily close"
+                                    title="Latest observed price"
                                 value={formatPriceWithCurrency(initialMetrics.currentPrice, initialCurrency)}
                                 trend={initialMetrics.change24h >= 0 ? 'up' : 'down'}
                                 subtitle={`24h change ${initialMetrics.changePercent24h >= 0 ? '+' : ''}${initialMetrics.changePercent24h.toFixed(2)}%`}

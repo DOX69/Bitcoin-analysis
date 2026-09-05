@@ -4,6 +4,8 @@ import {
     AggregatedDataListSchema,
     BitcoinHistorySchema,
     BitcoinMetricsSchema,
+    SqlNumberSchema,
+    CalendarDateSchema,
 } from './schemas';
 
 export type Currency = 'USD' | 'CHF' | 'EUR';
@@ -78,45 +80,38 @@ export const convertPrice = (
 
 export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD') => {
     try {
-        const ratesPromise = currency === 'USD' ? Promise.resolve(null) : getCurrencyRates();
-        const [results, rates] = await Promise.all([
-            executeQuery<{
-                observed_at?: Date | string;
-                current_price: unknown;
-                high_24h: unknown;
-                low_24h: unknown;
-                volume_24h: unknown;
-                rsi: unknown;
-            }>(`
-                SELECT
-                    date_prices::text AS observed_at,
-                    close_usd AS current_price,
-                    high_usd AS high_24h,
-                    low_usd AS low_24h,
-                    volume AS volume_24h,
-                    rsi
-                FROM ${TABLES.daily}
-                ORDER BY date_prices DESC
-                LIMIT 2
-            `),
-            ratesPromise,
-        ]);
+        const currencySuffix = CURRENCY_COLUMN_SUFFIXES.get(currency) ?? 'usd';
+        const results = await executeQuery<{
+            observed_at?: Date | string;
+            current_price: unknown;
+            high_24h: unknown;
+            low_24h: unknown;
+            volume_24h: unknown;
+            rsi: unknown;
+        }>(`
+            SELECT
+                date_prices::text AS observed_at,
+                close_${currencySuffix} AS current_price,
+                high_${currencySuffix} AS high_24h,
+                low_${currencySuffix} AS low_24h,
+                volume AS volume_24h,
+                rsi
+            FROM ${TABLES.daily}
+            ORDER BY date_prices DESC
+            LIMIT 2
+        `);
 
         if (results.length < 2) {
             throw new Error('Insufficient data to calculate metrics');
         }
 
-        const convert = (value: unknown) => {
-            const price = Number(value);
-            return rates ? convertPrice(price, currency, rates) : price;
-        };
-        const currentPrice = convert(results[0].current_price);
-        const previousPrice = convert(results[1].current_price);
+        const currentPrice = SqlNumberSchema.parse(results[0].current_price);
+        const previousPrice = SqlNumberSchema.parse(results[1].current_price);
         const change24h = currentPrice - previousPrice;
         const observation = results[0].observed_at;
-        const observedAt = observation instanceof Date
+        const observedAt = CalendarDateSchema.optional().parse(observation instanceof Date
             ? observation.toISOString().slice(0, 10)
-            : observation?.slice(0, 10);
+            : observation);
         const dataAgeDays = observedAt
             ? Math.max(0, Math.floor((Date.now() - Date.parse(`${observedAt}T00:00:00Z`)) / MILLISECONDS_PER_DAY))
             : undefined;
@@ -127,10 +122,10 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
             currentPrice,
             change24h,
             changePercent24h: (change24h / previousPrice) * 100,
-            volume24h: Number(results[0].volume_24h),
-            high24h: convert(results[0].high_24h),
-            low24h: convert(results[0].low_24h),
-            rsi: results[0].rsi == null ? undefined : Number(results[0].rsi),
+            volume24h: SqlNumberSchema.parse(results[0].volume_24h),
+            high24h: SqlNumberSchema.parse(results[0].high_24h),
+            low24h: SqlNumberSchema.parse(results[0].low_24h),
+            rsi: results[0].rsi == null ? null : SqlNumberSchema.parse(results[0].rsi),
         });
     } catch (error) {
         console.error('DB_ERROR: Failed to fetch Bitcoin metrics:', error);
@@ -216,7 +211,9 @@ export const getHistoricalPrices = cache(async (
             ORDER BY ${dateColumn} ASC
         `, parameters);
 
-        return BitcoinHistorySchema.parse(results);
+        return BitcoinHistorySchema.parse(results.map(row => ({
+            ...row, aggregation: useMonthlyAggregation ? 'monthly' : 'daily',
+        })));
     } catch (error) {
         console.error('Failed to fetch historical prices:', error);
         throw error;
@@ -230,7 +227,7 @@ export const getAggregatedData = cache(async (
         const { table, dateColumn, dateTrunc } = AGGREGATIONS[aggregation];
         const results = await executeQuery<Record<string, unknown>>(`
             SELECT
-                aggregated.${dateColumn} AS period,
+                aggregated.${dateColumn}::text AS period,
                 AVG(daily.close_usd) AS "avgPrice",
                 aggregated.high_usd AS "maxPrice",
                 aggregated.low_usd AS "minPrice",

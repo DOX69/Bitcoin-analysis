@@ -23,7 +23,7 @@ import { Chart } from 'react-chartjs-2';
 import { BitcoinPrice } from '@/lib/schemas';
 import {
     formatPrice,
-    formatMarketDate as formatDate,
+    formatPriceDate,
     getCalendarDateTimestamp,
     parseCalendarDate,
 } from '@/lib/format-utils';
@@ -417,9 +417,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         const firstItem = context[0];
                         const rawTimestamp = getRawX(firstItem?.raw);
                         if (rawTimestamp !== undefined) {
-                            return formatDate(new Date(rawTimestamp).toISOString());
+                            return formatPriceDate({ date: new Date(rawTimestamp).toISOString(), aggregation: data[0]?.aggregation });
                         }
-                        return formatDate(firstItem?.label ?? '');
+                        return formatPriceDate({ date: firstItem?.label ?? '', aggregation: data[0]?.aggregation });
                     },
                     label: function (context: ChartTooltipItem) {
                         const value = getParsedY(context);
@@ -601,7 +601,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     {data.length > 0 && (
                         <>
                             <div className="sr-only md:not-sr-only md:mt-3 md:flex md:flex-wrap md:gap-x-5 md:gap-y-1 md:border-t md:border-border md:pt-3 md:text-xs md:text-muted-foreground">
-                                <span>Period close · {formatDate(data[data.length - 1].date)} <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
+                                <span>Period close · {formatPriceDate(data[data.length - 1])} <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
                                 <span>Period high <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.max(...data.map((item) => item.high)))}</strong></span>
                                 <span>Period low <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.min(...data.map((item) => item.low)))}</strong></span>
                             </div>
@@ -621,7 +621,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                                     <tbody>
                                         {data.slice(-10).reverse().map((item) => (
                                             <tr key={item.date}>
-                                                <th scope="row">{formatDate(item.date)}</th>
+                                                <th scope="row">{formatPriceDate(item)}</th>
                                                 <td>{formatAccessiblePrice(item.close, currencySymbol || '$')}</td>
                                                 <td>{formatAccessiblePrice(item.high, currencySymbol || '$')}</td>
                                                 <td>{formatAccessiblePrice(item.low, currencySymbol || '$')}</td>

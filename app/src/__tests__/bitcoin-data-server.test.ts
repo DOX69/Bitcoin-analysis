@@ -66,7 +66,7 @@ describe('Bitcoin API', () => {
             expect(result.rsi).toBe(0);
         });
 
-        it('rejects current metrics when RSI is missing', async () => {
+        it('returns current prices when RSI is missing', async () => {
             const mockData = [
                 {
                     current_price: '43500',
@@ -86,7 +86,7 @@ describe('Bitcoin API', () => {
 
             (executeQuery as jest.Mock).mockResolvedValue(mockData);
 
-            await expect(getCurrentBitcoinMetrics()).rejects.toThrow();
+            await expect(getCurrentBitcoinMetrics()).resolves.toMatchObject({ currentPrice: 43500, rsi: null });
         });
 
         it('should return current Bitcoin metrics with correct calculations', async () => {
@@ -123,6 +123,29 @@ describe('Bitcoin API', () => {
             });
         });
 
+        it('uses stored EUR prices for both observations without latest FX conversion', async () => {
+            (executeQuery as jest.Mock).mockImplementation(async (query: string) => {
+                if (query.includes('usd_to_other')) return [{ rate_usd_chf: 0.8, rate_usd_eur: 0.95 }];
+                const storedCurrency = query.includes('close_eur AS current_price');
+                return [
+                    { current_price: storedCurrency ? '90' : '100', high_24h: '99', low_24h: '80', volume_24h: '10', rsi: '50' },
+                    { current_price: storedCurrency ? '80' : '100', high_24h: '90', low_24h: '70', volume_24h: '10', rsi: '50' },
+                ];
+            });
+            const result = await getCurrentBitcoinMetrics('EUR');
+            expect(result).toMatchObject({ currentPrice: 90, high24h: 99, low24h: 80, change24h: 10, changePercent24h: 12.5 });
+            expect(executeQuery).toHaveBeenCalledTimes(1);
+            expect((executeQuery as jest.Mock).mock.calls[0][0]).toMatch(/high_eur AS high_24h/);
+        });
+
+        it('rejects null metric prices instead of turning them into zero', async () => {
+            (executeQuery as jest.Mock).mockResolvedValue([
+                { current_price: null, high_24h: '99', low_24h: '80', volume_24h: '10', rsi: '50' },
+                { current_price: '80', high_24h: '90', low_24h: '70', volume_24h: '10', rsi: '50' },
+            ]);
+            await expect(getCurrentBitcoinMetrics()).rejects.toThrow();
+        });
+
         it('should throw error when query fails', async () => {
             (executeQuery as jest.Mock).mockRejectedValue(new Error('Connection failed'));
 
@@ -130,7 +153,7 @@ describe('Bitcoin API', () => {
         });
 
         it('should throw error when data is insufficient', async () => {
-            (executeQuery as jest.Mock).mockResolvedValue([{ close_usd: 43500 }]);
+            (executeQuery as jest.Mock).mockResolvedValue([{ close: 43500 }]);
 
             await expect(getCurrentBitcoinMetrics()).rejects.toThrow('Insufficient data to calculate metrics');
         });
@@ -237,11 +260,11 @@ describe('Bitcoin API', () => {
 
         it('should return historical price data for specified days', async () => {
             const mockPrices = Array.from({ length: 30 }, (_, i) => ({
-                date_prices: `2024-01-${String(i + 1).padStart(2, '0')}`,
-                open_usd: 42000 + i * 100,
-                high_usd: 43000 + i * 100,
-                low_usd: 41000 + i * 100,
-                close_usd: 42500 + i * 100,
+                date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+                open: 42000 + i * 100,
+                high: 43000 + i * 100,
+                low: 41000 + i * 100,
+                close: 42500 + i * 100,
                 volume: 25000000000,
                 rsi: 50,
                 rsi_status: 'Neutral',
@@ -265,11 +288,11 @@ describe('Bitcoin API', () => {
         it('should validate OHLC data integrity', async () => {
             const mockPrices = [
                 {
-                    date_prices: '2024-01-01',
-                    open_usd: 42000,
-                    high_usd: 43000,
-                    low_usd: 41000,
-                    close_usd: 42500,
+                    date: '2024-01-01',
+                    open: 42000,
+                    high: 43000,
+                    low: 41000,
+                    close: 42500,
                     volume: 25000000000,
                     rsi: 50,
                     rsi_status: 'Neutral',
@@ -302,6 +325,7 @@ describe('Bitcoin API', () => {
             const [query] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(query).toMatch(/AVG\(daily\.close_usd\)/i);
+            expect(query).toMatch(/aggregated\.iso_week_start_date::text AS period/);
             expect(query).toMatch(/SUM\(daily\.volume\)/i);
             expect(query).not.toMatch(/0\s+AS\s+"totalVolume"/i);
         });
@@ -309,7 +333,7 @@ describe('Bitcoin API', () => {
         it('should return weekly aggregated data', async () => {
             const mockAggregated = [
                 {
-                    period: '2024-W01',
+                    period: '2024-01-01',
                     avgPrice: 42500,
                     maxPrice: 44000,
                     minPrice: 41000,
@@ -323,7 +347,7 @@ describe('Bitcoin API', () => {
 
             expect(result).toHaveLength(1);
             expect(result[0]).toMatchObject({
-                period: '2024-W01',
+                period: '2024-01-01',
                 avgPrice: 42500,
                 maxPrice: 44000,
                 minPrice: 41000,

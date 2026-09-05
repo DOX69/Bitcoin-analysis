@@ -1,12 +1,14 @@
 import React from 'react';
 import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import DashboardClient from '../DashboardClient';
+import { DashboardSearchParamsSchema } from '@/lib/schemas';
 
 const mockPush = jest.fn();
+let mockQuery = '';
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => new URLSearchParams(mockQuery),
 }));
 
 jest.mock('@/components/dashboard', () => ({
@@ -19,7 +21,7 @@ jest.mock('@/components/dashboard', () => ({
             {subtitle && <p>{subtitle}</p>}
         </article>
     ),
-    DateRangePicker: () => <button type="button">Date range</button>,
+    DateRangePicker: ({ onChange }: { onChange: (start: string, end: string) => void }) => <button type="button" onClick={() => onChange('', '')}>Clear date range</button>,
     PriceChart: ({ type, showRsi, showSma, showEma, scaleType }: { type: string; showRsi: boolean; showSma: boolean; showEma: boolean; scaleType: string }) => (
         <div data-testid="price-chart" data-type={type} data-rsi={showRsi} data-sma={showSma} data-ema={showEma} data-scale={scaleType}>Price chart</div>
     ),
@@ -57,7 +59,7 @@ describe('DashboardClient market truth', () => {
         render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
         const ranges = screen.getByRole('group', { name: 'Chart time range' });
         for (const label of ['1W', '1M', '1Y', 'YTD', 'ALL']) {
-            fireEvent.click(within(ranges).getByRole('button', { name: label, exact: true }));
+            fireEvent.click(within(ranges).getByRole('button', { name: label }));
             expect(mockPush).toHaveBeenLastCalledWith(`?time=${label.toLowerCase()}`, { scroll: false });
         }
     });
@@ -65,7 +67,7 @@ describe('DashboardClient market truth', () => {
     it('shows selected period performance beside the mobile price without a separate return label', () => {
         render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
         const price = screen.getByRole('region', { name: 'Bitcoin price' });
-        expect(within(price).getByText('Latest daily close')).toBeInTheDocument();
+        expect(within(price).getByText('Latest observed price')).toBeInTheDocument();
         expect(within(price).getByText(/\+4.83%/)).toBeInTheDocument();
         expect(within(price).getByText('6M performance · USD')).toBeInTheDocument();
         expect(screen.queryByText('6M return')).not.toBeInTheDocument();
@@ -127,10 +129,30 @@ describe('DashboardClient market truth', () => {
         );
 
         expect(screen.getByRole('heading', { name: 'Bitcoin market dashboard' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Latest daily close' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Latest observed price' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Period high (6M)' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Period low (6M)' })).toBeInTheDocument();
         expect(screen.queryByText(/PNL|ATH|ATL/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/PostgreSQL.*updated daily/i)).not.toBeInTheDocument();
     });
+});
+
+
+it('identifies the latest monthly period without claiming its close occurred on the first', () => {
+    render(<DashboardClient initialMetrics={metrics} initialHistoricalData={[{ ...history[0], date: '2026-08-01', aggregation: 'monthly' }]} selectedTime="all" startDate="" endDate="" selectedCurrency="USD" />);
+    expect(screen.getByText('Through Aug 2026 (monthly aggregate)')).toBeInTheDocument();
+    expect(screen.queryByText('Through 1 Aug 2026')).not.toBeInTheDocument();
+});
+
+
+it('clears a custom date range to a valid default view', () => {
+    mockPush.mockClear();
+    mockQuery = 'time=custom&start=2024-01-01&end=2024-02-01&currency=CHF';
+    try {
+        render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="custom" startDate="2024-01-01" endDate="2024-02-01" selectedCurrency="CHF" />);
+        fireEvent.click(screen.getByRole('button', { name: 'Clear date range' }));
+        expect(mockPush).toHaveBeenCalledWith('?time=6m&currency=CHF', { scroll: false });
+        const params = new URLSearchParams(mockPush.mock.calls[0][0].slice(1));
+        expect(DashboardSearchParamsSchema.safeParse({ time: params.get('time'), currency: params.get('currency'), startDate: params.get('start') ?? undefined, endDate: params.get('end') ?? undefined }).success).toBe(true);
+    } finally { mockQuery = ''; }
 });

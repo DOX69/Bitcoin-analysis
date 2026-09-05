@@ -135,3 +135,11 @@ describe('PriceChart calendar dates and RSI values', () => {
         expect(screen.getByText('54.2')).toBeInTheDocument();
     });
 });
+
+
+it('labels a monthly close by aggregation month, not an observation on the first', () => {
+    render(<PriceChart data={[{ date: '2026-08-01', aggregation: 'monthly', open: 75, high: 80, low: 70, close: 78, volume: 0, rsi_status: 'Neutral' }]} />);
+    expect(screen.getByText(/Period close .* Aug 2026 \(monthly aggregate\)/)).toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: 'Aug 2026 (monthly aggregate)' })).toBeInTheDocument();
+    expect(screen.queryByText(/1 Aug 2026/)).not.toBeInTheDocument();
+});

@@ -1,4 +1,5 @@
 
+import type { BitcoinPrice } from './schemas';
 import type { Currency } from './bitcoin-data-server';
 
 export const formatPrice = (value: number): string => {
@@ -39,6 +40,16 @@ export const getCalendarDateTimestamp = (value: string): number => {
 export const formatMarketDate = (value: string): string => new Intl.DateTimeFormat('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
 }).format(parseCalendarDate(value));
+
+export const formatPriceDate = (price: Pick<BitcoinPrice, 'date' | 'aggregation'>): string => {
+    if (price.aggregation === 'monthly') {
+        const month = new Intl.DateTimeFormat('en-GB', {
+            month: 'short', year: 'numeric', timeZone: 'UTC',
+        }).format(parseCalendarDate(price.date));
+        return `${month} (monthly aggregate)`;
+    }
+    return formatMarketDate(price.date);
+};
 
 export const formatDate = (dateStr: string): string => {
     const date = parseCalendarDate(dateStr);

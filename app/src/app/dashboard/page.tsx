@@ -1,9 +1,11 @@
 
 import {
     getCurrentBitcoinMetrics,
-    getHistoricalPrices,
-    type Currency
+    getHistoricalPrices
 } from '@/lib/bitcoin-data-server';
+import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { DashboardSearchParamsSchema } from '@/lib/schemas';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,10 +22,26 @@ interface PageProps {
 
 export default async function Dashboard({ searchParams }: PageProps) {
     const params = await searchParams;
-    const selectedTime = params.time || '6m';
-    const startDate = params.start;
-    const endDate = params.end;
-    const selectedCurrency = (params.currency as Currency) || 'USD';
+    const validation = DashboardSearchParamsSchema.safeParse({
+        time: params.time,
+        currency: params.currency,
+        startDate: params.start,
+        endDate: params.end,
+    });
+    if (!validation.success) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+                <Alert variant="destructive" className="max-w-md gap-4 p-8">
+                    <AlertTitle>Invalid dashboard filters</AlertTitle>
+                    <AlertDescription>
+                        <p>Choose a supported time range and currency. Custom ranges need two valid dates, with the end on or after the start.</p>
+                        <Link href="/dashboard" className="mt-4 inline-block underline">Reset filters</Link>
+                    </AlertDescription>
+                </Alert>
+            </main>
+        );
+    }
+    const { time: selectedTime, startDate, endDate, currency: selectedCurrency } = validation.data;
 
     const getDaysForFilter = (filter: string) => {
         switch (filter) {

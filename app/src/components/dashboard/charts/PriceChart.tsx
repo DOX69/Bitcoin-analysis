@@ -555,7 +555,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 </div>
             ) : (
                 <div className="w-full" key={`${type}-${showRsi}-${data.length}`}>
-                    <div className="h-[320px] w-full md:h-[360px]" aria-hidden="true">
+                    <div className="h-[var(--mobile-chart-height)] w-full md:h-[360px]" style={{ '--mobile-chart-height': `${320 + (showRsi ? 90 : 0) + (showMacd ? 110 : 0)}px` } as React.CSSProperties} aria-hidden="true">
                         <Chart
                             type={type === 'candlestick' ? 'candlestick' : 'line'}
                             data={chartData}
@@ -564,7 +564,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     </div>
                     {data.length > 0 && (
                         <>
-                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
+                            <div className="sr-only md:not-sr-only md:mt-3 md:flex md:flex-wrap md:gap-x-5 md:gap-y-1 md:border-t md:border-border md:pt-3 md:text-xs md:text-muted-foreground">
                                 <span>Latest close <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
                                 <span>Period high <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.max(...data.map((item) => item.high)))}</strong></span>
                                 <span>Period low <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.min(...data.map((item) => item.low)))}</strong></span>

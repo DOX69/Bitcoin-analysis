@@ -60,14 +60,6 @@
   padding: 1.25rem;
 }
 
-.control-surface {
-  min-width: 0;
-  border-radius: 1.25rem;
-  background: #0b0d0f;
-  padding: 0.75rem;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 6%), 0 10px 24px -18px rgb(0 0 0 / 90%);
-}
-
 .stat-card {
   border-radius: 12px;
   background: #0b0d0f;

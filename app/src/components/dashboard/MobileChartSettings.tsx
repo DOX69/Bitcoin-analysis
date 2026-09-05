@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog } from '@base-ui/react/dialog';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -22,13 +22,13 @@ interface MobileChartSettingsProps {
 }
 
 const indicators = [
-    { id: 'sma', label: 'SMA', detail: '7, 50, 200-day averages' },
-    { id: 'ema', label: 'EMA', detail: '7, 50, 200-day averages' },
+    { id: 'sma', label: 'SMA', detail: 'Simple averages · 7, 50, 200 days' },
+    { id: 'ema', label: 'EMA', detail: 'Exponential averages · 7, 50, 200 days' },
     { id: 'rsi', label: 'RSI', detail: 'Relative Strength Index' },
     { id: 'macd', label: 'MACD', detail: 'Momentum and signal' },
 ];
 
-function MobileDateRange({ startDate, endDate, onRangeChange }: Pick<MobileChartSettingsProps, 'startDate' | 'endDate' | 'onRangeChange'>) {
+function MobileDateRange({ startDate, endDate, onRangeChange, pending }: Pick<MobileChartSettingsProps, 'startDate' | 'endDate' | 'onRangeChange'> & { pending: boolean }) {
     const [start, setStart] = useState(startDate);
     const [end, setEnd] = useState(endDate);
 
@@ -38,16 +38,25 @@ function MobileDateRange({ startDate, endDate, onRangeChange }: Pick<MobileChart
                 <label className="min-w-0 text-xs text-muted-foreground">From<Input type="date" aria-label="Start date" value={start} max={end || undefined} onChange={(event) => setStart(event.target.value)} required className="mt-2 min-h-11 min-w-0 w-full text-base [color-scheme:dark]" /></label>
                 <label className="min-w-0 text-xs text-muted-foreground">To<Input type="date" aria-label="End date" value={end} min={start || undefined} onChange={(event) => setEnd(event.target.value)} required className="mt-2 min-h-11 min-w-0 w-full text-base [color-scheme:dark]" /></label>
             </div>
-            <Button type="submit" variant="secondary" className="min-h-11 w-full" disabled={!start || !end || start > end}>Apply dates</Button>
+            {start && end && start > end && <p role="alert" className="text-sm text-destructive">End date must be on or after start date.</p>}
+            <Button type="submit" className="min-h-11 w-full" disabled={pending || !start || !end || start > end}>{pending ? 'Applying dates…' : 'Apply dates'}</Button>
         </form>
     );
 }
 
 export default function MobileChartSettings(props: MobileChartSettingsProps) {
+    const [open, setOpen] = useState(false);
+    const [pending, startTransition] = useTransition();
+    const applyDates = (start: string, end: string) => {
+        startTransition(() => {
+            props.onRangeChange(start, end);
+            setOpen(false);
+        });
+    };
     const itemClassName = 'min-h-11 px-3 aria-pressed:bg-primary aria-pressed:text-primary-foreground';
 
     return (
-        <Dialog.Root>
+        <Dialog.Root open={open} onOpenChange={setOpen}>
             <Dialog.Trigger render={<Button variant="ghost" size="icon" className="relative size-11" aria-label="Chart settings" />}>
                 <SlidersHorizontal className="size-5" />
                 {props.selectedIndicators.size > 0 && (
@@ -77,7 +86,7 @@ export default function MobileChartSettings(props: MobileChartSettingsProps) {
                                 </button>
                             ))}
                         </div>
-                        <h2 className="mb-2 mt-6 text-sm font-medium text-muted-foreground">Display</h2>
+                        <h2 className="mb-2 mt-5 text-sm font-medium text-muted-foreground">Display</h2>
                         <div className="divide-y divide-border rounded-xl bg-background px-4">
                             <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 py-2">
                                 <span className="text-sm">Scale</span>
@@ -86,6 +95,7 @@ export default function MobileChartSettings(props: MobileChartSettingsProps) {
                                     <ToggleGroupItem value="logarithmic" className={itemClassName}>Log</ToggleGroupItem>
                                 </ToggleGroup>
                             </div>
+                            <p className="py-2 text-xs text-muted-foreground">Linear compares price amounts. Log compares percentage changes.</p>
                             <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 py-2">
                                 <span className="text-sm">Currency</span>
                                 <ToggleGroup value={[props.currency]} onValueChange={(values) => values[0] && props.onCurrencyChange(values[0] as Currency)} aria-label="Chart currency" spacing={0} className="bg-muted p-1">
@@ -94,7 +104,7 @@ export default function MobileChartSettings(props: MobileChartSettingsProps) {
                             </div>
                         </div>
                         <h2 className="mt-6 text-sm font-medium text-muted-foreground">Custom dates</h2>
-                        <MobileDateRange key={`${props.startDate}:${props.endDate}`} startDate={props.startDate} endDate={props.endDate} onRangeChange={props.onRangeChange} />
+                        <MobileDateRange key={`${props.startDate}:${props.endDate}`} startDate={props.startDate} endDate={props.endDate} onRangeChange={applyDates} pending={pending} />
                     </div>
                 </Dialog.Popup>
             </Dialog.Portal>

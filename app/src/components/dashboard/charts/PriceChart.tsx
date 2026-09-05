@@ -18,12 +18,12 @@ import {
     TimeSeriesScale,
     LogarithmicScale
 } from 'chart.js';
-import type { ScriptableContext, TooltipItem } from 'chart.js';
+import type { Scale, ScriptableContext, TooltipItem } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { BitcoinPrice } from '@/lib/schemas';
 import {
     formatPrice,
-    formatDate,
+    formatMarketDate as formatDate,
     getCalendarDateTimestamp,
     parseCalendarDate,
 } from '@/lib/format-utils';
@@ -227,7 +227,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
                 fill: true,
                 tension: 0.4,
-                pointRadius: 0,
+                pointRadius: sanitizedData.length === 1 ? 4 : 0,
                 pointHoverRadius: 6,
                 pointHoverBackgroundColor: '#FFA42D',
                 pointHoverBorderColor: '#fff',
@@ -468,7 +468,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     drawBorder: false,
                 },
                 ticks: {
-                    color: '#6b7280',
+                    color: '#b8b8b8',
                     maxTicksLimit: 8,
                     autoSkip: true,
                     font: {
@@ -478,6 +478,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
             },
             y: {
                 type: scaleType,
+                afterBuildTicks: (axis: Scale) => {
+                    if (scaleType !== 'logarithmic') return;
+                    const minimumGap = Math.log10(axis.max / axis.min) / 5;
+                    let previous = -Infinity;
+                    axis.ticks = axis.ticks.filter(({ value }) => {
+                        const position = Math.log10(value);
+                        if (position - previous < minimumGap) return false;
+                        previous = position;
+                        return true;
+                    });
+                },
                 display: true,
                 position: 'right' as const,
                 stack: 'demo',
@@ -486,11 +497,14 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     display: false,
                 },
                 ticks: {
-                    color: '#6b7280',
+                    color: '#b8b8b8',
+                    maxTicksLimit: 6,
+                    autoSkipPadding: 16,
                     font: {
                         size: 11,
                     },
-                    callback: function (value: number | string) {
+                    callback: function (value: number | string, index: number) {
+                        if (index === 0 && (showRsi || showMacd)) return '';
                         return currencySymbol + formatPrice(Number(value));
                     },
                 },
@@ -511,8 +525,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         drawBorder: false,
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#b8b8b8',
                         stepSize: 50,
+                        callback: (value: number | string) => showMacd && Number(value) === 0 ? '' : value,
                         font: {
                             size: 10,
                         }
@@ -532,7 +547,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         drawBorder: false,
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#b8b8b8',
+                        maxTicksLimit: 4,
                         font: {
                             size: 10,
                         }
@@ -546,6 +562,16 @@ const PriceChart: React.FC<PriceChartProps> = ({
         },
     };
 
+    const indicatorColumns: { key: keyof BitcoinPrice; label: string; price: boolean }[] = [
+        ...(showSma ? [7, 50, 200].map((period) => ({ key: `sma_${period}` as keyof BitcoinPrice, label: `SMA ${period}`, price: true })) : []),
+        ...(showEma ? [7, 50, 200].map((period) => ({ key: `ema_${period}` as keyof BitcoinPrice, label: `EMA ${period}`, price: true })) : []),
+        ...(showMacd ? [
+            { key: 'macd' as const, label: 'MACD', price: false },
+            { key: 'macd_signal' as const, label: 'Signal', price: false },
+            { key: 'macd_hist' as const, label: 'Histogram', price: false },
+        ] : []),
+    ];
+
     return (
         <>
             {loading ? (
@@ -555,6 +581,16 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 </div>
             ) : (
                 <div className="w-full" key={`${type}-${showRsi}-${data.length}`}>
+                    {(showSma || showEma || showRsi || showMacd) && (
+                        <ul aria-label="Active chart series" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">
+                            {chartData.datasets.map((dataset) => (
+                                <li key={dataset.label} className="flex items-center gap-1.5">
+                                    <span aria-hidden="true" className="w-4 shrink-0 border-t-2" style={{ borderColor: typeof dataset.borderColor === 'string' ? dataset.borderColor : '#b8b8b8', borderTopStyle: 'borderDash' in dataset && dataset.borderDash?.length ? 'dashed' : 'solid' }} />
+                                    {dataset.label}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                     <div className="h-[var(--mobile-chart-height)] w-full md:h-[360px]" style={{ '--mobile-chart-height': `${320 + (showRsi ? 90 : 0) + (showMacd ? 110 : 0)}px` } as React.CSSProperties} aria-hidden="true">
                         <Chart
                             type={type === 'candlestick' ? 'candlestick' : 'line'}
@@ -565,7 +601,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     {data.length > 0 && (
                         <>
                             <div className="sr-only md:not-sr-only md:mt-3 md:flex md:flex-wrap md:gap-x-5 md:gap-y-1 md:border-t md:border-border md:pt-3 md:text-xs md:text-muted-foreground">
-                                <span>Latest close <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
+                                <span>Period close · {formatDate(data[data.length - 1].date)} <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
                                 <span>Period high <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.max(...data.map((item) => item.high)))}</strong></span>
                                 <span>Period low <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.min(...data.map((item) => item.low)))}</strong></span>
                             </div>
@@ -579,6 +615,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                                             <th scope="col">High</th>
                                             <th scope="col">Low</th>
                                             <th scope="col">RSI</th>
+                                            {indicatorColumns.map((column) => <th key={column.key} scope="col">{column.label}</th>)}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -589,6 +626,10 @@ const PriceChart: React.FC<PriceChartProps> = ({
                                                 <td>{formatAccessiblePrice(item.high, currencySymbol || '$')}</td>
                                                 <td>{formatAccessiblePrice(item.low, currencySymbol || '$')}</td>
                                                 <td>{item.rsi == null ? 'Unavailable' : item.rsi.toFixed(1)}</td>
+                                                {indicatorColumns.map((column) => {
+                                                    const value = item[column.key];
+                                                    return <td key={column.key}>{typeof value !== 'number' ? 'Unavailable' : column.price ? formatAccessiblePrice(value, currencySymbol || '$') : value.toFixed(2)}</td>;
+                                                })}
                                             </tr>
                                         ))}
                                     </tbody>

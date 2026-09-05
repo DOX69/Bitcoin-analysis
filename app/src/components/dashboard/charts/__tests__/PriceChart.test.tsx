@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import PriceChart from '../PriceChart';
 
 jest.mock('chart.js', () => ({
@@ -32,6 +32,22 @@ jest.mock('react-chartjs-2', () => ({
 }));
 
 describe('PriceChart calendar dates and RSI values', () => {
+    it('names active lines and exposes their values outside the canvas', () => {
+        render(<PriceChart showSma showEma showMacd data={[{
+            date: '2026-08-29', open: 75, high: 80, low: 70, close: 78, volume: 10,
+            rsi_status: 'Neutral', sma_7: 76, ema_7: 77, macd: 0, macd_signal: 1, macd_hist: -1,
+        }]} />);
+        const legend = screen.getByRole('list', { name: 'Active chart series' });
+        expect(within(legend).getByText('SMA 7')).toBeInTheDocument();
+        expect(within(legend).getByText('EMA 7')).toBeInTheDocument();
+        const table = screen.getByRole('table', { name: 'Recent Bitcoin market data' });
+        expect(within(table).getByRole('columnheader', { name: 'SMA 7' })).toBeInTheDocument();
+        expect(within(table).getByRole('columnheader', { name: 'MACD' })).toBeInTheDocument();
+        expect(within(table).getByText('$76.00')).toBeInTheDocument();
+        expect(within(table).getByText('0.00')).toBeInTheDocument();
+        expect(within(table).getAllByText('Unavailable').length).toBeGreaterThan(0);
+    });
+
     it('groups date-only RSI values by their calendar month and preserves zero', () => {
         const previousTimezone = process.env.TZ;
         process.env.TZ = 'America/Los_Angeles';

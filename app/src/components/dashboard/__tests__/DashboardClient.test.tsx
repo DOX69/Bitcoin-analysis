@@ -34,6 +34,8 @@ jest.mock('@/components/dashboard/IndicatorSelector', () => {
 });
 
 const metrics = {
+    observedAt: '2026-08-29',
+    dataAgeDays: 7,
     currentPrice: 78623,
     change24h: 1000,
     changePercent24h: 1.29,
@@ -51,6 +53,30 @@ const history = [
 describe('DashboardClient market truth', () => {
     beforeEach(() => mockPush.mockClear());
 
+    it('keeps every mobile time preset actionable without resetting scroll', () => {
+        render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
+        const ranges = screen.getByRole('group', { name: 'Chart time range' });
+        for (const label of ['1W', '1M', '1Y', 'YTD', 'ALL']) {
+            fireEvent.click(within(ranges).getByRole('button', { name: label, exact: true }));
+            expect(mockPush).toHaveBeenLastCalledWith(`?time=${label.toLowerCase()}`, { scroll: false });
+        }
+    });
+
+    it('shows selected period performance beside the mobile price without a separate return label', () => {
+        render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
+        const price = screen.getByRole('region', { name: 'Bitcoin price' });
+        expect(within(price).getByText('Latest daily close')).toBeInTheDocument();
+        expect(within(price).getByText(/\+4.83%/)).toBeInTheDocument();
+        expect(within(price).getByText('6M performance · USD')).toBeInTheDocument();
+        expect(screen.queryByText('6M return')).not.toBeInTheDocument();
+    });
+
+    it('shows unavailable return rather than zero performance for an empty period', () => {
+        render(<DashboardClient initialMetrics={metrics} initialHistoricalData={[]} selectedTime="custom" startDate="" endDate="" selectedCurrency="USD" />);
+        expect(screen.getByText('No data for this period')).toBeInTheDocument();
+        expect(screen.queryAllByText('+0.00%')).toHaveLength(0);
+    });
+
     it('applies a valid custom date range from the drawer', async () => {
         render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
         fireEvent.click(screen.getByRole('button', { name: 'Chart settings' }));
@@ -62,7 +88,8 @@ describe('DashboardClient market truth', () => {
         expect(apply).toBeDisabled();
         fireEvent.change(within(drawer).getByLabelText('End date'), { target: { value: '2026-08-29' } });
         fireEvent.click(apply);
-        expect(mockPush).toHaveBeenCalledWith('?start=2026-08-20&end=2026-08-29&time=custom');
+        expect(mockPush).toHaveBeenCalledWith('?start=2026-08-20&end=2026-08-29&time=custom', { scroll: false });
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
     it('switches chart type and preserves drawer indicator choices after closing', async () => {
@@ -100,7 +127,7 @@ describe('DashboardClient market truth', () => {
         );
 
         expect(screen.getByRole('heading', { name: 'Bitcoin market dashboard' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Current Bitcoin price' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Latest daily close' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Period high (6M)' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Period low (6M)' })).toBeInTheDocument();
         expect(screen.queryByText(/PNL|ATH|ATL/i)).not.toBeInTheDocument();

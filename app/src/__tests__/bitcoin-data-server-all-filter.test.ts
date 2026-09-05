@@ -42,7 +42,7 @@ describe('Bitcoin API - All Filter Logic', () => {
             [3650]
         );
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringMatching(/month_start_date\s+AS\s+date/i),
+            expect.stringMatching(/month_start_date::text\s+AS\s+date/i),
             [3650]
         );
     });

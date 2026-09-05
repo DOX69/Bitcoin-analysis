@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const BitcoinMetricsSchema = z.object({
+    observedAt: z.string().optional(),
+    dataAgeDays: z.number().int().nonnegative().optional(),
     currentPrice: z.number(),
     change24h: z.number(),
     changePercent24h: z.number(),

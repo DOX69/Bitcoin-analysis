@@ -36,6 +36,10 @@ export const getCalendarDateTimestamp = (value: string): number => {
     return parseCalendarDate(value).getTime();
 };
 
+export const formatMarketDate = (value: string): string => new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+}).format(parseCalendarDate(value));
+
 export const formatDate = (dateStr: string): string => {
     const date = parseCalendarDate(dateStr);
     const day = date.getUTCDate().toString().padStart(2, '0');

@@ -81,6 +81,7 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
         const ratesPromise = currency === 'USD' ? Promise.resolve(null) : getCurrencyRates();
         const [results, rates] = await Promise.all([
             executeQuery<{
+                observed_at?: Date | string;
                 current_price: unknown;
                 high_24h: unknown;
                 low_24h: unknown;
@@ -88,6 +89,7 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
                 rsi: unknown;
             }>(`
                 SELECT
+                    date_prices::text AS observed_at,
                     close_usd AS current_price,
                     high_usd AS high_24h,
                     low_usd AS low_24h,
@@ -111,8 +113,17 @@ export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD')
         const currentPrice = convert(results[0].current_price);
         const previousPrice = convert(results[1].current_price);
         const change24h = currentPrice - previousPrice;
+        const observation = results[0].observed_at;
+        const observedAt = observation instanceof Date
+            ? observation.toISOString().slice(0, 10)
+            : observation?.slice(0, 10);
+        const dataAgeDays = observedAt
+            ? Math.max(0, Math.floor((Date.now() - Date.parse(`${observedAt}T00:00:00Z`)) / MILLISECONDS_PER_DAY))
+            : undefined;
 
         return BitcoinMetricsSchema.parse({
+            observedAt,
+            dataAgeDays,
             currentPrice,
             change24h,
             changePercent24h: (change24h / previousPrice) * 100,
@@ -183,7 +194,7 @@ export const getHistoricalPrices = cache(async (
 
         const results = await executeQuery<Record<string, unknown>>(`
             SELECT
-                ${dateColumn} AS date,
+                ${dateColumn}::text AS date,
                 open_${currencySuffix} AS open,
                 high_${currencySuffix} AS high,
                 low_${currencySuffix} AS low,

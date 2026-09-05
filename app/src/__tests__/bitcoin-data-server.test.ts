@@ -28,6 +28,19 @@ describe('Bitcoin API', () => {
     });
 
     describe('getCurrentBitcoinMetrics', () => {
+        it('returns the observation date and its age without implying live data', async () => {
+            jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-05T12:00:00Z'));
+            (executeQuery as jest.Mock).mockResolvedValue([
+                { observed_at: new Date('2026-08-29T00:00:00Z'), current_price: 78000, high_24h: 79000, low_24h: 77000, volume_24h: 10, rsi: 50 },
+                { observed_at: new Date('2026-08-28T00:00:00Z'), current_price: 77000, high_24h: 78000, low_24h: 76000, volume_24h: 10, rsi: 49 },
+            ]);
+
+            const result = await getCurrentBitcoinMetrics();
+
+            expect(result).toMatchObject({ observedAt: '2026-08-29', dataAgeDays: 7 });
+            expect((executeQuery as jest.Mock).mock.calls[0][0]).toMatch(/date_prices::text\s+AS\s+observed_at/i);
+        });
+
         it('preserves an RSI value of zero', async () => {
             const mockData = [
                 {
@@ -178,7 +191,7 @@ describe('Bitcoin API', () => {
             const [query, parameters] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(query).toContain('dlh_gold__crypto_prices.agg_month_btc');
-            expect(query).toMatch(/month_start_date\s+AS\s+date/i);
+            expect(query).toMatch(/month_start_date::text\s+AS\s+date/i);
             expect(parameters).toEqual(['2014-01-15', '2024-01-15']);
         });
 
@@ -190,7 +203,7 @@ describe('Bitcoin API', () => {
             const [query] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(query).toContain('dlh_silver__crypto_prices.obt_fact_day_btc');
-            expect(query).toMatch(/date_prices\s+AS\s+date/i);
+            expect(query).toMatch(/date_prices::text\s+AS\s+date/i);
         });
 
         it('preserves zero and exposes missing historical RSI as null', async () => {

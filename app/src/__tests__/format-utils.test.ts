@@ -1,4 +1,4 @@
-import { formatDate } from '@/lib/format-utils';
+import { formatMarketDate } from '@/lib/format-utils';
 
 describe('calendar date formatting', () => {
     it('does not shift a date-only value in a western timezone', () => {
@@ -6,7 +6,7 @@ describe('calendar date formatting', () => {
         process.env.TZ = 'America/Los_Angeles';
 
         try {
-            expect(formatDate('2024-01-01')).toBe("01 Janv '24");
+            expect(formatMarketDate('2024-01-01')).toBe('1 Jan 2024');
         } finally {
             process.env.TZ = previousTimezone;
         }

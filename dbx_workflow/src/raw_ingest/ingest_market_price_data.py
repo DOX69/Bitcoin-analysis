@@ -2,12 +2,12 @@ import logging
 import os
 from uuid import uuid4
 
-import pandas as pd
 import psycopg
 
 from raw_ingest.CoinbaseFetcher import CoinbaseFetcher
-from raw_ingest.DbWriter import BRONZE_SCHEMA, DbWriter, get_latest_date
+from raw_ingest.DbWriter import BRONZE_SCHEMA
 from raw_ingest.FrankfurterFetcher import FrankfurterFetcher
+from raw_ingest.ingest import ingest_fetcher_data
 
 
 logger = logging.getLogger(__name__)
@@ -46,24 +46,7 @@ def ingest_ticker_data(
     ticker = ticker.upper()
     currency = currency.upper()
     fetcher = fetcher or get_fetcher(ticker, currency, logger)
-    latest_date = get_latest_date(connection, fetcher.table_name)
-
-    if latest_date is None:
-        logger.info("Fetching full history for %s-%s", ticker, currency)
-        frame = fetcher.fetch_historical_data()
-    else:
-        logger.info("Fetching %s-%s from %s", ticker, currency, latest_date)
-        frame = fetcher.fetch_historical_data(
-            start_date_time=pd.Timestamp(latest_date)
-        )
-
-    return DbWriter(
-        connection,
-        logger,
-        fetcher.table_name,
-        frame,
-        run_id,
-    ).save_batch()
+    return ingest_fetcher_data(connection, fetcher, run_id, logger)
 
 
 def ingest_market_data(connection, run_id, pipeline_logger=logger):

@@ -20,7 +20,6 @@ const CURRENCY_COLUMN_SUFFIXES = new Map<Currency, CurrencyColumnSuffix>([
 const TABLES = {
     daily: 'dlh_silver__crypto_prices.obt_fact_day_btc',
     monthly: 'dlh_gold__crypto_prices.agg_month_btc',
-    rates: 'dlh_silver__currency_rate.usd_to_other',
 } as const;
 
 const AGGREGATIONS = {
@@ -41,42 +40,8 @@ const AGGREGATIONS = {
     },
 } as const;
 
-type CurrencyRates = { USD_CHF: number; USD_EUR: number };
 const MONTHLY_HISTORY_THRESHOLD_DAYS = 1800;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
-
-export const getCurrencyRates = cache(async (): Promise<CurrencyRates> => {
-    try {
-        const results = await executeQuery<{ rate_usd_chf: unknown; rate_usd_eur: unknown }>(`
-            SELECT rate_usd_chf, rate_usd_eur
-            FROM ${TABLES.rates}
-            ORDER BY date_rates DESC
-            LIMIT 1
-        `);
-
-        if (results.length === 0) {
-            throw new Error('No currency rates available');
-        }
-
-        return {
-            USD_CHF: Number(results[0].rate_usd_chf),
-            USD_EUR: Number(results[0].rate_usd_eur),
-        };
-    } catch (error) {
-        console.error('DB_ERROR: Failed to fetch currency rates:', error);
-        throw error;
-    }
-});
-
-export const convertPrice = (
-    usdPrice: number,
-    currency: Currency,
-    rates: CurrencyRates
-): number => {
-    if (currency === 'CHF') return usdPrice * rates.USD_CHF;
-    if (currency === 'EUR') return usdPrice * rates.USD_EUR;
-    return usdPrice;
-};
 
 export const getCurrentBitcoinMetrics = cache(async (currency: Currency = 'USD') => {
     try {

@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Input } from '@/components/ui/input';
 import type { Currency } from '@/lib/bitcoin-data-server';
+import { INDICATORS, MOBILE_INDICATOR_ORDER, type IndicatorId } from '@/lib/indicators';
 import { cn } from '@/lib/utils';
 
 interface MobileChartSettingsProps {
-    selectedIndicators: Set<string>;
-    onToggleIndicator: (indicator: string) => void;
+    selectedIndicators: Set<IndicatorId>;
+    onToggleIndicator: (indicator: IndicatorId) => void;
     scaleType: 'linear' | 'logarithmic';
     onScaleChange: (scale: 'linear' | 'logarithmic') => void;
     currency: Currency;
@@ -20,13 +21,6 @@ interface MobileChartSettingsProps {
     endDate: string;
     onRangeChange: (start: string, end: string) => void;
 }
-
-const indicators = [
-    { id: 'sma', label: 'SMA', detail: 'Simple averages · 7, 50, 200 days' },
-    { id: 'ema', label: 'EMA', detail: 'Exponential averages · 7, 50, 200 days' },
-    { id: 'rsi', label: 'RSI', detail: 'Relative Strength Index' },
-    { id: 'macd', label: 'MACD', detail: 'Momentum and signal' },
-];
 
 function MobileDateRange({ startDate, endDate, onRangeChange, pending }: Pick<MobileChartSettingsProps, 'startDate' | 'endDate' | 'onRangeChange'> & { pending: boolean }) {
     const [start, setStart] = useState(startDate);
@@ -77,11 +71,11 @@ export default function MobileChartSettings(props: MobileChartSettingsProps) {
                     <div className="overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                         <h2 className="mb-2 text-sm font-medium text-muted-foreground">Indicators</h2>
                         <div className="divide-y divide-border rounded-xl bg-background px-4">
-                            {indicators.map((indicator) => (
-                                <button key={indicator.id} type="button" role="switch" aria-label={indicator.label} aria-checked={props.selectedIndicators.has(indicator.id)} onClick={() => props.onToggleIndicator(indicator.id)} className="flex min-h-16 w-full items-center justify-between gap-3 rounded-lg py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                    <span><span className="block text-sm font-medium">{indicator.label}</span><span className="text-xs text-muted-foreground">{indicator.detail}</span></span>
-                                    <span aria-hidden="true" className={cn('flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 transition-colors', props.selectedIndicators.has(indicator.id) ? 'bg-primary' : 'bg-muted')}>
-                                        <span className={cn('size-5 rounded-full bg-foreground transition-transform', props.selectedIndicators.has(indicator.id) && 'translate-x-4')} />
+                            {MOBILE_INDICATOR_ORDER.map((id) => (
+                                <button key={id} type="button" role="switch" aria-label={INDICATORS[id].mobileLabel} aria-checked={props.selectedIndicators.has(id)} onClick={() => props.onToggleIndicator(id)} className="flex min-h-16 w-full items-center justify-between gap-3 rounded-lg py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <span><span className="block text-sm font-medium">{INDICATORS[id].mobileLabel}</span><span className="text-xs text-muted-foreground">{INDICATORS[id].mobileDetail}</span></span>
+                                    <span aria-hidden="true" className={cn('flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 transition-colors', props.selectedIndicators.has(id) ? 'bg-primary' : 'bg-muted')}>
+                                        <span className={cn('size-5 rounded-full bg-foreground transition-transform', props.selectedIndicators.has(id) && 'translate-x-4')} />
                                     </span>
                                 </button>
                             ))}

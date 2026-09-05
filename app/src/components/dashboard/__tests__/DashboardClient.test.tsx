@@ -102,6 +102,7 @@ describe('DashboardClient market truth', () => {
         expect(screen.getByTestId('price-chart')).toHaveAttribute('data-type', 'line');
         fireEvent.click(screen.getByRole('button', { name: 'Chart settings' }));
         const drawer = await screen.findByRole('dialog', { name: 'Chart settings' });
+        expect(within(drawer).getAllByRole('switch').map(item => item.getAttribute('aria-label'))).toEqual(['SMA', 'EMA', 'RSI', 'MACD']);
         fireEvent.click(within(drawer).getByRole('switch', { name: 'RSI' }));
         fireEvent.click(within(drawer).getByRole('switch', { name: 'SMA' }));
         fireEvent.click(within(drawer).getByRole('switch', { name: 'EMA' }));

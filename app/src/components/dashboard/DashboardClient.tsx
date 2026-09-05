@@ -1,5 +1,7 @@
 'use client';
 
+import type { IndicatorId } from '@/lib/indicators';
+
 import React, { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChartCandlestick, ChevronRight, Info, LineChart, TrendingDown, TrendingUp } from 'lucide-react';
@@ -57,7 +59,7 @@ export default function DashboardClient({
     const startDate = searchParams.get('start') || '';
     const endDate = searchParams.get('end') || '';
     const dateRangeKey = `${startDate}:${endDate}`;
-    const [selectedIndicators, setSelectedIndicators] = useState<Set<string>>(new Set());
+    const [selectedIndicators, setSelectedIndicators] = useState<Set<IndicatorId>>(new Set());
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
     const [scaleType, setScaleType] = useState<'linear' | 'logarithmic'>('linear');
@@ -100,7 +102,7 @@ export default function DashboardClient({
         startTransition(() => router.push(`?${params.toString()}`, { scroll: false }));
     };
 
-    const handleToggleIndicator = (indicator: string) => {
+    const handleToggleIndicator = (indicator: IndicatorId) => {
         setSelectedIndicators((previous) => {
             const next = new Set(previous);
             if (next.has(indicator)) next.delete(indicator); else next.add(indicator);

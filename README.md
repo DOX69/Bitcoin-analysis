@@ -23,6 +23,10 @@ Production services are:
 
 The web service is built and started by Railpack from the Next.js package scripts. The ingestion service runs `raw-ingest`, which fetches market prices and technical indicators before running the dbt build. The orchestrator derives the `PG*` variables from `DATABASE_URL` before invoking dbt.
 
+Each dbt build reconstructs the seven indicator, exchange-rate, daily-price and aggregate tables from deduplicated sources. This propagates old price, indicator and one-currency corrections through conversions and later RSI windows without ingestion watermarks. The tradeoff is a complete table scan and rewrite per build, suitable for the current daily history of fewer than 13 years. Reassess the cost if the data volume grows.
+
+SQL RSI uses the existing 14-observation window. It is unavailable until 14 price changes exist, or when that window is flat or contains missing changes. Gains without losses return 100; losses without gains return 0. The chart preserves supplied prices and RSI values without local price repair or monthly RSI averaging.
+
 Keep the production cron as the only production scheduler. Do not move the cron root directory to `/dbx_workflow`; that would hide the dbt project and the root workspace lockfile.
 
 The old Databricks configuration remains only as disabled files:
@@ -68,6 +72,8 @@ Required tools:
 - PostgreSQL 16
 
 Set `DATABASE_URL`, `TEST_DATABASE_URL`, `DBT_TARGET_SCHEMA`, and the `PG*` variables in the current shell. Use local values only and keep them out of Git.
+
+PostgreSQL tests reset schemas in the disposable `bitcoin_test` database on localhost. They also run dbt to compare repeated ordinary builds with full-refresh after historical corrections.
 
 From the repository root:
 

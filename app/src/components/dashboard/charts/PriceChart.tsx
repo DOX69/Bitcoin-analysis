@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
     Chart as ChartJS,
     type ChartData,
@@ -20,12 +20,12 @@ import {
 } from 'chart.js';
 import type { Scale, ScriptableContext, TooltipItem } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
+import { INDICATORS } from '@/lib/indicators';
 import { BitcoinPrice } from '@/lib/schemas';
 import {
     formatPrice,
     formatPriceDate,
     getCalendarDateTimestamp,
-    parseCalendarDate,
 } from '@/lib/format-utils';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import { Spinner } from '@/components/ui/spinner';
@@ -114,74 +114,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
     showEma = false,
     scaleType = 'linear'
 }) => {
-    const { sanitizedData, shouldSmooth } = useMemo(() => {
-        const sanitized = data.map((item: BitcoinPrice) => {
-            const date = parseCalendarDate(item.date);
-            const isProblematic = item.low <= 0 || (
-                date.getUTCFullYear() === 2017 &&
-                date.getUTCMonth() === 3 &&
-                date.getUTCDate() === 1 &&
-                item.low < 100
-            );
-
-            if (isProblematic) {
-                const values = [item.open, item.high, item.close].sort((a, b) => a - b);
-                const median = values[1];
-                return { ...item, low: median };
-            }
-            return item;
-        });
-
-        let smooth = false;
-        if (data.length > 1) {
-            const start = getCalendarDateTimestamp(data[0].date);
-            const end = getCalendarDateTimestamp(data[data.length - 1].date);
-            const yearsDiff = (end - start) / (1000 * 60 * 60 * 24 * 365);
-            smooth = yearsDiff >= 2;
-        }
-
-        return { sanitizedData: sanitized, shouldSmooth: smooth };
-    }, [data]);
-
-    const rsiPoints = useMemo(() => {
-        if (!shouldSmooth) {
-            return sanitizedData.filter(item => item.rsi !== null && item.rsi !== undefined).map((item: BitcoinPrice) => ({
-                x: getCalendarDateTimestamp(item.date),
-                y: item.rsi!
-            }));
-        }
-
-        const monthlyGroups: Record<string, { sum: number, count: number, date: number }> = {};
-        sanitizedData.forEach((item: BitcoinPrice) => {
-            if (item.rsi === null || item.rsi === undefined) return;
-
-            const d = parseCalendarDate(item.date);
-            const year = d.getUTCFullYear();
-            const month = d.getUTCMonth();
-            const key = `${year}-${month}`;
-            if (!monthlyGroups[key]) {
-                monthlyGroups[key] = {
-                    sum: 0,
-                    count: 0,
-                    date: Date.UTC(year, month, 15)
-                };
-            }
-            monthlyGroups[key].sum += item.rsi;
-            monthlyGroups[key].count += 1;
-        });
-
-        return Object.values(monthlyGroups)
-            .sort((a, b) => a.date - b.date)
-            .map(m => ({
-                x: m.date,
-                y: m.sum / m.count
-            }));
-    }, [sanitizedData, shouldSmooth]);
+    const useMonthlyTicks = data.length > 1 &&
+        getCalendarDateTimestamp(data[data.length - 1].date) - getCalendarDateTimestamp(data[0].date) >= 2 * 365 * 24 * 60 * 60 * 1000;
+    const rsiPoints = data.filter(item => item.rsi != null).map(item => ({
+        x: getCalendarDateTimestamp(item.date),
+        y: item.rsi!,
+    }));
 
     const candlestickDataset: CandlestickDataset = {
         type: 'candlestick',
         label: `Bitcoin Price (${currencySymbol})`,
-        data: sanitizedData.map((item) => ({
+        data: data.map((item) => ({
             x: getCalendarDateTimestamp(item.date),
             o: item.open,
             h: item.high,
@@ -211,7 +154,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
             ...(type === 'line' ? [{
                 type: 'line' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
-                data: sanitizedData.map((item) => ({
+                data: data.map((item) => ({
                     x: getCalendarDateTimestamp(item.date),
                     y: item.close
                 })),
@@ -227,7 +170,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
                 fill: true,
                 tension: 0.4,
-                pointRadius: sanitizedData.length === 1 ? 4 : 0,
+                pointRadius: data.length === 1 ? 4 : 0,
                 pointHoverRadius: 6,
                 pointHoverBackgroundColor: '#FFA42D',
                 pointHoverBorderColor: '#fff',
@@ -236,9 +179,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
             }] : [candlestickDataset]),
             ...(showRsi ? [{
                 type: 'line' as const,
-                label: 'RSI',
+                label: INDICATORS.rsi.series[0].label,
                 data: rsiPoints,
-                borderColor: '#ffffff',
+                borderColor: INDICATORS.rsi.series[0].color,
                 borderWidth: 1.5,
                 backgroundColor: (context: LineScriptableContext) => {
                     const ctx = context.chart.ctx;
@@ -265,85 +208,29 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 pointHoverBackgroundColor: '#ffffff',
                 yAxisID: 'y1',
             }] : []),
-            ...(showSma ? [
-                {
+            ...(['sma', 'ema'] as const).flatMap((id) => {
+                if (!(id === 'sma' ? showSma : showEma)) return [];
+                return INDICATORS[id].series.map((series) => ({
                     type: 'line' as const,
-                    label: 'SMA 7',
-                    data: sanitizedData.filter(item => item.sma_7 !== null && item.sma_7 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_7! })),
-                    borderColor: 'rgba(56, 189, 248, 0.8)', // cyan
-                    borderWidth: 1,
+                    label: series.label,
+                    data: data.filter(item => item[series.key] != null).map(item => ({
+                        x: getCalendarDateTimestamp(item.date), y: item[series.key]!,
+                    })),
+                    borderColor: series.color,
+                    ...(id === 'ema' ? { borderDash: [2, 2] } : {}),
+                    borderWidth: id === 'ema' ? 2 : 1,
                     pointRadius: 0,
                     tension: 0.1,
                     yAxisID: 'y',
                     spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'SMA 50',
-                    data: sanitizedData.filter(item => item.sma_50 !== null && item.sma_50 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_50! })),
-                    borderColor: 'rgba(168, 85, 247, 0.8)', // purple
-                    borderWidth: 1,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'SMA 200',
-                    data: sanitizedData.filter(item => item.sma_200 !== null && item.sma_200 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_200! })),
-                    borderColor: 'rgba(236, 72, 153, 0.8)', // pink
-                    borderWidth: 1,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                }
-            ] : []),
-            ...(showEma ? [
-                {
-                    type: 'line' as const,
-                    label: 'EMA 7',
-                    data: sanitizedData.filter(item => item.ema_7 !== null && item.ema_7 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_7! })),
-                    borderColor: 'rgba(56, 189, 248, 0.6)',
-                    borderDash: [2, 2],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'EMA 50',
-                    data: sanitizedData.filter(item => item.ema_50 !== null && item.ema_50 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_50! })),
-                    borderColor: 'rgba(168, 85, 247, 0.6)',
-                    borderDash: [2, 2],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'EMA 200',
-                    data: sanitizedData.filter(item => item.ema_200 !== null && item.ema_200 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_200! })),
-                    borderColor: 'rgba(236, 72, 153, 0.6)',
-                    borderDash: [2, 2],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                }
-            ] : []),
+                }));
+            }),
             ...(showMacd ? [
                 {
                     type: 'line' as const,
-                    label: 'MACD',
-                    data: sanitizedData.filter(item => item.macd !== null && item.macd !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd! })),
-                    borderColor: '#3b82f6', // blue-500
+                    label: INDICATORS.macd.series[0].label,
+                    data: data.filter(item => item[INDICATORS.macd.series[0].key] != null).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item[INDICATORS.macd.series[0].key]! })),
+                    borderColor: INDICATORS.macd.series[0].color,
                     borderWidth: 1.5,
                     pointRadius: 0,
                     tension: 0.4,
@@ -352,9 +239,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
                 {
                     type: 'line' as const,
-                    label: 'Signal',
-                    data: sanitizedData.filter(item => item.macd_signal !== null && item.macd_signal !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd_signal! })),
-                    borderColor: '#f97316', // orange-500
+                    label: INDICATORS.macd.series[1].label,
+                    data: data.filter(item => item[INDICATORS.macd.series[1].key] != null).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item[INDICATORS.macd.series[1].key]! })),
+                    borderColor: INDICATORS.macd.series[1].color,
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.4,
@@ -363,8 +250,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
                 {
                     type: 'bar' as const,
-                    label: 'Histogram',
-                    data: sanitizedData.filter(item => item.macd_hist !== null && item.macd_hist !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd_hist! })),
+                    label: INDICATORS.macd.series[2].label,
+                    data: data.filter(item => item[INDICATORS.macd.series[2].key] != null).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item[INDICATORS.macd.series[2].key]! })),
                     backgroundColor: (context: BarScriptableContext) => {
                         const value = getNumberProperty(context.raw, 'y');
                         return value !== undefined && value >= 0
@@ -427,12 +314,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         if (label === 'RSI') {
                             return value === undefined ? 'RSI: n/a' : `RSI: ${Math.round(value)}`;
                         }
-                        if (['MACD', 'Signal', 'Histogram'].includes(label)) {
+                        if (INDICATORS.macd.series.some(series => series.label === label)) {
                             return value === undefined
                                 ? `${label}: n/a`
                                 : `${label}: ${value.toFixed(2)}`;
                         }
-                        if (['SMA 7', 'SMA 50', 'SMA 200', 'EMA 7', 'EMA 50', 'EMA 200'].includes(label)) {
+                        if ([...INDICATORS.sma.series, ...INDICATORS.ema.series].some(series => series.label === label)) {
                             return value === undefined
                                 ? `${label}: n/a`
                                 : `${label}: ${currencySymbol}${formatPrice(value)}`;
@@ -456,7 +343,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 type: 'timeseries' as const,
                 offset: true,
                 time: {
-                    unit: shouldSmooth ? ('month' as const) : ('day' as const),
+                    unit: useMonthlyTicks ? ('month' as const) : ('day' as const),
                     displayFormats: {
                         day: 'MMM d',
                         month: 'MMM yyyy'
@@ -562,14 +449,10 @@ const PriceChart: React.FC<PriceChartProps> = ({
         },
     };
 
-    const indicatorColumns: { key: keyof BitcoinPrice; label: string; price: boolean }[] = [
-        ...(showSma ? [7, 50, 200].map((period) => ({ key: `sma_${period}` as keyof BitcoinPrice, label: `SMA ${period}`, price: true })) : []),
-        ...(showEma ? [7, 50, 200].map((period) => ({ key: `ema_${period}` as keyof BitcoinPrice, label: `EMA ${period}`, price: true })) : []),
-        ...(showMacd ? [
-            { key: 'macd' as const, label: 'MACD', price: false },
-            { key: 'macd_signal' as const, label: 'Signal', price: false },
-            { key: 'macd_hist' as const, label: 'Histogram', price: false },
-        ] : []),
+    const indicatorColumns = [
+        ...(showSma ? INDICATORS.sma.series : []),
+        ...(showEma ? INDICATORS.ema.series : []),
+        ...(showMacd ? INDICATORS.macd.series : []),
     ];
 
     return (

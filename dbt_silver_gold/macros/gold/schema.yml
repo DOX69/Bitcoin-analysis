@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: create_update_agg
-    description: "Generates an incremental model for aggregated crypto prices (e.g., weekly, monthly) with OHLCV data for multiple currencies and RSI calculation."
+    description: "Generates a fully rebuilt table for aggregated crypto prices (e.g., weekly, monthly) with OHLCV data for multiple currencies and RSI calculation."
     arguments:
       - name: table_source
         description: "The source table to aggregate from (e.g., ref('obt_fact_day_btc'))."

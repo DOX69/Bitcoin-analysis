@@ -171,7 +171,7 @@ describe('Bitcoin API', () => {
             expect(query).not.toMatch(/open_gbp/i);
         });
 
-        it('uses the stored CHF values for each historical date', async () => {
+        it.each(['CHF', 'EUR'] as const)('uses the stored %s values in a single historical query', async (currency) => {
             const mockPrices = [
                 {
                     date: '2024-01-01',
@@ -197,12 +197,12 @@ describe('Bitcoin API', () => {
 
             (executeQuery as jest.Mock).mockResolvedValue(mockPrices);
 
-            const result = await getHistoricalPrices(30, undefined, undefined, 'CHF');
+            const result = await getHistoricalPrices(30, undefined, undefined, currency);
             const [query] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(executeQuery).toHaveBeenCalledTimes(1);
-            expect(query).toMatch(/open_chf\s+AS\s+open/i);
-            expect(query).toMatch(/close_chf\s+AS\s+close/i);
+            expect(query).toMatch(new RegExp(`open_${currency.toLowerCase()}\\s+AS\\s+open`, 'i'));
+            expect(query).toMatch(new RegExp(`close_${currency.toLowerCase()}\\s+AS\\s+close`, 'i'));
             expect(result.map(price => price.close)).toEqual([95, 115]);
         });
 

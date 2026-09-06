@@ -114,6 +114,20 @@ The local dashboard is available at <http://localhost:3000/dashboard>.
 
 ## Deployment and rollback
 
+### Manually refresh Development data
+
+The `Actualiser les données dev` GitHub Actions workflow uploads the selected branch to the Development ingestion service. It creates a new deployment instead of replaying an old deployment's command. It has no schedule or push trigger.
+
+One-time setup in the GitHub environment `Bitcoin-analysis / Development`:
+
+- Add the secret `RAILWAY_TOKEN`, using a Railway project token scoped to Development.
+- Set `RAILWAY_PROJECT_ID`, `RAILWAY_ENVIRONMENT_ID`, and `RAILWAY_CRON_SERVICE_ID` as environment variables, using the Development project, environment, and `bitcoin-cron` IDs.
+- Keep the Railway service start command as `uv run --locked --package raw-ingest raw-ingest`. This collects market data and indicators before running dbt.
+
+After the workflow is merged into `main`, open **Actions → Actualiser les données dev → Run workflow**, choose the branch to execute, then click **Run workflow**. Select the branch containing the ingestion code you want to run.
+
+The action waits for the Railway build, not for ingestion completion. Follow the Railway link in its summary and check the deployment logs for ingestion and dbt completion. Then reload the dashboard and check the latest observation date. The action changes Development data only when its token and IDs are configured for Development.
+
 Railway deploys the web and ingestion services from `main`. After a production deployment, verify the dashboard URL, the web service health, PostgreSQL reads, and the next cron schedule.
 
 To roll back:

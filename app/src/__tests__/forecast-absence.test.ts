@@ -51,14 +51,13 @@ describe('landing truth', () => {
         expect(matches).toEqual([]);
     });
 
-    it('states the daily PostgreSQL update and Railway hosting accurately', () => {
-        const content = landingSurfaces
-            .map(file => fs.readFileSync(file, 'utf8'))
-            .join('\n');
+    it('keeps infrastructure details in the footer', () => {
+        const footer = fs.readFileSync(landingSurfaces[3], 'utf8');
+        const mainContent = landingSurfaces.slice(0, 3)
+            .map(file => fs.readFileSync(file, 'utf8')).join('\n');
 
-        expect(content).toMatch(/updated daily/i);
-        expect(content).toMatch(/PostgreSQL/i);
-        expect(content).toMatch(/hosted on Railway/i);
+        expect(footer).toMatch(/PostgreSQL, updated daily/);
+        expect(mainContent).not.toMatch(/PostgreSQL|Railway/i);
     });
 });
 

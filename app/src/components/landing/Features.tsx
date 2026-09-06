@@ -1,22 +1,22 @@
 'use client';
 
-import { BarChart3, Database, Gauge } from 'lucide-react';
+import { BarChart3, History, Gauge } from 'lucide-react';
 
 const features = [
     {
         icon: BarChart3,
         title: 'Daily market snapshots',
-        description: 'Review Bitcoin prices, volume, 24-hour change, highs, lows, and RSI from the PostgreSQL dataset.',
+        description: 'See the latest recorded price, its daily change, and the highs and lows for your selected period.',
     },
     {
-        icon: Database,
+        icon: History,
         title: 'Historical context',
-        description: 'Change the period, date range, currency, scale, and chart type without leaving the timeline.',
+        description: 'Explore a week, a year, or a date range of your choice. Compare prices in dollars, euros, or Swiss francs.',
     },
     {
         icon: Gauge,
-        title: 'Technical layers',
-        description: 'Compare RSI, MACD, SMA, and EMA overlays against the same Bitcoin price history.',
+        title: 'Understand the trend',
+        description: 'Add trend lines and momentum indicators to the chart to put price movements in context.',
     },
 ];
 
@@ -29,7 +29,7 @@ export default function Features() {
                         What the dashboard shows
                     </h2>
                     <p className="text-pretty text-muted-foreground">
-                        A read-only view of Bitcoin market data. It does not place trades or create personal positions.
+                        Explore past price movements and compare market trends, all in one place.
                     </p>
                 </div>
 

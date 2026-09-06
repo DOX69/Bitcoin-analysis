@@ -13,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Bitcoin Analysis Dashboard",
-  description: "Bitcoin price analysis with PostgreSQL data updated daily. Hosted on Railway.",
+  description: "Explore Bitcoin price history, compare periods and currencies, and put market trends in context.",
 };
 
 export default function RootLayout({

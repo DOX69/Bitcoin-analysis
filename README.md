@@ -23,6 +23,10 @@ Production services are:
 
 The web service is built and started by Railpack from the Next.js package scripts. The ingestion service runs `raw-ingest`, which fetches market prices and technical indicators before running the dbt build. The orchestrator derives the `PG*` variables from `DATABASE_URL` before invoking dbt.
 
+Each dbt build reconstructs the seven indicator, exchange-rate, daily-price and aggregate tables from deduplicated sources. This propagates old price, indicator and one-currency corrections through conversions and later RSI windows without ingestion watermarks. The tradeoff is a complete table scan and rewrite per build, suitable for the current daily history of fewer than 13 years. Reassess the cost if the data volume grows.
+
+SQL RSI uses the existing 14-observation window. It is unavailable until 14 price changes exist, or when that window is flat or contains missing changes. Gains without losses return 100; losses without gains return 0. The chart preserves supplied prices and RSI values without local price repair or monthly RSI averaging.
+
 Keep the production cron as the only production scheduler. Do not move the cron root directory to `/dbx_workflow`; that would hide the dbt project and the root workspace lockfile.
 
 The old Databricks configuration remains only as disabled files:
@@ -69,6 +73,8 @@ Required tools:
 
 Set `DATABASE_URL`, `TEST_DATABASE_URL`, `DBT_TARGET_SCHEMA`, and the `PG*` variables in the current shell. Use local values only and keep them out of Git.
 
+PostgreSQL tests reset schemas in the disposable `bitcoin_test` database on localhost. They also run dbt to compare repeated ordinary builds with full-refresh after historical corrections.
+
 From the repository root:
 
 ```powershell
@@ -107,6 +113,20 @@ The local dashboard is available at <http://localhost:3000/dashboard>.
 `.github/workflows/daily_schema_check.yml` runs every day and can be started manually. It compares the public Coinbase, BGeometrics, and Frankfurter response shapes with the checked-in Pydantic models. When models change, it opens a pull request. It does not deploy the application.
 
 ## Deployment and rollback
+
+### Manually refresh Development data
+
+The `Actualiser les données dev` GitHub Actions workflow uploads the selected branch to the Development ingestion service. It creates a new deployment instead of replaying an old deployment's command. It has no schedule or push trigger.
+
+One-time setup in the GitHub environment `Bitcoin-analysis / Development`:
+
+- Add the secret `RAILWAY_TOKEN`, using a Railway project token scoped to Development.
+- Set `RAILWAY_PROJECT_ID`, `RAILWAY_ENVIRONMENT_ID`, and `RAILWAY_CRON_SERVICE_ID` as environment variables, using the Development project, environment, and `bitcoin-cron` IDs.
+- Keep the Railway service start command as `uv run --locked --package raw-ingest raw-ingest`. This collects market data and indicators before running dbt.
+
+After the workflow is merged into `main`, open **Actions → Actualiser les données dev → Run workflow**, choose the branch to execute, then click **Run workflow**. Select the branch containing the ingestion code you want to run.
+
+The action waits for the Railway build, not for ingestion completion. Follow the Railway link in its summary and check the deployment logs for ingestion and dbt completion. Then reload the dashboard and check the latest observation date. The action changes Development data only when its token and IDs are configured for Development.
 
 Railway deploys the web and ingestion services from `main`. After a production deployment, verify the dashboard URL, the web service health, PostgreSQL reads, and the next cron schedule.
 

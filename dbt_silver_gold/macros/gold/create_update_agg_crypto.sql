@@ -23,7 +23,6 @@
 
 with join_calendar as (
     select
-        source.ingest_date_time,
         source.date_prices,
         {% for currency in currencies %}
             {% for column in aggregate_columns %}
@@ -47,17 +46,16 @@ with join_calendar as (
         {% for currency in currencies %}
             {% for column in aggregate_columns %}
                 {% if column == 'low' %}
-        min({{ column }}_{{ currency }})::double precision as {{ column }}_{{ currency }},
+        min({{ column }}_{{ currency }})::double precision as {{ column }}_{{ currency }}{{ "," if not (loop.last and currency == currencies[-1]) else "" }}
                 {% elif column == 'high' %}
-        max({{ column }}_{{ currency }})::double precision as {{ column }}_{{ currency }},
+        max({{ column }}_{{ currency }})::double precision as {{ column }}_{{ currency }}{{ "," if not (loop.last and currency == currencies[-1]) else "" }}
                 {% elif column == 'open' %}
-        (array_agg({{ column }}_{{ currency }} order by date_prices asc))[1]::double precision as {{ column }}_{{ currency }},
+        (array_agg({{ column }}_{{ currency }} order by date_prices asc))[1]::double precision as {{ column }}_{{ currency }}{{ "," if not (loop.last and currency == currencies[-1]) else "" }}
                 {% else %}
-        (array_agg({{ column }}_{{ currency }} order by date_prices desc))[1]::double precision as {{ column }}_{{ currency }},
+        (array_agg({{ column }}_{{ currency }} order by date_prices desc))[1]::double precision as {{ column }}_{{ currency }}{{ "," if not (loop.last and currency == currencies[-1]) else "" }}
                 {% endif %}
             {% endfor %}
         {% endfor %}
-        max(ingest_date_time) as source_ingest_date_time
     from join_calendar
     group by {{ partition_column }}
 ), add_previous_price_change as (
@@ -70,12 +68,6 @@ with join_calendar as (
         *,
         {{ rsi('change', period, partition_column) }}
     from add_previous_price_change
-), increment_filter as (
-    select *
-    from add_rsi
-    {% if is_incremental() %}
-    where source_ingest_date_time > (select max(ingest_date_time) from {{ this }})
-    {% endif %}
 )
 select
     {% for column in date_columns %}
@@ -90,5 +82,5 @@ select
     rsi_status,
     current_timestamp::timestamp without time zone as ingest_date_time,
     '{{ invocation_id }}' as dbt_batch_id
-from increment_filter
+from add_rsi
 {% endmacro %}

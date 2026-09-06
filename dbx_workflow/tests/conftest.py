@@ -1,5 +1,6 @@
 import os
 from unittest.mock import MagicMock
+from psycopg.conninfo import conninfo_to_dict
 
 import pandas as pd
 import psycopg
@@ -21,6 +22,9 @@ def database_url():
 
 @pytest.fixture()
 def postgres_connection(database_url):
+    connection_info = conninfo_to_dict(database_url)
+    assert connection_info["dbname"] == "bitcoin_test", "Destructive fixtures require bitcoin_test"
+    assert connection_info["host"] in ("localhost", "127.0.0.1"), "Destructive fixtures require localhost"
     with psycopg.connect(database_url, autocommit=True) as connection:
         with connection.cursor() as cursor:
             cursor.execute("DROP SCHEMA IF EXISTS bronze CASCADE")

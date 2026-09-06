@@ -30,7 +30,8 @@ describe('Bitcoin API - All Filter Logic', () => {
         (executeQuery as jest.Mock).mockResolvedValue(mockPrices);
 
         // Act: Request 10 years of data (simulating 'All' filter)
-        await getHistoricalPrices(3650);
+        const result = await getHistoricalPrices(3650);
+        expect(result[0]).toMatchObject({ date: '2024-01-01', close: 40500, aggregation: 'monthly' });
 
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(
@@ -42,7 +43,7 @@ describe('Bitcoin API - All Filter Logic', () => {
             [3650]
         );
         expect(executeQuery).toHaveBeenCalledWith(
-            expect.stringMatching(/month_start_date\s+AS\s+date/i),
+            expect.stringMatching(/month_start_date::text\s+AS\s+date/i),
             [3650]
         );
     });
@@ -64,7 +65,8 @@ describe('Bitcoin API - All Filter Logic', () => {
         (executeQuery as jest.Mock).mockResolvedValue(mockPrices);
 
         // Act: Request 30 days of data
-        await getHistoricalPrices(30);
+        const result = await getHistoricalPrices(30);
+        expect(result[0]).toMatchObject({ date: '2024-01-01', close: 40500, aggregation: 'daily' });
 
         // Assert: Verify the correct table is queried
         expect(executeQuery).toHaveBeenCalledWith(

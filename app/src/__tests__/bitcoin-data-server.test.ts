@@ -28,6 +28,19 @@ describe('Bitcoin API', () => {
     });
 
     describe('getCurrentBitcoinMetrics', () => {
+        it('returns the observation date and its age without implying live data', async () => {
+            jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-05T12:00:00Z'));
+            (executeQuery as jest.Mock).mockResolvedValue([
+                { observed_at: new Date('2026-08-29T00:00:00Z'), current_price: 78000, high_24h: 79000, low_24h: 77000, volume_24h: 10, rsi: 50 },
+                { observed_at: new Date('2026-08-28T00:00:00Z'), current_price: 77000, high_24h: 78000, low_24h: 76000, volume_24h: 10, rsi: 49 },
+            ]);
+
+            const result = await getCurrentBitcoinMetrics();
+
+            expect(result).toMatchObject({ observedAt: '2026-08-29', dataAgeDays: 7 });
+            expect((executeQuery as jest.Mock).mock.calls[0][0]).toMatch(/date_prices::text\s+AS\s+observed_at/i);
+        });
+
         it('preserves an RSI value of zero', async () => {
             const mockData = [
                 {
@@ -53,7 +66,7 @@ describe('Bitcoin API', () => {
             expect(result.rsi).toBe(0);
         });
 
-        it('rejects current metrics when RSI is missing', async () => {
+        it('returns current prices when RSI is missing', async () => {
             const mockData = [
                 {
                     current_price: '43500',
@@ -73,7 +86,7 @@ describe('Bitcoin API', () => {
 
             (executeQuery as jest.Mock).mockResolvedValue(mockData);
 
-            await expect(getCurrentBitcoinMetrics()).rejects.toThrow();
+            await expect(getCurrentBitcoinMetrics()).resolves.toMatchObject({ currentPrice: 43500, rsi: null });
         });
 
         it('should return current Bitcoin metrics with correct calculations', async () => {
@@ -110,6 +123,29 @@ describe('Bitcoin API', () => {
             });
         });
 
+        it('uses stored EUR prices for both observations without latest FX conversion', async () => {
+            (executeQuery as jest.Mock).mockImplementation(async (query: string) => {
+                if (query.includes('usd_to_other')) return [{ rate_usd_chf: 0.8, rate_usd_eur: 0.95 }];
+                const storedCurrency = query.includes('close_eur AS current_price');
+                return [
+                    { current_price: storedCurrency ? '90' : '100', high_24h: '99', low_24h: '80', volume_24h: '10', rsi: '50' },
+                    { current_price: storedCurrency ? '80' : '100', high_24h: '90', low_24h: '70', volume_24h: '10', rsi: '50' },
+                ];
+            });
+            const result = await getCurrentBitcoinMetrics('EUR');
+            expect(result).toMatchObject({ currentPrice: 90, high24h: 99, low24h: 80, change24h: 10, changePercent24h: 12.5 });
+            expect(executeQuery).toHaveBeenCalledTimes(1);
+            expect((executeQuery as jest.Mock).mock.calls[0][0]).toMatch(/high_eur AS high_24h/);
+        });
+
+        it('rejects null metric prices instead of turning them into zero', async () => {
+            (executeQuery as jest.Mock).mockResolvedValue([
+                { current_price: null, high_24h: '99', low_24h: '80', volume_24h: '10', rsi: '50' },
+                { current_price: '80', high_24h: '90', low_24h: '70', volume_24h: '10', rsi: '50' },
+            ]);
+            await expect(getCurrentBitcoinMetrics()).rejects.toThrow();
+        });
+
         it('should throw error when query fails', async () => {
             (executeQuery as jest.Mock).mockRejectedValue(new Error('Connection failed'));
 
@@ -117,7 +153,7 @@ describe('Bitcoin API', () => {
         });
 
         it('should throw error when data is insufficient', async () => {
-            (executeQuery as jest.Mock).mockResolvedValue([{ close_usd: 43500 }]);
+            (executeQuery as jest.Mock).mockResolvedValue([{ close: 43500 }]);
 
             await expect(getCurrentBitcoinMetrics()).rejects.toThrow('Insufficient data to calculate metrics');
         });
@@ -135,7 +171,7 @@ describe('Bitcoin API', () => {
             expect(query).not.toMatch(/open_gbp/i);
         });
 
-        it('uses the stored CHF values for each historical date', async () => {
+        it.each(['CHF', 'EUR'] as const)('uses the stored %s values in a single historical query', async (currency) => {
             const mockPrices = [
                 {
                     date: '2024-01-01',
@@ -161,12 +197,12 @@ describe('Bitcoin API', () => {
 
             (executeQuery as jest.Mock).mockResolvedValue(mockPrices);
 
-            const result = await getHistoricalPrices(30, undefined, undefined, 'CHF');
+            const result = await getHistoricalPrices(30, undefined, undefined, currency);
             const [query] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(executeQuery).toHaveBeenCalledTimes(1);
-            expect(query).toMatch(/open_chf\s+AS\s+open/i);
-            expect(query).toMatch(/close_chf\s+AS\s+close/i);
+            expect(query).toMatch(new RegExp(`open_${currency.toLowerCase()}\\s+AS\\s+open`, 'i'));
+            expect(query).toMatch(new RegExp(`close_${currency.toLowerCase()}\\s+AS\\s+close`, 'i'));
             expect(result.map(price => price.close)).toEqual([95, 115]);
         });
 
@@ -178,7 +214,7 @@ describe('Bitcoin API', () => {
             const [query, parameters] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(query).toContain('dlh_gold__crypto_prices.agg_month_btc');
-            expect(query).toMatch(/month_start_date\s+AS\s+date/i);
+            expect(query).toMatch(/month_start_date::text\s+AS\s+date/i);
             expect(parameters).toEqual(['2014-01-15', '2024-01-15']);
         });
 
@@ -190,7 +226,7 @@ describe('Bitcoin API', () => {
             const [query] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(query).toContain('dlh_silver__crypto_prices.obt_fact_day_btc');
-            expect(query).toMatch(/date_prices\s+AS\s+date/i);
+            expect(query).toMatch(/date_prices::text\s+AS\s+date/i);
         });
 
         it('preserves zero and exposes missing historical RSI as null', async () => {
@@ -224,11 +260,11 @@ describe('Bitcoin API', () => {
 
         it('should return historical price data for specified days', async () => {
             const mockPrices = Array.from({ length: 30 }, (_, i) => ({
-                date_prices: `2024-01-${String(i + 1).padStart(2, '0')}`,
-                open_usd: 42000 + i * 100,
-                high_usd: 43000 + i * 100,
-                low_usd: 41000 + i * 100,
-                close_usd: 42500 + i * 100,
+                date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+                open: 42000 + i * 100,
+                high: 43000 + i * 100,
+                low: 41000 + i * 100,
+                close: 42500 + i * 100,
                 volume: 25000000000,
                 rsi: 50,
                 rsi_status: 'Neutral',
@@ -252,11 +288,11 @@ describe('Bitcoin API', () => {
         it('should validate OHLC data integrity', async () => {
             const mockPrices = [
                 {
-                    date_prices: '2024-01-01',
-                    open_usd: 42000,
-                    high_usd: 43000,
-                    low_usd: 41000,
-                    close_usd: 42500,
+                    date: '2024-01-01',
+                    open: 42000,
+                    high: 43000,
+                    low: 41000,
+                    close: 42500,
                     volume: 25000000000,
                     rsi: 50,
                     rsi_status: 'Neutral',
@@ -289,6 +325,7 @@ describe('Bitcoin API', () => {
             const [query] = (executeQuery as jest.Mock).mock.calls[0];
 
             expect(query).toMatch(/AVG\(daily\.close_usd\)/i);
+            expect(query).toMatch(/aggregated\.iso_week_start_date::text AS period/);
             expect(query).toMatch(/SUM\(daily\.volume\)/i);
             expect(query).not.toMatch(/0\s+AS\s+"totalVolume"/i);
         });
@@ -296,7 +333,7 @@ describe('Bitcoin API', () => {
         it('should return weekly aggregated data', async () => {
             const mockAggregated = [
                 {
-                    period: '2024-W01',
+                    period: '2024-01-01',
                     avgPrice: 42500,
                     maxPrice: 44000,
                     minPrice: 41000,
@@ -310,7 +347,7 @@ describe('Bitcoin API', () => {
 
             expect(result).toHaveLength(1);
             expect(result[0]).toMatchObject({
-                period: '2024-W01',
+                period: '2024-01-01',
                 avgPrice: 42500,
                 maxPrice: 44000,
                 minPrice: 41000,

@@ -1,0 +1,67 @@
+name: Actualiser les données dev
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-development-data
+  cancel-in-progress: false
+
+jobs:
+  launch-ingestion:
+    name: Lancer bitcoin-cron en Development
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: Bitcoin-analysis / Development
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
+      RAILWAY_SERVICE_ID: ${{ vars.RAILWAY_CRON_SERVICE_ID }}
+
+    steps:
+      - name: Vérifier la configuration GitHub
+        shell: bash
+        run: |
+          for key in RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_ENVIRONMENT_ID RAILWAY_SERVICE_ID; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::Configuration manquante : $key dans l'environnement GitHub Development."
+              exit 1
+            fi
+          done
+
+      - name: Récupérer la branche sélectionnée
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Installer Railway CLI
+        run: npm install --global @railway/cli@5.49.0
+
+      - name: Déployer une nouvelle exécution de l'ingestion
+        run: |
+          railway up --ci \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT_ID" \
+            --service "$RAILWAY_SERVICE_ID" \
+            --message "Manual dev ingestion: $GITHUB_SHA, Actions run $GITHUB_RUN_ID"
+
+      - name: Afficher le suivi de l'ingestion
+        shell: bash
+        run: |
+          {
+            echo '### Ingestion Development lancée'
+            echo
+            echo "Commit envoyé : \`$GITHUB_SHA\`."
+            echo
+            echo 'Le build Railway est terminé. L’ingestion puis dbt continuent sur Railway.'
+            echo 'Le succès de cette action ne garantit pas encore la fin de la collecte ni la fraîcheur des données.'
+            echo
+            echo "[Suivre bitcoin-cron et ses Deploy Logs](https://railway.com/project/$RAILWAY_PROJECT_ID/service/$RAILWAY_SERVICE_ID?environmentId=$RAILWAY_ENVIRONMENT_ID)"
+          } >> "$GITHUB_STEP_SUMMARY"

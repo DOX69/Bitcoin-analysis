@@ -2,11 +2,11 @@ import logging
 import os
 from uuid import uuid4
 
-import pandas as pd
 import psycopg
 
 from raw_ingest.BGeometricsFetcher import BGeometricsFetcher
-from raw_ingest.DbWriter import BRONZE_SCHEMA, DbWriter, get_latest_date
+from raw_ingest.DbWriter import BRONZE_SCHEMA
+from raw_ingest.ingest import ingest_fetcher_data
 
 
 logger = logging.getLogger(__name__)
@@ -30,24 +30,7 @@ def ingest_technical_indicators(
     logger=logger,
 ):
     fetcher = fetcher or get_fetcher(logger)
-    latest_date = get_latest_date(connection, fetcher.table_name)
-
-    if latest_date is None:
-        logger.info("Fetching full BGeometrics indicator history")
-        frame = fetcher.fetch_historical_data()
-    else:
-        logger.info("Fetching BGeometrics indicators from %s", latest_date)
-        frame = fetcher.fetch_historical_data(
-            start_date_time=pd.Timestamp(latest_date)
-        )
-
-    return DbWriter(
-        connection,
-        logger,
-        fetcher.table_name,
-        frame,
-        run_id,
-    ).save_batch()
+    return ingest_fetcher_data(connection, fetcher, run_id, logger)
 
 
 def main():

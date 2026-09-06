@@ -1,3 +1,4 @@
+import { BitcoinPriceSchema } from '@/lib/schemas';
 import { GET } from '@/app/api/bitcoin/route';
 import { getHistoricalPrices } from '@/lib/bitcoin-data-server';
 
@@ -71,4 +72,17 @@ describe('Bitcoin API query validation', () => {
         expect(response.status).toBe(400);
         expect(getHistoricalPrices).not.toHaveBeenCalled();
     });
+});
+
+
+it('treats invalid server rows as a server error, not a request error', async () => {
+    const invalid = BitcoinPriceSchema.safeParse({ open: 'not a number' });
+    if (invalid.success) throw new Error('Expected invalid fixture');
+    (getHistoricalPrices as jest.Mock).mockRejectedValueOnce(invalid.error);
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+        const response = await GET(request('type=history'));
+        expect(response.status).toBe(500);
+        expect(await response.json()).toEqual({ error: 'Internal server error' });
+    } finally { spy.mockRestore(); }
 });

@@ -1,9 +1,7 @@
 {% macro create_update_obt_fact_day_crypto(source_schema_name, source_table_name) %}
 {{
     config(
-        materialized='incremental',
-        unique_key='date_prices',
-        on_schema_change='sync_all_columns'
+        materialized='table'
     )
 }}
 
@@ -38,7 +36,7 @@ with ranked_source as (
         *,
         {{ rsi('change', period) }}
     from add_previous_price_change
-), increment_filter as (
+), daily_prices as (
     select
         date as date_prices,
         low,
@@ -49,12 +47,6 @@ with ranked_source as (
         rsi,
         rsi_status
     from add_rsi
-    {% if is_incremental() %}
-    where ingest_date_time > (
-        select max(ingest_date_time) - interval '10 days'
-        from {{ this }}
-    )
-    {% endif %}
 ), add_technical_indicators as (
     select
         prices.date_prices,
@@ -74,7 +66,7 @@ with ranked_source as (
         indicators.ema_7,
         indicators.ema_50,
         indicators.ema_200
-    from increment_filter as prices
+    from daily_prices as prices
     left join {{ ref('fact_btc') }} as indicators
         on prices.date_prices = indicators.date_indicators
 )

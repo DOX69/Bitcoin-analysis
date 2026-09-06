@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
     Chart as ChartJS,
     type ChartData,
@@ -18,14 +18,14 @@ import {
     TimeSeriesScale,
     LogarithmicScale
 } from 'chart.js';
-import type { ScriptableContext, TooltipItem } from 'chart.js';
+import type { Scale, ScriptableContext, TooltipItem } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
+import { INDICATORS } from '@/lib/indicators';
 import { BitcoinPrice } from '@/lib/schemas';
 import {
     formatPrice,
-    formatDate,
+    formatPriceDate,
     getCalendarDateTimestamp,
-    parseCalendarDate,
 } from '@/lib/format-utils';
 import { CandlestickController, CandlestickElement } from 'chartjs-chart-financial';
 import { Spinner } from '@/components/ui/spinner';
@@ -114,74 +114,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
     showEma = false,
     scaleType = 'linear'
 }) => {
-    const { sanitizedData, shouldSmooth } = useMemo(() => {
-        const sanitized = data.map((item: BitcoinPrice) => {
-            const date = parseCalendarDate(item.date);
-            const isProblematic = item.low <= 0 || (
-                date.getUTCFullYear() === 2017 &&
-                date.getUTCMonth() === 3 &&
-                date.getUTCDate() === 1 &&
-                item.low < 100
-            );
-
-            if (isProblematic) {
-                const values = [item.open, item.high, item.close].sort((a, b) => a - b);
-                const median = values[1];
-                return { ...item, low: median };
-            }
-            return item;
-        });
-
-        let smooth = false;
-        if (data.length > 1) {
-            const start = getCalendarDateTimestamp(data[0].date);
-            const end = getCalendarDateTimestamp(data[data.length - 1].date);
-            const yearsDiff = (end - start) / (1000 * 60 * 60 * 24 * 365);
-            smooth = yearsDiff >= 2;
-        }
-
-        return { sanitizedData: sanitized, shouldSmooth: smooth };
-    }, [data]);
-
-    const rsiPoints = useMemo(() => {
-        if (!shouldSmooth) {
-            return sanitizedData.filter(item => item.rsi !== null && item.rsi !== undefined).map((item: BitcoinPrice) => ({
-                x: getCalendarDateTimestamp(item.date),
-                y: item.rsi!
-            }));
-        }
-
-        const monthlyGroups: Record<string, { sum: number, count: number, date: number }> = {};
-        sanitizedData.forEach((item: BitcoinPrice) => {
-            if (item.rsi === null || item.rsi === undefined) return;
-
-            const d = parseCalendarDate(item.date);
-            const year = d.getUTCFullYear();
-            const month = d.getUTCMonth();
-            const key = `${year}-${month}`;
-            if (!monthlyGroups[key]) {
-                monthlyGroups[key] = {
-                    sum: 0,
-                    count: 0,
-                    date: Date.UTC(year, month, 15)
-                };
-            }
-            monthlyGroups[key].sum += item.rsi;
-            monthlyGroups[key].count += 1;
-        });
-
-        return Object.values(monthlyGroups)
-            .sort((a, b) => a.date - b.date)
-            .map(m => ({
-                x: m.date,
-                y: m.sum / m.count
-            }));
-    }, [sanitizedData, shouldSmooth]);
+    const useMonthlyTicks = data.length > 1 &&
+        getCalendarDateTimestamp(data[data.length - 1].date) - getCalendarDateTimestamp(data[0].date) >= 2 * 365 * 24 * 60 * 60 * 1000;
+    const rsiPoints = data.filter(item => item.rsi != null).map(item => ({
+        x: getCalendarDateTimestamp(item.date),
+        y: item.rsi!,
+    }));
 
     const candlestickDataset: CandlestickDataset = {
         type: 'candlestick',
         label: `Bitcoin Price (${currencySymbol})`,
-        data: sanitizedData.map((item) => ({
+        data: data.map((item) => ({
             x: getCalendarDateTimestamp(item.date),
             o: item.open,
             h: item.high,
@@ -211,7 +154,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
             ...(type === 'line' ? [{
                 type: 'line' as const,
                 label: `Bitcoin Price (${currencySymbol})`,
-                data: sanitizedData.map((item) => ({
+                data: data.map((item) => ({
                     x: getCalendarDateTimestamp(item.date),
                     y: item.close
                 })),
@@ -227,7 +170,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
                 fill: true,
                 tension: 0.4,
-                pointRadius: 0,
+                pointRadius: data.length === 1 ? 4 : 0,
                 pointHoverRadius: 6,
                 pointHoverBackgroundColor: '#FFA42D',
                 pointHoverBorderColor: '#fff',
@@ -236,9 +179,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
             }] : [candlestickDataset]),
             ...(showRsi ? [{
                 type: 'line' as const,
-                label: 'RSI',
+                label: INDICATORS.rsi.series[0].label,
                 data: rsiPoints,
-                borderColor: '#ffffff',
+                borderColor: INDICATORS.rsi.series[0].color,
                 borderWidth: 1.5,
                 backgroundColor: (context: LineScriptableContext) => {
                     const ctx = context.chart.ctx;
@@ -265,85 +208,29 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 pointHoverBackgroundColor: '#ffffff',
                 yAxisID: 'y1',
             }] : []),
-            ...(showSma ? [
-                {
+            ...(['sma', 'ema'] as const).flatMap((id) => {
+                if (!(id === 'sma' ? showSma : showEma)) return [];
+                return INDICATORS[id].series.map((series) => ({
                     type: 'line' as const,
-                    label: 'SMA 7',
-                    data: sanitizedData.filter(item => item.sma_7 !== null && item.sma_7 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_7! })),
-                    borderColor: 'rgba(56, 189, 248, 0.8)', // cyan
-                    borderWidth: 1,
+                    label: series.label,
+                    data: data.filter(item => item[series.key] != null).map(item => ({
+                        x: getCalendarDateTimestamp(item.date), y: item[series.key]!,
+                    })),
+                    borderColor: series.color,
+                    ...(id === 'ema' ? { borderDash: [2, 2] } : {}),
+                    borderWidth: id === 'ema' ? 2 : 1,
                     pointRadius: 0,
                     tension: 0.1,
                     yAxisID: 'y',
                     spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'SMA 50',
-                    data: sanitizedData.filter(item => item.sma_50 !== null && item.sma_50 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_50! })),
-                    borderColor: 'rgba(168, 85, 247, 0.8)', // purple
-                    borderWidth: 1,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'SMA 200',
-                    data: sanitizedData.filter(item => item.sma_200 !== null && item.sma_200 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.sma_200! })),
-                    borderColor: 'rgba(236, 72, 153, 0.8)', // pink
-                    borderWidth: 1,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                }
-            ] : []),
-            ...(showEma ? [
-                {
-                    type: 'line' as const,
-                    label: 'EMA 7',
-                    data: sanitizedData.filter(item => item.ema_7 !== null && item.ema_7 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_7! })),
-                    borderColor: 'rgba(56, 189, 248, 0.6)',
-                    borderDash: [2, 2],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'EMA 50',
-                    data: sanitizedData.filter(item => item.ema_50 !== null && item.ema_50 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_50! })),
-                    borderColor: 'rgba(168, 85, 247, 0.6)',
-                    borderDash: [2, 2],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                },
-                {
-                    type: 'line' as const,
-                    label: 'EMA 200',
-                    data: sanitizedData.filter(item => item.ema_200 !== null && item.ema_200 !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.ema_200! })),
-                    borderColor: 'rgba(236, 72, 153, 0.6)',
-                    borderDash: [2, 2],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1,
-                    yAxisID: 'y',
-                    spanGaps: false,
-                }
-            ] : []),
+                }));
+            }),
             ...(showMacd ? [
                 {
                     type: 'line' as const,
-                    label: 'MACD',
-                    data: sanitizedData.filter(item => item.macd !== null && item.macd !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd! })),
-                    borderColor: '#3b82f6', // blue-500
+                    label: INDICATORS.macd.series[0].label,
+                    data: data.filter(item => item[INDICATORS.macd.series[0].key] != null).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item[INDICATORS.macd.series[0].key]! })),
+                    borderColor: INDICATORS.macd.series[0].color,
                     borderWidth: 1.5,
                     pointRadius: 0,
                     tension: 0.4,
@@ -352,9 +239,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
                 {
                     type: 'line' as const,
-                    label: 'Signal',
-                    data: sanitizedData.filter(item => item.macd_signal !== null && item.macd_signal !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd_signal! })),
-                    borderColor: '#f97316', // orange-500
+                    label: INDICATORS.macd.series[1].label,
+                    data: data.filter(item => item[INDICATORS.macd.series[1].key] != null).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item[INDICATORS.macd.series[1].key]! })),
+                    borderColor: INDICATORS.macd.series[1].color,
                     borderWidth: 1,
                     pointRadius: 0,
                     tension: 0.4,
@@ -363,8 +250,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 },
                 {
                     type: 'bar' as const,
-                    label: 'Histogram',
-                    data: sanitizedData.filter(item => item.macd_hist !== null && item.macd_hist !== undefined).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item.macd_hist! })),
+                    label: INDICATORS.macd.series[2].label,
+                    data: data.filter(item => item[INDICATORS.macd.series[2].key] != null).map(item => ({ x: getCalendarDateTimestamp(item.date), y: item[INDICATORS.macd.series[2].key]! })),
                     backgroundColor: (context: BarScriptableContext) => {
                         const value = getNumberProperty(context.raw, 'y');
                         return value !== undefined && value >= 0
@@ -417,9 +304,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         const firstItem = context[0];
                         const rawTimestamp = getRawX(firstItem?.raw);
                         if (rawTimestamp !== undefined) {
-                            return formatDate(new Date(rawTimestamp).toISOString());
+                            return formatPriceDate({ date: new Date(rawTimestamp).toISOString(), aggregation: data[0]?.aggregation });
                         }
-                        return formatDate(firstItem?.label ?? '');
+                        return formatPriceDate({ date: firstItem?.label ?? '', aggregation: data[0]?.aggregation });
                     },
                     label: function (context: ChartTooltipItem) {
                         const value = getParsedY(context);
@@ -427,12 +314,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         if (label === 'RSI') {
                             return value === undefined ? 'RSI: n/a' : `RSI: ${Math.round(value)}`;
                         }
-                        if (['MACD', 'Signal', 'Histogram'].includes(label)) {
+                        if (INDICATORS.macd.series.some(series => series.label === label)) {
                             return value === undefined
                                 ? `${label}: n/a`
                                 : `${label}: ${value.toFixed(2)}`;
                         }
-                        if (['SMA 7', 'SMA 50', 'SMA 200', 'EMA 7', 'EMA 50', 'EMA 200'].includes(label)) {
+                        if ([...INDICATORS.sma.series, ...INDICATORS.ema.series].some(series => series.label === label)) {
                             return value === undefined
                                 ? `${label}: n/a`
                                 : `${label}: ${currencySymbol}${formatPrice(value)}`;
@@ -456,7 +343,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 type: 'timeseries' as const,
                 offset: true,
                 time: {
-                    unit: shouldSmooth ? ('month' as const) : ('day' as const),
+                    unit: useMonthlyTicks ? ('month' as const) : ('day' as const),
                     displayFormats: {
                         day: 'MMM d',
                         month: 'MMM yyyy'
@@ -468,7 +355,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     drawBorder: false,
                 },
                 ticks: {
-                    color: '#6b7280',
+                    color: '#b8b8b8',
                     maxTicksLimit: 8,
                     autoSkip: true,
                     font: {
@@ -478,6 +365,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
             },
             y: {
                 type: scaleType,
+                afterBuildTicks: (axis: Scale) => {
+                    if (scaleType !== 'logarithmic') return;
+                    const minimumGap = Math.log10(axis.max / axis.min) / 5;
+                    let previous = -Infinity;
+                    axis.ticks = axis.ticks.filter(({ value }) => {
+                        const position = Math.log10(value);
+                        if (position - previous < minimumGap) return false;
+                        previous = position;
+                        return true;
+                    });
+                },
                 display: true,
                 position: 'right' as const,
                 stack: 'demo',
@@ -486,11 +384,14 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     display: false,
                 },
                 ticks: {
-                    color: '#6b7280',
+                    color: '#b8b8b8',
+                    maxTicksLimit: 6,
+                    autoSkipPadding: 16,
                     font: {
                         size: 11,
                     },
-                    callback: function (value: number | string) {
+                    callback: function (value: number | string, index: number) {
+                        if (index === 0 && (showRsi || showMacd)) return '';
                         return currencySymbol + formatPrice(Number(value));
                     },
                 },
@@ -511,8 +412,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         drawBorder: false,
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#b8b8b8',
                         stepSize: 50,
+                        callback: (value: number | string) => showMacd && Number(value) === 0 ? '' : value,
                         font: {
                             size: 10,
                         }
@@ -532,7 +434,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         drawBorder: false,
                     },
                     ticks: {
-                        color: '#6b7280',
+                        color: '#b8b8b8',
+                        maxTicksLimit: 4,
                         font: {
                             size: 10,
                         }
@@ -546,6 +449,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
         },
     };
 
+    const indicatorColumns = [
+        ...(showSma ? INDICATORS.sma.series : []),
+        ...(showEma ? INDICATORS.ema.series : []),
+        ...(showMacd ? INDICATORS.macd.series : []),
+    ];
+
     return (
         <>
             {loading ? (
@@ -555,7 +464,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 </div>
             ) : (
                 <div className="w-full" key={`${type}-${showRsi}-${data.length}`}>
-                    <div className="h-[320px] w-full md:h-[360px]" aria-hidden="true">
+                    {(showSma || showEma || showRsi || showMacd) && (
+                        <ul aria-label="Active chart series" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">
+                            {chartData.datasets.map((dataset) => (
+                                <li key={dataset.label} className="flex items-center gap-1.5">
+                                    <span aria-hidden="true" className="w-4 shrink-0 border-t-2" style={{ borderColor: typeof dataset.borderColor === 'string' ? dataset.borderColor : '#b8b8b8', borderTopStyle: 'borderDash' in dataset && dataset.borderDash?.length ? 'dashed' : 'solid' }} />
+                                    {dataset.label}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <div className="h-[var(--mobile-chart-height)] w-full md:h-[360px]" style={{ '--mobile-chart-height': `${320 + (showRsi ? 90 : 0) + (showMacd ? 110 : 0)}px` } as React.CSSProperties} aria-hidden="true">
                         <Chart
                             type={type === 'candlestick' ? 'candlestick' : 'line'}
                             data={chartData}
@@ -564,8 +483,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     </div>
                     {data.length > 0 && (
                         <>
-                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
-                                <span>Latest close <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
+                            <div className="sr-only md:not-sr-only md:mt-3 md:flex md:flex-wrap md:gap-x-5 md:gap-y-1 md:border-t md:border-border md:pt-3 md:text-xs md:text-muted-foreground">
+                                <span>Period close · {formatPriceDate(data[data.length - 1])} <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(data[data.length - 1].close)}</strong></span>
                                 <span>Period high <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.max(...data.map((item) => item.high)))}</strong></span>
                                 <span>Period low <strong className="font-semibold tabular-nums text-foreground">{currencySymbol || '$'}{formatPrice(Math.min(...data.map((item) => item.low)))}</strong></span>
                             </div>
@@ -579,16 +498,21 @@ const PriceChart: React.FC<PriceChartProps> = ({
                                             <th scope="col">High</th>
                                             <th scope="col">Low</th>
                                             <th scope="col">RSI</th>
+                                            {indicatorColumns.map((column) => <th key={column.key} scope="col">{column.label}</th>)}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {data.slice(-10).reverse().map((item) => (
                                             <tr key={item.date}>
-                                                <th scope="row">{formatDate(item.date)}</th>
+                                                <th scope="row">{formatPriceDate(item)}</th>
                                                 <td>{formatAccessiblePrice(item.close, currencySymbol || '$')}</td>
                                                 <td>{formatAccessiblePrice(item.high, currencySymbol || '$')}</td>
                                                 <td>{formatAccessiblePrice(item.low, currencySymbol || '$')}</td>
                                                 <td>{item.rsi == null ? 'Unavailable' : item.rsi.toFixed(1)}</td>
+                                                {indicatorColumns.map((column) => {
+                                                    const value = item[column.key];
+                                                    return <td key={column.key}>{typeof value !== 'number' ? 'Unavailable' : column.price ? formatAccessiblePrice(value, currencySymbol || '$') : value.toFixed(2)}</td>;
+                                                })}
                                             </tr>
                                         ))}
                                     </tbody>

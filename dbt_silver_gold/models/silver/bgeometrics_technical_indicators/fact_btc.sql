@@ -11,9 +11,7 @@
 ] -%}
 {{ 
             config(
-                materialized='incremental',
-                unique_key='date_indicators',
-                on_schema_change='sync_all_columns'
+                materialized='table'
                 ) 
         }}
 with source_rows as (
@@ -30,9 +28,6 @@ with source_rows as (
         ema200,
         ingest_date_time
     from {{ source('bronze', 'bgeometrics_btc_technical_indicators') }}
-    {% if is_incremental() %}
-    where ingest_date_time > (select max(ingest_date_time) from {{ this }})
-    {% endif %}
 ), ranked as (
     select
         *,

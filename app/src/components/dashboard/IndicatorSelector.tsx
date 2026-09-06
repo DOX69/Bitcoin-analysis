@@ -11,19 +11,13 @@ import {
     DropdownMenuGroup,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { INDICATORS, DESKTOP_INDICATOR_ORDER, type IndicatorId } from '@/lib/indicators';
 import { cn } from '@/lib/utils';
 
 interface IndicatorSelectorProps {
-    selectedIndicators: Set<string>;
-    onToggleIndicator: (indicator: string) => void;
+    selectedIndicators: Set<IndicatorId>;
+    onToggleIndicator: (indicator: IndicatorId) => void;
 }
-
-const INDICATORS = [
-    { id: 'rsi', label: 'RSI', description: 'Relative Strength Index' },
-    { id: 'macd', label: 'MACD', description: 'Moving Average Convergence Divergence' },
-    { id: 'sma', label: '3 SMA', description: '7, 50, 200-day Simple Moving Averages' },
-    { id: 'ema', label: '3 EMA', description: '7, 50, 200-day Exponential Moving Averages' },
-];
 
 export default function IndicatorSelector({ selectedIndicators, onToggleIndicator }: IndicatorSelectorProps) {
     return (
@@ -42,14 +36,15 @@ export default function IndicatorSelector({ selectedIndicators, onToggleIndicato
 
             <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuGroup>
-                    {INDICATORS.map((indicator) => {
-                        const isSelected = selectedIndicators.has(indicator.id);
+                    {DESKTOP_INDICATOR_ORDER.map((id) => {
+                        const indicator = INDICATORS[id];
+                        const isSelected = selectedIndicators.has(id);
 
                         return (
                             <DropdownMenuCheckboxItem
-                                key={indicator.id}
+                                key={id}
                                 checked={isSelected}
-                                onCheckedChange={() => onToggleIndicator(indicator.id)}
+                                onCheckedChange={() => onToggleIndicator(id)}
                                 className="items-start py-3"
                             >
                                 <div className="flex flex-col gap-1 text-left">

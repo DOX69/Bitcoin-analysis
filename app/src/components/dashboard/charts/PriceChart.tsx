@@ -535,6 +535,10 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 </div>
             ) : (
                 <div className="w-full" key={`${type}-${showRsi}-${data.length}-${currencySymbol}-${projection ? 'on' : 'off'}-${projection?.emissions.map(({ id }) => id).join(',') ?? ''}`}>
+                    {hasProjection && <div className="sr-only"><table aria-label="Valeurs des prévisions">
+                        <thead><tr><th>Calculée le</th><th>Échéance UTC</th><th>Q25</th><th>Q50</th><th>Q75</th></tr></thead>
+                        <tbody>{projection?.emissions.flatMap(emission => emission.points.map(point => <tr key={`${emission.id}-${point.date}`}><td>{emission.issued}</td><td>{point.date}</td><td>{formatAccessiblePrice(point.low, currencySymbol)}</td><td>{formatAccessiblePrice(point.median, currencySymbol)}</td><td>{formatAccessiblePrice(point.high, currencySymbol)}</td></tr>))}</tbody>
+                    </table></div>}
                     {hasProjection && <ul aria-label="Courbes de projection" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">
                         {(['Basse', 'Médiane', 'Haute'] as const).map((label, index) => <li key={label} className="flex items-center gap-1.5">
                             <span aria-hidden="true" className="w-4 shrink-0 border-t-2" style={{

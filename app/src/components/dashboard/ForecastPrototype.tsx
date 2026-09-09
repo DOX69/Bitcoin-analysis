@@ -11,10 +11,12 @@ interface ForecastPrototypeProps {
     emissions: { id: string; issued: string }[];
     selectedIds: string[];
     onSelectionChange: (ids: string[]) => void;
+    publishedModel?: { id: string; name: string } | null;
 }
 
-// Local prototype controls. Model names refer to simulated projections only.
-export default function ForecastPrototype({ enabled, onEnabledChange, model, onModelChange, emissions, selectedIds, onSelectionChange }: ForecastPrototypeProps) {
+// Shared controls for the published model and the development-only fixture.
+export default function ForecastPrototype({ enabled, onEnabledChange, model, onModelChange, emissions, selectedIds, onSelectionChange, publishedModel }: ForecastPrototypeProps) {
+    const modelNames: Record<string, string> = { gaussian_random_walk: 'Marche aléatoire gaussienne', lightgbm_quantile: 'LightGBM quantile', price_unchanged: 'Prix inchangé' };
     const infoId = useId();
     const historyId = useId();
     const [historyPosition, setHistoryPosition] = useState({ top: 0, left: 0 });
@@ -26,9 +28,11 @@ export default function ForecastPrototype({ enabled, onEnabledChange, model, onM
                 <input type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} />
                 <span>Forecast</span>
             </label>
-            <select aria-label="Modèle de prévision" value={model} onChange={(event) => onModelChange(event.target.value)}>
+            <select aria-label="Modèle de prévision" value={publishedModel !== undefined ? publishedModel?.id ?? '' : model} disabled={publishedModel !== undefined} onChange={(event) => onModelChange(event.target.value)}>
+                {publishedModel !== undefined ? <option value={publishedModel?.id ?? ''}>{publishedModel ? modelNames[publishedModel.name] ?? publishedModel.name : 'Aucun modèle publié'}</option> : <>
                 <option value="recommended">Modèle recommandé (démo)</option>
                 <option value="alternative">Autre modèle (démo)</option>
+                </>}
             </select>
             <button className="forecast-info" type="button" popoverTarget={infoId} aria-label="À propos des prévisions"><Info size={17} aria-hidden="true" /></button>
         </div>
@@ -43,7 +47,7 @@ export default function ForecastPrototype({ enabled, onEnabledChange, model, onM
                 {new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${emission.issued}T00:00:00Z`))}{index === 0 && <small>Dernière</small>}
             </label>)}
         </div>
-        <small className="forecast-demo">Projections simulées</small>
+        <small className="forecast-demo">{publishedModel !== undefined ? 'Médiane Q50 · intervalle Q25–Q75' : 'Projections simulées'}</small>
         <div id={infoId} popover="auto" className="forecast-explanation" aria-label="À propos des prévisions">
             <button className="forecast-close" type="button" popoverTarget={infoId} popoverTargetAction="hide" aria-label="Fermer les informations"><X size={18} aria-hidden="true" /></button>
             <p>À partir de l’évolution passée du Bitcoin, le modèle estime son prix semaine par semaine pour les 12 prochains mois. La médiane donne l’estimation centrale, entourée d’une estimation basse et haute. Les prévisions sont mises à jour chaque semaine, sans effacer les anciennes. Le prix réel peut sortir de cette zone : ce n’est pas une garantie.</p>

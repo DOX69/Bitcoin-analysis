@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import ForecastPrototype from './ForecastPrototype';
 import { demoProjection } from './forecast-prototype/demo-data';
+import { useForecast } from './useForecast';
 
 interface DashboardClientProps {
     initialMetrics: BitcoinMetrics;
@@ -71,12 +72,20 @@ export default function DashboardClient({
     const [showProjection, setShowProjection] = useState(false);
     const [projectionModel, setProjectionModel] = useState('recommended');
     const [emissionSelection, setEmissionSelection] = useState<{ scope: string; ids: string[] } | null>(null);
-    const availableProjection = prototypeVariant ? demoProjection(initialHistoricalData, initialCurrency, projectionModel) : undefined;
-    const availableEmissions = [...(availableProjection?.emissions ?? [])].sort((a, b) => b.issued.localeCompare(a.issued)).slice(0, 3);
+    const forecast = useForecast(showProjection && !prototypeVariant, initialCurrency, startDate, endDate);
+    const availableProjection = prototypeVariant ? demoProjection(initialHistoricalData, initialCurrency, projectionModel) : forecast.projection;
+    const availableEmissions = prototypeVariant ? [...availableProjection.emissions].sort((a, b) => b.issued.localeCompare(a.issued)).slice(0, 3) : forecast.emissions.filter(e => e.status !== 'invalidated').map(e => ({ id: e.id, issued: e.emissionDate }));
     const selectionScope = `${projectionModel}:${availableEmissions.map(({ id }) => id).join(',')}`;
     const selectedEmissionIds = emissionSelection?.scope === selectionScope ? emissionSelection.ids : availableEmissions.slice(0, 1).map(({ id }) => id);
-    const projection = showProjection && availableProjection ? { ...availableProjection, emissions: availableEmissions.filter(({ id }) => selectedEmissionIds.includes(id)) } : undefined;
-    const projectionControls = prototypeVariant ? <ForecastPrototype enabled={showProjection} onEnabledChange={setShowProjection} model={projectionModel} onModelChange={(model) => { setProjectionModel(model); setEmissionSelection(null); }} emissions={availableEmissions} selectedIds={selectedEmissionIds} onSelectionChange={(ids) => setEmissionSelection({ scope: selectionScope, ids: ids.filter((id) => availableEmissions.some((emission) => emission.id === id)).slice(0, 3) })} /> : null;
+    const projection = showProjection ? { ...availableProjection, emissions: availableProjection.emissions.filter(({ id }) => selectedEmissionIds.includes(id)) } : undefined;
+    const projectionControls = <ForecastPrototype enabled={showProjection} onEnabledChange={setShowProjection} model={projectionModel} onModelChange={(model) => { setProjectionModel(model); setEmissionSelection(null); }} emissions={availableEmissions} selectedIds={selectedEmissionIds} onSelectionChange={(ids) => setEmissionSelection({ scope: selectionScope, ids: ids.filter((id) => availableEmissions.some((emission) => emission.id === id)).slice(0, 3) })} {...(!prototypeVariant ? { publishedModel: forecast.model } : {})} />;
+    const forecastMessages = {
+        loading: 'Chargement des prévisions…', absent: 'Aucune prévision disponible pour cette période.',
+        stale: 'Prévision en retard. Les dates et valeurs d’origine sont conservées.',
+        error: 'Impossible de charger les prévisions. Réessayez en désactivant puis réactivant Forecast.',
+        invalid: 'Données de prévision invalides. Aucune courbe affichée.', withdrawn: 'Modèle retiré. Aucune courbe affichée.',
+        available: '',
+    };
 
     const periodStats = initialHistoricalData.length > 0
         ? {
@@ -271,6 +280,11 @@ export default function DashboardClient({
                         <Card aria-busy={isPending} className={cn('mb-5 -mx-2 bg-transparent py-0 ring-0 md:mx-0 md:mb-6 md:bg-card md:py-0 md:ring-1', isPending && 'opacity-60')}>
                             <CardContent className="px-0 py-0 md:p-6">
                                 {projectionControls}
+                                {showProjection && !prototypeVariant && <div className="mb-3 space-y-1 text-xs text-muted-foreground" role="status" aria-live="polite">
+                                    {forecastMessages[forecast.status] && <p>{forecastMessages[forecast.status]}</p>}
+                                    {forecast.emissions.filter(e => e.status === 'invalidated').map(e => <p key={e.id}>Émission du {e.emissionDate} invalidée. Courbe retirée.</p>)}
+                                    {forecast.emissions.filter(e => selectedEmissionIds.includes(e.id) && e.status !== 'invalidated').map(e => <p key={e.id}>Calculée le {e.emissionDate} · origine {e.originDate}{e.status === 'delayed' ? ' · émission en retard' : ''}{initialCurrency !== 'USD' && e.fx[initialCurrency] ? ` · change ${initialCurrency} figé le ${e.fx[initialCurrency].date} (${e.fx[initialCurrency].rate})` : ''}</p>)}
+                                </div>}
                                 {initialHistoricalData.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center gap-2 px-4 text-center"><h2 className="text-sm font-medium">No data for this period</h2><p className="text-sm text-muted-foreground">Choose another time range or adjust your dates.</p><Button variant="secondary" onClick={() => handleTimeFilter('6m')}>Show last 6 months</Button></div> :
                                 <PriceChart
                                     data={initialHistoricalData}
@@ -285,7 +299,7 @@ export default function DashboardClient({
                                     projection={projection}
                                 />}
                                 
-                                {showProjection && projection?.emissions.length === 0 && <p className="p-3 text-xs text-muted-foreground">{availableEmissions.length ? 'Sélectionnez une prévision dans la liste.' : 'Aucune projection disponible sur cette période.'}</p>}
+                                {showProjection && projection?.emissions.length === 0 && (prototypeVariant || forecast.status === 'available' || forecast.status === 'stale') && <p className="p-3 text-xs text-muted-foreground">{availableEmissions.length && !selectedEmissionIds.length ? 'Sélectionnez une prévision dans la liste.' : 'Aucune projection disponible sur cette période.'}</p>}
                             </CardContent>
                         </Card>
 

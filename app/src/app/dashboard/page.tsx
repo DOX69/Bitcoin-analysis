@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { DashboardSearchParamsSchema } from '@/lib/schemas';
 import DashboardClient from '@/components/dashboard/DashboardClient';
+import { demoMarket } from '@/components/dashboard/forecast-prototype/demo-data';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // Revalidate every minute
@@ -17,11 +18,13 @@ interface PageProps {
         start?: string;
         end?: string;
         currency?: string;
+        variant?: string;
     }>;
 }
 
 export default async function Dashboard({ searchParams }: PageProps) {
     const params = await searchParams;
+    const prototypeVariant = process.env.NODE_ENV === 'development' && params.variant === 'A' ? 'A' as const : undefined;
     const validation = DashboardSearchParamsSchema.safeParse({
         time: params.time,
         currency: params.currency,
@@ -60,8 +63,9 @@ export default async function Dashboard({ searchParams }: PageProps) {
         }
     };
 
-    // Parallel data fetching on the server
-    const [metrics, historicalData] = await Promise.all([
+    // The prototype uses the real dashboard with clearly identified demo inputs.
+    const demo = prototypeVariant ? demoMarket(getDaysForFilter(selectedTime), startDate, endDate, selectedCurrency) : undefined;
+    const [metrics, historicalData] = demo ? [demo.metrics, demo.history] : await Promise.all([
         getCurrentBitcoinMetrics(selectedCurrency),
         getHistoricalPrices(
             getDaysForFilter(selectedTime),
@@ -79,6 +83,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
             startDate={startDate || ''}
             endDate={endDate || ''}
             selectedCurrency={selectedCurrency}
+            prototypeVariant={prototypeVariant}
         />
     );
 }

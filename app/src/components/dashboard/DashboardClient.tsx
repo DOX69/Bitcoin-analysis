@@ -23,6 +23,8 @@ import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import ForecastPrototype from './ForecastPrototype';
+import { demoProjection } from './forecast-prototype/demo-data';
 
 interface DashboardClientProps {
     initialMetrics: BitcoinMetrics;
@@ -31,6 +33,7 @@ interface DashboardClientProps {
     startDate: string;
     endDate: string;
     selectedCurrency: Currency;
+    prototypeVariant?: 'A';
 }
 
 const TIME_FILTERS = [
@@ -53,6 +56,7 @@ export default function DashboardClient({
     initialHistoricalData,
     selectedTime: initialTime,
     selectedCurrency: initialCurrency,
+    prototypeVariant,
 }: DashboardClientProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -64,6 +68,15 @@ export default function DashboardClient({
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
     const [scaleType, setScaleType] = useState<'linear' | 'logarithmic'>('linear');
     const [isPending, startTransition] = useTransition();
+    const [showProjection, setShowProjection] = useState(false);
+    const [projectionModel, setProjectionModel] = useState('recommended');
+    const [emissionSelection, setEmissionSelection] = useState<{ scope: string; ids: string[] } | null>(null);
+    const availableProjection = prototypeVariant ? demoProjection(initialHistoricalData, initialCurrency, projectionModel) : undefined;
+    const availableEmissions = [...(availableProjection?.emissions ?? [])].sort((a, b) => b.issued.localeCompare(a.issued)).slice(0, 3);
+    const selectionScope = `${projectionModel}:${availableEmissions.map(({ id }) => id).join(',')}`;
+    const selectedEmissionIds = emissionSelection?.scope === selectionScope ? emissionSelection.ids : availableEmissions.slice(0, 1).map(({ id }) => id);
+    const projection = showProjection && availableProjection ? { ...availableProjection, emissions: availableEmissions.filter(({ id }) => selectedEmissionIds.includes(id)) } : undefined;
+    const projectionControls = prototypeVariant ? <ForecastPrototype enabled={showProjection} onEnabledChange={setShowProjection} model={projectionModel} onModelChange={(model) => { setProjectionModel(model); setEmissionSelection(null); }} emissions={availableEmissions} selectedIds={selectedEmissionIds} onSelectionChange={(ids) => setEmissionSelection({ scope: selectionScope, ids: ids.filter((id) => availableEmissions.some((emission) => emission.id === id)).slice(0, 3) })} /> : null;
 
     const periodStats = initialHistoricalData.length > 0
         ? {
@@ -119,6 +132,7 @@ export default function DashboardClient({
             <main className="flex flex-1 overflow-hidden">
                 <div className="flex min-w-0 flex-1 flex-col md:h-[calc(100vh-64px)] md:overflow-hidden">
                     <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                        {prototypeVariant && <p className="mb-3 text-xs text-amber-300">Prototype · données de démonstration</p>}
                         <div className="mb-5 hidden md:block">
                             <div>
                                 <h1 className="text-balance text-2xl font-semibold tracking-tight text-white">Bitcoin market dashboard</h1>
@@ -256,6 +270,7 @@ export default function DashboardClient({
                         <p role="status" className={cn('mb-2 text-xs text-muted-foreground', !isPending && 'sr-only')}>{isPending ? 'Updating chart…' : ''}</p>
                         <Card aria-busy={isPending} className={cn('mb-5 -mx-2 bg-transparent py-0 ring-0 md:mx-0 md:mb-6 md:bg-card md:py-0 md:ring-1', isPending && 'opacity-60')}>
                             <CardContent className="px-0 py-0 md:p-6">
+                                {projectionControls}
                                 {initialHistoricalData.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center gap-2 px-4 text-center"><h2 className="text-sm font-medium">No data for this period</h2><p className="text-sm text-muted-foreground">Choose another time range or adjust your dates.</p><Button variant="secondary" onClick={() => handleTimeFilter('6m')}>Show last 6 months</Button></div> :
                                 <PriceChart
                                     data={initialHistoricalData}
@@ -267,7 +282,10 @@ export default function DashboardClient({
                                     type={chartType}
                                     currencySymbol={CURRENCY_SYMBOLS[initialCurrency] || '$'}
                                     scaleType={scaleType}
+                                    projection={projection}
                                 />}
+                                
+                                {showProjection && projection?.emissions.length === 0 && <p className="p-3 text-xs text-muted-foreground">{availableEmissions.length ? 'Sélectionnez une prévision dans la liste.' : 'Aucune projection disponible sur cette période.'}</p>}
                             </CardContent>
                         </Card>
 

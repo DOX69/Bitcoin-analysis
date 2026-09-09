@@ -18,7 +18,7 @@ import {
     TimeSeriesScale,
     LogarithmicScale
 } from 'chart.js';
-import type { Scale, ScriptableContext, TooltipItem } from 'chart.js';
+import type { Plugin, Scale, ScriptableContext, TooltipItem } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { INDICATORS } from '@/lib/indicators';
 import { BitcoinPrice } from '@/lib/schemas';
@@ -48,6 +48,14 @@ ChartJS.register(
     LogarithmicScale
 );
 
+export interface PriceChartProjection {
+    emissions: {
+        id: string;
+        issued: string;
+        points: { date: string; low: number; median: number; high: number }[];
+    }[];
+}
+
 interface PriceChartProps {
     data: BitcoinPrice[];
     loading?: boolean;
@@ -58,6 +66,7 @@ interface PriceChartProps {
     showSma?: boolean;
     showEma?: boolean;
     scaleType?: 'linear' | 'logarithmic';
+    projection?: PriceChartProjection;
 }
 
 function formatAccessiblePrice(value: number, currencySymbol: string): string {
@@ -112,8 +121,61 @@ const PriceChart: React.FC<PriceChartProps> = ({
     showMacd = false,
     showSma = false,
     showEma = false,
-    scaleType = 'linear'
+    scaleType = 'linear',
+    projection,
 }) => {
+    const projectionPoints = projection?.emissions.flatMap(emission => emission.points) ?? [];
+    const hasProjection = projectionPoints.length > 0;
+    const lastObservedDate = data.length ? getCalendarDateTimestamp(data[data.length - 1].date) : undefined;
+    const projectionSeparator: Plugin<SupportedChartType> = {
+        id: 'projection-separator',
+        afterDraw(chart) {
+            if (!hasProjection || lastObservedDate === undefined || !projectionPoints.some(point => getCalendarDateTimestamp(point.date) > lastObservedDate)) return;
+            const x = chart.scales.x.getPixelForValue(lastObservedDate);
+            const { ctx, chartArea, scales } = chart;
+            if (x < chartArea.left || x > chartArea.right) return;
+            ctx.save();
+            ctx.strokeStyle = '#929292';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 5]);
+            ctx.beginPath();
+            ctx.moveTo(x, scales.y.top);
+            ctx.lineTo(x, scales.y.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#b8b8b8';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textBaseline = 'top';
+            if (chartArea.right - x > ctx.measureText('Projections').width + 12) ctx.fillText('Projections', x + 8, scales.y.top + 5);
+            ctx.restore();
+        },
+    };
+    const projectionLabels = new Set<string>();
+    const projectionDatasets = projection?.emissions.flatMap(emission => {
+        const issued = new Date(getCalendarDateTimestamp(emission.issued)).toLocaleDateString('fr-FR', { timeZone: 'UTC' });
+        return (['low', 'median', 'high'] as const).map((field) => {
+            const median = field === 'median';
+            const label = `${field === 'low' ? 'Estimation basse' : median ? 'Médiane' : 'Estimation haute'} · ${issued}`;
+            projectionLabels.add(label);
+            const color = median ? '#f4c684' : '#ba9364';
+            return {
+                type: 'line' as const,
+                label,
+                data: emission.points.map(point => ({ x: getCalendarDateTimestamp(point.date), y: point[field] })),
+                borderColor: color,
+                backgroundColor: 'rgba(210, 163, 102, 0.10)',
+                borderWidth: median ? 2 : 0.7,
+                borderDash: median ? [7, 5] : [],
+                fill: field === 'high' ? '-2' : false,
+                tension: 0,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                pointBackgroundColor: color,
+                yAxisID: 'y',
+                spanGaps: false,
+            };
+        });
+    }) ?? [];
     const useMonthlyTicks = data.length > 1 &&
         getCalendarDateTimestamp(data[data.length - 1].date) - getCalendarDateTimestamp(data[0].date) >= 2 * 365 * 24 * 60 * 60 * 1000;
     const rsiPoints = data.filter(item => item.rsi != null).map(item => ({
@@ -262,13 +324,15 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     categoryPercentage: 0.9,
                     yAxisID: 'y2',
                 }
-            ] : [])
+            ] : []),
+            ...projectionDatasets,
         ],
     };
 
     const options = {
         responsive: true,
         maintainAspectRatio: false,
+        ...(projection ? { animation: false as const } : {}),
         plugins: {
             legend: {
                 display: false,
@@ -304,13 +368,16 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         const firstItem = context[0];
                         const rawTimestamp = getRawX(firstItem?.raw);
                         if (rawTimestamp !== undefined) {
-                            return formatPriceDate({ date: new Date(rawTimestamp).toISOString(), aggregation: data[0]?.aggregation });
+                            return formatPriceDate({ date: new Date(rawTimestamp).toISOString(), aggregation: projectionLabels.has(firstItem.dataset.label ?? '') ? 'daily' : data[0]?.aggregation });
                         }
                         return formatPriceDate({ date: firstItem?.label ?? '', aggregation: data[0]?.aggregation });
                     },
                     label: function (context: ChartTooltipItem) {
                         const value = getParsedY(context);
                         const label = context.dataset.label ?? '';
+                        if (projectionLabels.has(label)) {
+                            return `${label} : ${value === undefined ? 'indisponible' : currencySymbol + formatPrice(value)}`;
+                        }
                         if (label === 'RSI') {
                             return value === undefined ? 'RSI: n/a' : `RSI: ${Math.round(value)}`;
                         }
@@ -340,7 +407,11 @@ const PriceChart: React.FC<PriceChartProps> = ({
         },
         scales: {
             x: {
-                type: 'timeseries' as const,
+                type: hasProjection ? 'time' as const : 'timeseries' as const,
+                ...(hasProjection ? {
+                    min: data.length ? getCalendarDateTimestamp(data[0].date) : undefined,
+                    max: Math.max(...projectionPoints.map(point => getCalendarDateTimestamp(point.date)), ...(data.length ? [getCalendarDateTimestamp(data[data.length - 1].date)] : [])),
+                } : {}),
                 offset: true,
                 time: {
                     unit: useMonthlyTicks ? ('month' as const) : ('day' as const),
@@ -463,10 +534,19 @@ const PriceChart: React.FC<PriceChartProps> = ({
                     <span className="text-muted-foreground">Loading chart...</span>
                 </div>
             ) : (
-                <div className="w-full" key={`${type}-${showRsi}-${data.length}`}>
+                <div className="w-full" key={`${type}-${showRsi}-${data.length}-${currencySymbol}-${projection ? 'on' : 'off'}-${projection?.emissions.map(({ id }) => id).join(',') ?? ''}`}>
+                    {hasProjection && <ul aria-label="Courbes de projection" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">
+                        {(['Basse', 'Médiane', 'Haute'] as const).map((label, index) => <li key={label} className="flex items-center gap-1.5">
+                            <span aria-hidden="true" className="w-4 shrink-0 border-t-2" style={{
+                                borderColor: index === 1 ? '#f4c684' : '#ba9364',
+                                borderTopStyle: index === 1 ? 'dashed' : 'solid',
+                            }} />
+                            {label}
+                        </li>)}
+                    </ul>}
                     {(showSma || showEma || showRsi || showMacd) && (
                         <ul aria-label="Active chart series" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">
-                            {chartData.datasets.map((dataset) => (
+                            {chartData.datasets.filter(dataset => !projectionLabels.has(dataset.label ?? '')).map((dataset) => (
                                 <li key={dataset.label} className="flex items-center gap-1.5">
                                     <span aria-hidden="true" className="w-4 shrink-0 border-t-2" style={{ borderColor: typeof dataset.borderColor === 'string' ? dataset.borderColor : '#b8b8b8', borderTopStyle: 'borderDash' in dataset && dataset.borderDash?.length ? 'dashed' : 'solid' }} />
                                     {dataset.label}
@@ -479,6 +559,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                             type={type === 'candlestick' ? 'candlestick' : 'line'}
                             data={chartData}
                             options={options}
+                            plugins={[projectionSeparator]}
                         />
                     </div>
                     {data.length > 0 && (

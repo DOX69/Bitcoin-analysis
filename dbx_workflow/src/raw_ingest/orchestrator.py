@@ -187,6 +187,10 @@ def run_pipeline(
 
 
 def main():
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        format="%(levelname)s %(message)s",
+    )
     exit_code = run_pipeline(
         os.environ["DATABASE_URL"],
         run_id=str(uuid4()),

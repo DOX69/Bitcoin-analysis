@@ -1,6 +1,9 @@
 import importlib
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import psycopg
 import pytest
@@ -314,3 +317,26 @@ def test_backup_config_preserves_forecast_dependencies_during_dbt(monkeypatch):
     )
     orchestrator.run_dbt_build("postgresql://postgres@localhost/test")
     assert "--no-sync" in calls[0]
+
+
+@pytest.mark.parametrize("level, visible", [(None, True), ("WARNING", False)])
+def test_main_configures_backup_status_logging_in_fresh_process(level, visible):
+    environment = os.environ.copy()
+    environment.pop("LOG_LEVEL", None)
+    environment["DATABASE_URL"] = "unused-by-test"
+    if level is not None:
+        environment["LOG_LEVEL"] = level
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from raw_ingest import orchestrator as o; "
+            "o.run_pipeline = lambda *a, **k: "
+            "o.logger.info('Forecast backup status: completed') or 0; o.main()",
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert ("Forecast backup status: completed" in result.stderr) is visible

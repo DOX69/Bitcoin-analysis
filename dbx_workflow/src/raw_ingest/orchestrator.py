@@ -2,6 +2,7 @@ import logging
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 from urllib.parse import parse_qs, unquote, urlsplit
 from uuid import uuid4
 
@@ -51,12 +52,48 @@ def _dbt_environment(database_url):
 
 
 def run_dbt_build(database_url):
+    command = DBT_COMMAND
+    if os.environ.get("FORECAST_JOB_CONFIG"):
+        command = DBT_COMMAND[:2] + ["--no-sync"] + DBT_COMMAND[2:]
     subprocess.run(
-        DBT_COMMAND,
+        command,
         check=True,
         cwd=REPOSITORY_ROOT,
         env=_dbt_environment(database_url),
     )
+
+
+def run_forecast():
+    config = os.environ.get("FORECAST_JOB_CONFIG")
+    if not config:
+        return {"status": "disabled"}
+    from forecast.pipeline import supervise
+
+    # Deployment installs the forecast extra once. A cron never installs packages.
+    command = [
+        "uv",
+        "--directory",
+        str(REPOSITORY_ROOT),
+        "run",
+        "--locked",
+        "--extra",
+        "forecast",
+        "--no-sync",
+        "python",
+        "-m",
+        "forecast.jobs",
+        "worker",
+        "--config",
+        config,
+    ]
+    with tempfile.TemporaryDirectory(prefix="forecast-job-") as directory:
+        log_path = Path(directory) / "worker.log"
+        try:
+            result = supervise(command, log_path, seconds=300, rss_bytes=4 * 1024**3)
+        finally:
+            if log_path.exists():
+                logger.info("Forecast worker: %s", log_path.read_text(encoding="utf-8"))
+    return {"status": "completed", **result}
 
 
 def run_pipeline(
@@ -66,6 +103,7 @@ def run_pipeline(
     market_ingestor=ingest_market_data,
     indicator_ingestor=ingest_technical_indicators,
     dbt_runner=run_dbt_build,
+    forecast_runner=run_forecast,
 ):
     with psycopg.connect(database_url, autocommit=True) as connection:
         with connection.cursor() as cursor:
@@ -78,6 +116,11 @@ def run_pipeline(
             market_ingestor(connection, run_id)
             indicator_ingestor(connection, run_id)
             dbt_runner(database_url)
+            try:
+                logger.info("Forecast status: %s", forecast_runner())
+            except Exception:
+                # Forecast failure never changes ingestion/dbt success or replays it.
+                logger.error("Forecast failed; ingestion and dbt remain successful")
             return 0
         except Exception:
             logger.exception("Ingestion pipeline failed")

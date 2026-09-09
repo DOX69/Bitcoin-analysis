@@ -33,3 +33,9 @@ La cadence quotidienne vise une perte maximale de 24 heures. Une panne du servic
 Les copies sont conservées sans purge dans cette V1. Le relevé mensuel doit donc inclure la croissance cumulée, les transferts et les reprises. La conservation durable des données, des copies et des artefacts reste celle du contrat ; aucune règle de suppression à 30 jours n'est introduite.
 
 Le test cloud `python -m forecast.cloud_validation --config ... --database-name forecast_validation_<hex>` crée deux nouvelles bases isolées Development, exécute les vrais jobs avec preuves explicitement synthétiques, sauvegarde et restaure la seconde base, puis compare les lignes. Un superviseur mesure la durée et le pic RSS. Le rapport est copié dans le bucket indépendant. Ce test n'active aucun modèle dans la base habituelle.
+
+## Déploiement Development vérifié
+
+Cadence : 03:00 UTC chaque jour, politique de relance `NEVER`, service `bitcoin-cron` existant. Le déclenchement « Run now » dans Chrome a créé et relu la sauvegarde de la base habituelle après ingestion/dbt réussis. Le worker cloud a restauré séparément une fixture complète en 0,81 seconde.
+
+Fournir le fichier `forecast-backup.json` à la racine du snapshot envoyé au service, avec les noms des deux buckets obtenus depuis Railway, puis définir `FORECAST_BACKUP_CONFIG=/app/forecast-backup.json`. Ce fichier externe ne contient aucun secret, mais il doit accompagner chaque nouveau snapshot. Les variables `RAILPACK_BUILD_CMD` et `RAILPACK_START_CMD`, lorsqu'elles existent, doivent correspondre aux commandes du service. Utiliser `--skip-deploys` lors du réglage des variables, puis charger le snapshot vérifié.

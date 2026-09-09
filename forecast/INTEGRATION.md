@@ -6,7 +6,7 @@ Vérification du 9 septembre 2026 pour [Valider la V1 de bout en bout et son co�
 
 Les premiers essais ci-dessous concernent une instance locale et des données synthétiques. Une seconde validation utilise PostgreSQL 18 et deux buckets privés Railway Development ; ses résultats figurent dans [DEVELOPMENT.md](DEVELOPMENT.md). Aucune fixture ne constitue une preuve prospective.
 
-La seconde validation crée les buckets Development d'artefacts et de sauvegarde, deux bases isolées, applique les migrations additives après sauvegarde à la base Development et déploie le web. La production reste inchangée. La programmation des sauvegardes quotidiennes est refusée par Railway (`UNAUTHORIZED`).
+La seconde validation crée les buckets Development d'artefacts et de sauvegarde, deux bases isolées, applique les migrations additives après sauvegarde à la base Development et déploie le web. La production reste inchangée. Les sauvegardes natives exigent Pro ; une sauvegarde indépendante a ensuite été implémentée, restaurée et intégrée au cron quotidien, voir [BACKUP.md](BACKUP.md).
 
 ## Parcours vérifié
 
@@ -43,10 +43,9 @@ Tarifs consultés le 9 septembre 2026 : CPU 0,00000772 USD par vCPU-seconde, RAM
 
 Ajouter le stockage PostgreSQL marginal, les artefacts conservés, les copies indépendantes, les sauvegardes, les transferts et le coût des revues. Mesurer le volume et le transfert réels des versions publiées. La suspension à cinq USD doit utiliser ce total mesuré ou projeté, pas seulement le temps CPU. Le plafond forecast reste dix USD par mois.
 
-## Conditions non démontrées
+## Limites de livraison
 
-- Sauvegarde quotidienne et perte maximale de 24 heures : la copie indépendante et la restauration chronométrée sont vérifiées, mais le planning quotidien est refusé par Railway.
-- Consommation marginale et projections de coût incluant toutes les sauvegardes et tous les transferts.
+- Le scénario complet [COST.md](COST.md) est une projection conditionnelle ; surveiller les allocations, la croissance des copies et la facturation retardée.
 - Confirmation prospective suffisante et promotion manuelle d'un modèle admissible. Le dernier benchmark documenté dans [VALIDATION.md](VALIDATION.md) n'en fournit aucun.
 
-Ces éléments empêchent de fermer le jalon Development et la livraison. Les fixtures ne les remplacent pas.
+La validation logicielle Development est distincte de la livraison : l'absence de modèle admissible bloque cette dernière. Les fixtures ne remplacent pas la confirmation prospective.

@@ -1,6 +1,6 @@
 # Validation Railway Development — 9 septembre 2026
 
-Dossier de [Valider la V1 de bout en bout et son coût en Development](https://github.com/DOX69/Bitcoin-analysis/issues/88). Le jalon reste ouvert.
+Dossier de [Valider la V1 de bout en bout et son coût en Development](https://github.com/DOX69/Bitcoin-analysis/issues/88). La validation logicielle inclut désormais les sauvegardes indépendantes et le worker Railway ; résultats complémentaires ci-dessous.
 
 ## Infrastructure et preuve logicielle
 
@@ -57,4 +57,20 @@ Le dossier de sortie et les deux bases doivent être nouveaux. Le harnais conser
 
 Preuves détaillées hors dépôt : `%TEMP%/bitcoin-forecast-development-20260909/`, notamment `run-a1/report.json`, `run-a1/independent-bucket.json`, `migration-evidence.json`, `dbt-restore/summary.json` et les relevés de facturation. Les dumps restent privés.
 
-La livraison production demeure bloquée par les sauvegardes et le budget Development incomplets, ainsi que l'absence de modèle admissible confirmé prospectivement. Le benchmark décrit dans [VALIDATION.md](VALIDATION.md) ne justifie aucune activation.
+La livraison production demeure bloquée par l'absence de modèle admissible confirmé prospectivement. La restriction des sauvegardes natives a été résolue par le mécanisme indépendant décrit ci-dessous. Le benchmark décrit dans [VALIDATION.md](VALIDATION.md) ne justifie aucune activation.
+
+## Complément : sauvegardes et worker cloud
+
+Chrome confirme que les sauvegardes natives et le PITR exigent le forfait Pro. Le contrat laisse le mécanisme à l'implémentation : une sauvegarde logique indépendante répond au besoin sans changement de forfait. Le commit `dc7a0c3` ajoute ce mécanisme au cron existant, avec tests et procédure [BACKUP.md](BACKUP.md).
+
+Le test est exécuté dans le conteneur Railway Development, sur deux nouvelles bases isolées. Il valide émission, rejeu, scoring, rollback, suspension aux deux seuils de cinq USD, copie indépendante et restauration des huit tables avec comparaison complète des lignes. Sauvegarde : 2,31 secondes, 370 918 octets comptabilisés ; restauration depuis le second bucket : 0,81 seconde, onze objets vérifiés. Le superviseur mesure 4,92 secondes et un pic RSS de 75 624 448 octets. CPU du worker après imports : 0,42 seconde. Ces chiffres remplacent l'absence antérieure de mesure du worker cloud.
+
+Rapport indépendant : `development/validation-reports/forecast_validation_20260909b1.json`. Copie locale privée : `%TEMP%/bitcoin-forecast-finish-20260909/cloud-report.json`. Les bases initiales, puis `_restore`, restent réservées aux fixtures ; aucun modèle n'est activé dans la base Development habituelle.
+
+Le cron normal est reconfiguré pour 03:00 UTC chaque jour, avec sa même entrée `raw-ingest`, sans second ordonnanceur. La sauvegarde s'exécute aussi après une ingestion défaillante. Les secrets restent dans ses variables serveur ; le fichier de configuration sans secret doit être fourni avec chaque déploiement.
+
+Le scénario [COST.md](COST.md) projette 4,72 USD pour un mois de 31 jours, en comptant tout le web/PostgreSQL Development et une provision de 20 %. Il inclut sauvegardes, copies, essais, transferts et cycle trimestriel complet. Ses allocations sont confrontées à l'inventaire et à une heure de métriques ; la projection doit être recalculée avec la croissance et les moyennes quotidiennes. Ce n'est pas une facture marginale définitive.
+
+Le lancement manuel du cron normal depuis Chrome réussit : neuf modèles dbt et 83 tests hors fixtures passent (`PASS=92`, zéro erreur). La sauvegarde de la base habituelle est créée à 18:25:21 UTC, avec huit tables, aucune version active et onze objets indépendants. Son manifeste relu est `development/backups/20260909T182521361673Z/manifest`. Chrome affiche la prochaine exécution quotidienne à 03:00 UTC. Cela vérifie le mécanisme et sa cadence configurée ; une panne future exige toujours surveillance et reprise pour respecter l'objectif de 24 heures.
+
+La suite Python complète après intégration des sauvegardes passe 193 tests en 242 secondes, avec les bases PostgreSQL locales activées. Les vérifications TypeScript/Jest/lint/build et navigateur décrites plus haut restent celles du code web inchangé.

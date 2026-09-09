@@ -12,7 +12,7 @@ Réutiliser les services web, PostgreSQL et cron existants. Aucun second ordonna
 
 Pour le cron activé, build `uv sync --locked --all-packages --extra forecast`, puis démarrage `uv run --locked --package raw-ingest --no-sync raw-ingest`. Le mode `--no-sync` évite de retirer les dépendances forecast avant le calcul. Le passage dbt du cron activé doit aussi conserver cet environnement installé.
 
-Créer un bucket privé avec séparation Development/production et une copie indépendante des artefacts. Présenter les coûts de stockage, sauvegarde et transfert avec le coût CPU/RAM avant activation. Configurer les sauvegardes quotidiennes et démontrer leur restauration en Development avant la production.
+Créer un bucket privé avec séparation Development/production et une copie indépendante des artefacts. Présenter les coûts de stockage, sauvegarde et transfert avec le coût CPU/RAM avant activation. Le mécanisme indépendant [BACKUP.md](BACKUP.md) a été restauré dans Development ; le configurer avec des accès et buckets propres à la production avant toute activation. Le scénario de coût Development figure dans [COST.md](COST.md).
 
 ## Séquence
 

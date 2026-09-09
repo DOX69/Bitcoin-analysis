@@ -1,4 +1,6 @@
 import logging
+import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -53,7 +55,9 @@ def _dbt_environment(database_url):
 
 def run_dbt_build(database_url):
     command = DBT_COMMAND
-    if os.environ.get("FORECAST_JOB_CONFIG"):
+    if os.environ.get("FORECAST_JOB_CONFIG") or os.environ.get(
+        "FORECAST_BACKUP_CONFIG"
+    ):
         command = DBT_COMMAND[:2] + ["--no-sync"] + DBT_COMMAND[2:]
     subprocess.run(
         command,
@@ -96,6 +100,53 @@ def run_forecast():
     return {"status": "completed", **result}
 
 
+def run_forecast_backup():
+    config = os.environ.get("FORECAST_BACKUP_CONFIG")
+    if not config:
+        return {"status": "disabled"}
+    from forecast.pipeline import supervise
+    from forecast.backups import validate_key
+
+    command = [
+        "uv",
+        "--directory",
+        str(REPOSITORY_ROOT),
+        "run",
+        "--locked",
+        "--extra",
+        "forecast",
+        "--no-sync",
+        "python",
+        "-m",
+        "forecast.backups",
+        "backup",
+        "--config",
+        config,
+    ]
+    with tempfile.TemporaryDirectory(prefix="forecast-backup-") as directory:
+        log_path = Path(directory) / "worker.log"
+        result = supervise(command, log_path, seconds=300, rss_bytes=4 * 1024**3)
+        report = json.loads(log_path.read_text(encoding="utf-8"))
+        key, size, seconds = report["manifest_key"], report["bytes"], report["seconds"]
+        validate_key(key)
+        if (
+            type(size) is not int
+            or size < 0
+            or type(seconds) not in (int, float)
+            or not math.isfinite(seconds)
+            or seconds < 0
+        ):
+            raise ValueError("Invalid backup report metrics")
+    # Never forward arbitrary worker fields or diagnostic text to the ingestion log.
+    return {
+        "status": "completed",
+        **result,
+        "manifest_key": key,
+        "bytes": size,
+        "seconds": seconds,
+    }
+
+
 def run_pipeline(
     database_url,
     *,
@@ -104,6 +155,7 @@ def run_pipeline(
     indicator_ingestor=ingest_technical_indicators,
     dbt_runner=run_dbt_build,
     forecast_runner=run_forecast,
+    backup_runner=run_forecast_backup,
 ):
     with psycopg.connect(database_url, autocommit=True) as connection:
         with connection.cursor() as cursor:
@@ -126,6 +178,10 @@ def run_pipeline(
             logger.exception("Ingestion pipeline failed")
             return 1
         finally:
+            try:
+                logger.info("Forecast backup status: %s", backup_runner())
+            except Exception:
+                logger.error("Forecast backup failed; ingestion status unchanged")
             with connection.cursor() as cursor:
                 cursor.execute("SELECT pg_advisory_unlock(%s)", (LOCK_KEY,))
 

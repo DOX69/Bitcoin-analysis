@@ -21,6 +21,18 @@ MAX_HORIZON = 52
 LOOKBACKS = (1, 2, 4, 8, 13, 26, 52)
 QUANTILES = (0.1, 0.25, 0.5, 0.75, 0.9)
 BENCHMARK_THREADS = 2
+LIGHTGBM_PARAMS = dict(
+    objective="quantile",
+    n_estimators=80,
+    learning_rate=0.05,
+    num_leaves=15,
+    max_depth=5,
+    min_child_samples=10,
+    random_state=42,
+    n_jobs=BENCHMARK_THREADS,
+    verbosity=-1,
+    force_col_wise=True,
+)
 RAILWAY_VCPU_MINUTE_USD = 0.000463
 RAILWAY_GB_MINUTE_USD = 0.000231
 RAILWAY_MEMORY_GB = 4
@@ -340,22 +352,17 @@ class LightGBMQuantileCandidate:
                 [_feature_row(closes, origin) for origin in origins], dtype=float
             )
             targets = np.asarray(
-                [math.log(closes[origin + horizon]) for origin in origins], dtype=float
+                [
+                    math.log(closes[origin + horizon] / closes[origin])
+                    for origin in origins
+                ],
+                dtype=float,
             )
             models_for_horizon = []
             for quantile in QUANTILES:
                 model = LGBMRegressor(
-                    objective="quantile",
                     alpha=quantile,
-                    n_estimators=80,
-                    learning_rate=0.05,
-                    num_leaves=15,
-                    max_depth=5,
-                    min_child_samples=10,
-                    random_state=42,
-                    n_jobs=BENCHMARK_THREADS,
-                    verbosity=-1,
-                    force_col_wise=True,
+                    **LIGHTGBM_PARAMS,
                 )
                 model.fit(features, targets)
                 models_for_horizon.append(model)
@@ -366,10 +373,10 @@ class LightGBMQuantileCandidate:
 
         features = np.asarray([_feature_row(closes, origin)], dtype=float)
         return [
-            [
-                float(math.exp(model.predict(features)[0]))
+            sorted(
+                float(closes[origin] * math.exp(model.predict(features)[0]))
                 for model in models_for_horizon
-            ]
+            )
             for models_for_horizon in self.models
         ]
 
@@ -384,6 +391,17 @@ class LightGBMQuantileCandidate:
 def _pinball_loss(actual: float, prediction: float, quantile: float) -> float:
     error = actual - prediction
     return max(quantile * error, (quantile - 1) * error)
+
+
+def _wis(actual: float, row: Sequence[float]) -> float:
+    def interval_score(lower: float, upper: float, alpha: float) -> float:
+        return upper - lower + 2 / alpha * max(lower - actual, actual - upper, 0)
+
+    return (
+        0.5 * abs(actual - row[2])
+        + 0.25 * interval_score(row[1], row[3], 0.5)
+        + 0.10 * interval_score(row[0], row[4], 0.2)
+    ) / 2.5
 
 
 def _score(
@@ -409,6 +427,9 @@ def _score(
         per_horizon.append(
             {
                 "horizon_weeks": horizon_index + 1,
+                "wis": statistics.mean(
+                    _wis(target, row) for target, row in zip(targets, values)
+                ),
                 "mae": statistics.mean(
                     abs(target - prediction)
                     for target, prediction in zip(targets, medians)
@@ -427,6 +448,7 @@ def _score(
             }
         )
     metrics = {
+        "wis": statistics.mean(row["wis"] for row in per_horizon),
         "mae": statistics.mean(row["mae"] for row in per_horizon),
         "rmse": statistics.mean(row["rmse"] for row in per_horizon),
         "mean_pinball": statistics.mean(row["mean_pinball"] for row in per_horizon),
@@ -445,32 +467,18 @@ def _score(
 def _candidate_measurement(
     candidate: Any, closes: Sequence[float], split: Split
 ) -> CandidateMeasurement:
-    calibration_origins = list(
-        range(split.calibration_start, split.calibration_end - MAX_HORIZON)
-    )
     test_origins = list(range(split.test_start, split.test_end))
     with PeakRssSampler() as sampler:
         fit_started = time.perf_counter()
         candidate.fit(closes, split.train_end)
         fit_seconds = time.perf_counter() - fit_started
 
-        calibration_predictions = [
-            candidate.predict(closes, origin) for origin in calibration_origins
-        ]
-        calibration_actuals = _actuals(closes, calibration_origins)
-        calibrator = ResidualQuantileCalibrator.fit(
-            calibration_predictions,
-            calibration_actuals,
-            QUANTILES,
-            preserve_median=candidate.preserve_median,
-        )
         test_predictions = [
             candidate.predict(closes, origin) for origin in test_origins
         ]
-        calibrated_predictions = calibrator.apply(test_predictions)
         test_actuals = _actuals(closes, test_origins)
-        metrics, per_horizon = _score(calibrated_predictions, test_actuals)
-        artifact_bytes = candidate.artifact_bytes() + len(calibrator.to_json_bytes())
+        metrics, per_horizon = _score(test_predictions, test_actuals)
+        artifact_bytes = candidate.artifact_bytes()
         backtest_seconds = time.perf_counter() - fit_started
     return CandidateMeasurement(
         candidate.name,
@@ -485,67 +493,16 @@ def _candidate_measurement(
 
 
 def run_benchmark(weekly: Sequence[dict[str, Any]]) -> dict[str, Any]:
-    split = split_series(weekly)
-    closes = [float(row["close"]) for row in weekly]
-    candidates = [
-        PersistenceCandidate(),
-        GaussianRandomWalkCandidate(),
-        LightGBMQuantileCandidate(),
-    ]
-    measurements = [
-        _candidate_measurement(candidate, closes, split) for candidate in candidates
-    ]
-    return {
-        "protocol": {
-            "weekly_rows": len(weekly),
-            "train_observations": split.train_end,
-            "calibration_origins": [
-                split.calibration_start,
-                split.calibration_end - MAX_HORIZON - 1,
-            ],
-            "test_origins": [split.test_start, split.test_end - 1],
-            "split_dates": {
-                "train_last_observation": weekly[split.train_end - 1]["date"],
-                "calibration_first_origin": weekly[split.calibration_start]["date"],
-                "calibration_last_origin": weekly[
-                    split.calibration_end - MAX_HORIZON - 1
-                ]["date"],
-                "test_first_origin": weekly[split.test_start]["date"],
-                "test_last_origin": weekly[split.test_end - 1]["date"],
-                "test_last_target": weekly[-1]["date"],
-            },
-            "horizons": [1, MAX_HORIZON],
-            "quantiles": QUANTILES,
-            "candidate_count": len(candidates),
-            "actual_railway_cost_usd": 0.0,
-            "limits": {
-                "max_candidates": 3,
-                "max_runtime_minutes": 30,
-                "max_threads": BENCHMARK_THREADS,
-                "max_memory_gb": RAILWAY_MEMORY_GB,
-            },
-            "calibrator": "split residual quantiles fitted on calibration origins",
-            "target": "weekly ISO Sunday BTC/USD close",
-            "leakage_control": "models train only on targets before train_end; calibration and test origins are disjoint",
-            "overlap_policy": "adjacent feature windows may overlap because they use only values known at each origin; future targets never enter another split's features",
-        },
-        "candidates": [
-            {
-                "name": measurement.name,
-                "threads_configured": measurement.threads_configured,
-                "fit_seconds": measurement.fit_seconds,
-                "backtest_seconds": measurement.backtest_seconds,
-                "peak_rss_mb": measurement.peak_rss_bytes / (1024 * 1024),
-                "artifact_bytes_model_plus_calibrator": measurement.artifact_bytes,
-                "estimated_railway_equivalent_cost_usd": estimate_railway_cost_usd(
-                    measurement.backtest_seconds
-                ),
-                "metrics": measurement.metrics,
-                "per_horizon": measurement.per_horizon,
-            }
-            for measurement in measurements
-        ],
-    }
+    """Compatibility helper; the CLI retains all artifacts in a sibling run folder."""
+    import tempfile
+    from forecast.pipeline import prepare_run, execute_run
+
+    with tempfile.TemporaryDirectory(prefix="forecast-") as folder:
+        snapshot = Path(folder) / "snapshot.csv"
+        _write_weekly_csv(snapshot, weekly)
+        directory = Path(folder) / "run"
+        prepare_run(snapshot, directory)
+        return execute_run(directory)
 
 
 def _fetch_json(url: str) -> list[dict[str, Any]]:
@@ -637,18 +594,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 0
 
+    from forecast.pipeline import prepare_run, execute_run
+
+    directory = args.output.with_suffix(".run")
+    prepare_run(args.snapshot, directory)
+    report = execute_run(directory)
+    from forecast.artifacts import write_json
+
+    write_json(args.output, report)
     weekly = _read_weekly_csv(args.snapshot)
-    report = run_benchmark(weekly)
-    report["snapshot"] = {
-        "file_sha256": _file_sha256(args.snapshot),
-        "weekly_rows": len(weekly),
-        "first_week": weekly[0]["date"],
-        "last_week": weekly[-1]["date"],
-    }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
-    )
     print(
         json.dumps(
             {"output": str(args.output), "weekly_rows": len(weekly)}, sort_keys=True

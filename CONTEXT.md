@@ -6,6 +6,7 @@
 - **Benchmark** : comparaison contrôlée de candidats sur les mêmes données, horizons et devises. Il mesure la qualité des prévisions, la mémoire, la durée, la taille des artefacts et le coût marginal.
 - **Candidat** : modèle ou configuration évalué pendant un benchmark, mais pas encore promu.
 - **Promotion** : décision manuelle de rendre un candidat validé disponible pour l'inférence en Production.
+- **Modèle publié** : unique modèle validé proposé aux utilisateurs de la V1. Les autres candidats restent en Development ; les émissions historiques restent conservées.
 - **Calibrateur du forecast** : correction versionnée des quantiles d'un modèle, estimée sur des observations réservées à la calibration. Sa révision ne modifie pas les émissions antérieures.
 - **Résultat exploratoire** : résultat déjà examiné pour choisir une recette ou ses paramètres. Sa réutilisation ne constitue pas une confirmation indépendante.
 - **Confirmation prospective** : évaluation d'une recette figée sur des observations futures, à mesure que les cibles des prévisions émises arrivent à maturité.

@@ -6,6 +6,26 @@ on:
       - '**'
 
 jobs:
+  test_forecast:
+    name: Forecast pipeline and reproducible artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.9.17'
+          enable-cache: true
+      - name: Run forecast tests with locked model dependencies
+        run: uv run --locked --extra dev --extra benchmark pytest forecast
+
   test_package:
     name: PostgreSQL backend and dbt
     runs-on: ubuntu-latest

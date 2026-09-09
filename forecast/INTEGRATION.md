@@ -4,9 +4,9 @@ Vérification du 9 septembre 2026 pour [Valider la V1 de bout en bout et son co�
 
 ## Portée
 
-Les preuves ci-dessous concernent une instance locale et des données synthétiques. Elles ne prouvent ni la qualité prospective des modèles ni le fonctionnement du bucket Railway. Le jalon Development reste ouvert jusqu'aux essais sur cette infrastructure, à la restauration et à la mesure de son coût complet.
+Les premiers essais ci-dessous concernent une instance locale et des données synthétiques. Une seconde validation utilise PostgreSQL 18 et deux buckets privés Railway Development ; ses résultats figurent dans [DEVELOPMENT.md](DEVELOPMENT.md). Aucune fixture ne constitue une preuve prospective.
 
-Le projet Railway vérifié en lecture seule contient les environnements Development et production et leurs services web, cron et PostgreSQL. Aucun bucket n'est configuré. Aucune ressource n'a été créée ni déployée pendant cette validation.
+La seconde validation crée les buckets Development d'artefacts et de sauvegarde, deux bases isolées, applique les migrations additives après sauvegarde à la base Development et déploie le web. La production reste inchangée. La programmation des sauvegardes quotidiennes est refusée par Railway (`UNAUTHORIZED`).
 
 ## Parcours vérifié
 
@@ -45,8 +45,7 @@ Ajouter le stockage PostgreSQL marginal, les artefacts conservés, les copies in
 
 ## Conditions non démontrées
 
-- Upload, relecture et refus d'écrasement sur le bucket privé Railway réel.
-- Sauvegarde quotidienne, copie indépendante des artefacts et restauration chronométrée avec perte maximale de 24 heures et retour sous 48 heures.
+- Sauvegarde quotidienne et perte maximale de 24 heures : la copie indépendante et la restauration chronométrée sont vérifiées, mais le planning quotidien est refusé par Railway.
 - Consommation marginale et projections de coût incluant toutes les sauvegardes et tous les transferts.
 - Confirmation prospective suffisante et promotion manuelle d'un modèle admissible. Le dernier benchmark documenté dans [VALIDATION.md](VALIDATION.md) n'en fournit aucun.
 

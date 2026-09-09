@@ -126,6 +126,13 @@ dev = [
     { name = "raw-ingest" },
     { name = "ruff" },
 ]
+forecast = [
+    { name = "boto3" },
+    { name = "lightgbm" },
+    { name = "psutil" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "scikit-learn" },
+]
 streamlit = [
     { name = "plotly" },
     { name = "streamlit" },
@@ -134,14 +141,18 @@ streamlit = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
+    { name = "boto3", marker = "extra == 'forecast'", specifier = ">=1.42.0" },
     { name = "dbt-core", specifier = "==1.11.6" },
     { name = "dbt-postgres", specifier = ">=1.11,<1.12" },
     { name = "lightgbm", marker = "extra == 'benchmark'", specifier = ">=4.0.0" },
+    { name = "lightgbm", marker = "extra == 'forecast'", specifier = ">=4.0.0" },
     { name = "numpy", marker = "extra == 'analytics'", specifier = ">=1.24.0" },
     { name = "pandas", specifier = ">=2.1.0" },
     { name = "pip", specifier = ">=25.3" },
     { name = "plotly", marker = "extra == 'streamlit'", specifier = ">=5.17.0" },
     { name = "psutil", marker = "extra == 'benchmark'", specifier = ">=7.0.0" },
+    { name = "psutil", marker = "extra == 'forecast'", specifier = ">=7.0.0" },
+    { name = "psycopg", extras = ["binary"], marker = "extra == 'forecast'", specifier = ">=3.2.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "pytz", specifier = ">=2023.3" },
@@ -150,10 +161,11 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.1" },
     { name = "scikit-learn", marker = "extra == 'analytics'", specifier = ">=1.3.0" },
     { name = "scikit-learn", marker = "extra == 'benchmark'", specifier = ">=1.3.0" },
+    { name = "scikit-learn", marker = "extra == 'forecast'", specifier = ">=1.3.0" },
     { name = "scipy", marker = "extra == 'analytics'", specifier = ">=1.11.0" },
     { name = "streamlit", marker = "extra == 'streamlit'", specifier = ">=1.28.0" },
 ]
-provides-extras = ["dev", "analytics", "benchmark", "streamlit"]
+provides-extras = ["dev", "analytics", "benchmark", "forecast", "streamlit"]
 
 [[package]]
 name = "black"
@@ -189,6 +201,34 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/21/28/9b3f50ce0e048515135495f198351908d99540d69bfdc8c1d15b73dc55ce/blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf", size = 22460, upload-time = "2024-11-08T17:25:47.436Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc", size = 8458, upload-time = "2024-11-08T17:25:46.184Z" },
+]
+
+[[package]]
+name = "boto3"
+version = "1.43.90"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore" },
+    { name = "jmespath" },
+    { name = "s3transfer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/67/0b/53f833efea7331aab106a65f1156e0035beed9bacbfcb309b128204468d4/boto3-1.43.90.tar.gz", hash = "sha256:4b669742d5b45b8fd20ca50ac414a4e4cf995ebb8f280d21be28676e71c97594", size = 112689, upload-time = "2026-09-08T19:22:30.875Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/c3/1d5c5ea7f599e2b80d122beeb2a9c1a8daff78325ea2391521e5fd5af1fd/boto3-1.43.90-py3-none-any.whl", hash = "sha256:aaaa1216d65ddb3dcf86bf9d93cfa436af05cbcd1e1f8b2847f2b83116012186", size = 140026, upload-time = "2026-09-08T19:22:28.555Z" },
+]
+
+[[package]]
+name = "botocore"
+version = "1.43.90"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jmespath" },
+    { name = "python-dateutil" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6b/3e/29872261075d878581a31e9e98c512c0b85322a36e6d6784b9f0694a918d/botocore-1.43.90.tar.gz", hash = "sha256:a139ed601e8b8fb1d730022355fe2b284b8c15cfe9ac0f100254a35d2273e1d3", size = 16081908, upload-time = "2026-09-08T19:22:25.645Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f6/b8/65cbd0d65553c3e51d27159de4c74308ea008c652b05ed3f830f32667efb/botocore-1.43.90-py3-none-any.whl", hash = "sha256:65f3394ef07314e45c92a90120988531d651136390d464a94938a92f665893f7", size = 15775313, upload-time = "2026-09-08T19:22:22.713Z" },
 ]
 
 [[package]]
@@ -663,6 +703,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
+]
+
+[[package]]
+name = "jmespath"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/59/322338183ecda247fb5d1763a6cbe46eff7222eaeebafd9fa65d4bf5cb11/jmespath-1.1.0.tar.gz", hash = "sha256:472c87d80f36026ae83c6ddd0f1d05d4e510134ed462851fd5f754c8c3cbb88d", size = 27377, upload-time = "2026-01-22T16:35:26.279Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/2f/967ba146e6d58cf6a652da73885f52fc68001525b4197effc174321d70b4/jmespath-1.1.0-py3-none-any.whl", hash = "sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64", size = 20419, upload-time = "2026-01-22T16:35:24.919Z" },
 ]
 
 [[package]]
@@ -1468,6 +1517,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f6/58/ac864a75067dcbd3b95be5ab4eb2b601d7fbc3d3d736a27e391a4f92a5c1/ruff-0.15.1-py3-none-win32.whl", hash = "sha256:660975d9cb49b5d5278b12b03bb9951d554543a90b74ed5d366b20e2c57c2098", size = 10462555, upload-time = "2026-02-12T23:09:29.899Z" },
     { url = "https://files.pythonhosted.org/packages/e0/5e/d4ccc8a27ecdb78116feac4935dfc39d1304536f4296168f91ed3ec00cd2/ruff-0.15.1-py3-none-win_amd64.whl", hash = "sha256:c820fef9dd5d4172a6570e5721704a96c6679b80cf7be41659ed439653f62336", size = 11599956, upload-time = "2026-02-12T23:09:01.157Z" },
     { url = "https://files.pythonhosted.org/packages/2a/07/5bda6a85b220c64c65686bc85bd0bbb23b29c62b3a9f9433fa55f17cda93/ruff-0.15.1-py3-none-win_arm64.whl", hash = "sha256:5ff7d5f0f88567850f45081fac8f4ec212be8d0b963e385c3f7d0d2eb4899416", size = 10874604, upload-time = "2026-02-12T23:09:05.515Z" },
+]
+
+[[package]]
+name = "s3transfer"
+version = "0.19.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/43/35e4d8aa320bffe8287fe8f65f578fa2d2db0a64212f0e710dce58267854/s3transfer-0.19.2.tar.gz", hash = "sha256:ba0309fd86be3c27dbf78cdd813c13c5e1df16e5874b99d2535ebbdfb9892993", size = 165592, upload-time = "2026-07-22T19:30:44.432Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bc/e7/5c595c75e9f41a44f30e526eda465ea0b4eec93470e074e4a111b253f13a/s3transfer-0.19.2-py3-none-any.whl", hash = "sha256:d8168eccca828cbb2cd573675333f3bddd254313a9c42494b84c76b539e8ba25", size = 90216, upload-time = "2026-07-22T19:30:43.251Z" },
 ]
 
 [[package]]

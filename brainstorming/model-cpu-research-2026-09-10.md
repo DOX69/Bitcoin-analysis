@@ -1,6 +1,6 @@
 # Trois recettes à examiner sur CPU
 
-Recherche documentaire du 10 septembre 2026, suivie d'un essai autorisé de Bolt tiny décrit en fin de document. Aucun modèle activé. Le jeu décrit dans `forecast/VALIDATION.md` contient 581 semaines et la sortie reste de 52 horizons, avec Q10, Q25, Q50, Q75 et Q90 pour les intervalles 80 % et 50 %. Budget matériel à vérifier par processus : deux CPU, 4 Gio, 30 minutes par recette, folds et entraînement final compris.
+Recherche documentaire du 10 septembre 2026, suivie des essais autorisés de Bolt tiny et Chronos-2-small décrits en fin de document. Aucun modèle activé. Le jeu décrit dans `forecast/VALIDATION.md` contient 581 semaines et la sortie reste de 52 horizons, avec Q10, Q25, Q50, Q75 et Q90 pour les intervalles 80 % et 50 %. Budget matériel à vérifier par processus : deux CPU, 4 Gio, 30 minutes par recette, folds et entraînement final compris.
 
 Je retiens Chronos-Bolt tiny, NHITS compact et une marche aléatoire Student sans dérive. Les deux premiers cherchent un gain prédictif ; le troisième sert de contrôle probabiliste. Sa médiane est le dernier prix et ne peut donc satisfaire un gain MAE strict face à cette même référence.
 
@@ -61,3 +61,24 @@ Le runner `forecast/chronos_research.py` a évalué les origines 348 à 411 puis
 L'affinité du worker était limitée à deux CPU. Les deux folds passent matériellement, mais les métriques moyennes échouent aux critères existants. Les intervalles couvrent trop largement et la médiane fait moins bien que le dernier prix. Aucun calibrage ajouté après ce constat. Un rechargement sans réseau reproduit exactement les 52 horizons de la première origine. Les quatre tests vérifient causalité, validité des données, conversion et refus des quantiles croisés ; Ruff passe.
 
 Preuves privées conservées dans `%TEMP%/bitcoin-chronos-research-20260910-a1/` : `manifest.json`, `manifest.sha256`, `predictions.json`, `report.json`, `resources.json`, `worker.log` et le checkpoint. Toutes les prédictions et observations sont exportées ; le score réutilise `forecast.benchmark._score`. Cet essai rétrospectif ne démontre pas l'absence de données Bitcoin dans le préentraînement. Il ne justifie aucune promotion ni modification des critères.
+
+## Essai Chronos-2-small exécuté
+
+Ce second essai reprend le modèle explicitement proposé dans le rapport antérieur, `autogluon/chronos-2-small`, révision figée `ddec01313e50b6bc58ebaa92ede81bc24a3d9f9a`. Même transformation logarithmique, mêmes 129 origines, 52 horizons et cinq quantiles ; aucune calibration. Le runner utilise `BaseChronosPipeline`, `batch_size=1` et `context_length=2048`. L'API Chronos-2 retourne une liste de tenseurs avec une dimension de variable supplémentaire. Q25/Q75 sont interpolés par la bibliothèque. Sources vérifiées : [configuration](https://huggingface.co/autogluon/chronos-2-small/blob/main/config.json) et [pipeline Chronos-2](https://github.com/amazon-science/chronos-forecasting/blob/main/src/chronos/chronos2/pipeline.py).
+
+| Mesure | Résultat |
+| --- | ---: |
+| Durée supervisée | 19,70 s |
+| Pic RSS cumulé | 509 685 760 octets |
+| CPU du worker | 15,56 s |
+| Fichiers du cache | 111 750 212 octets |
+| MAE USD | 18 257,50 |
+| MAE / MAE prix inchangé | 1,1300 |
+| WIS | 14 292,46 |
+| WIS / WIS prix inchangé | 0,8846 |
+| Couverture 50 % | 64,25 % |
+| Couverture 80 % | 93,66 % |
+
+Le WIS s'améliore de 11,54 % face à la référence, mais la MAE augmente de 13 %. Les couvertures moyennes dépassent les seuils ; seuls 13 horizons sur 52 satisfont la plage 50 % et 14 la plage 80 %. Cette recette échoue donc également aux critères. Le rechargement hors réseau reproduit exactement la première origine. Cinq tests de causalité, conversion et options passent. Le modèle n'est pas activé.
+
+Preuves dans `%TEMP%/bitcoin-chronos2-research-20260910-a1/`, avec manifeste préalable, code archivé, prédictions complètes, métriques par fold et horizon, mesures et checkpoint. Le source du premier essai Bolt reste archivé dans son propre dossier. Les deux essais sont successifs ; leur différence de durée inclut chargement réseau et caches, elle ne prouve pas que Chronos-2 est plus rapide. La [fiche du modèle](https://huggingface.co/autogluon/chronos-2-small) cite des corpus de préentraînement, mais leur absence de chevauchement avec Bitcoin n'a pas été établie ici.

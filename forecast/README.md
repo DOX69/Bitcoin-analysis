@@ -72,3 +72,5 @@ uv run --locked --extra dev --extra benchmark pytest forecast
 La CI exécute cette suite séparément de l'ingestion. Elle couvre recettes, maturité des labels à 52 semaines, absence de recalibration, fenêtres, dates/FX, empreintes, rechargement LightGBM, limites de ressources et cycle complet sur fixture synthétique.
 
 Le rapport signale les horizons qui échouent aux garde-fous historiques de première version. Il conserve `publishable: false` pour toutes les recettes. Une confirmation prospective et une décision manuelle restent nécessaires. Les comparaisons à une future version active appartiennent à la validation de promotion. Aucune publication ni dépense Railway n'est déclenchée ici.
+
+La [recherche complémentaire de modèles](RESEARCH.md) documente les nouvelles recettes demandées après ce premier cycle, leurs résultats et leurs limites. Ses runners restent séparés du registre de production.

@@ -28,7 +28,13 @@ def frozen_distribution(bundle):
     if manifest["dependencies"] != dependencies():
         raise ValueError("Frozen model dependencies changed")
     for source in hybrid.sources():
-        if sha256(source) != manifest["source_sha256"][source.name]:
+        content = source.read_bytes().replace(b"\r\n", b"\n")
+        # Git exports LF; the original Windows archive can contain CRLF.
+        hashes = {
+            hashlib.sha256(value).hexdigest()
+            for value in (content, content.replace(b"\n", b"\r\n"))
+        }
+        if manifest["source_sha256"][source.name] not in hashes:
             raise ValueError("Frozen model source changed")
     if sha256(bundle / "standardized-distribution.json") != DISTRIBUTION_HASH:
         raise ValueError("Frozen distribution changed")

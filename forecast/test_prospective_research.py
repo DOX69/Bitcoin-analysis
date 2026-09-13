@@ -1,12 +1,37 @@
 from copy import deepcopy
 from datetime import date, datetime, timedelta, timezone
 import json
+import hashlib
 from pathlib import Path
 import sys
 
 import pytest
 
 from forecast import prospective_research as research
+
+
+def test_frozen_sources_allow_only_git_line_ending_conversion(monkeypatch, tmp_path):
+    source = tmp_path / "recipe.py"
+    original = b"def predict():\r\n    return 1\r\n"
+    source.write_bytes(original.replace(b"\r\n", b"\n"))
+    distribution = tmp_path / "standardized-distribution.json"
+    distribution.write_text('{"quantiles": []}')
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "dependencies": research.dependencies(),
+                "source_sha256": {source.name: hashlib.sha256(original).hexdigest()},
+            }
+        )
+    )
+    monkeypatch.setattr(research, "MODEL_MANIFEST", research.sha256(manifest))
+    monkeypatch.setattr(research, "DISTRIBUTION_HASH", research.sha256(distribution))
+    monkeypatch.setattr(research.hybrid, "sources", lambda: [source])
+    assert research.frozen_distribution(tmp_path) == []
+    source.write_bytes(original.replace(b"return 1", b"return 2"))
+    with pytest.raises(ValueError, match="source changed"):
+        research.frozen_distribution(tmp_path)
 
 
 def emission():

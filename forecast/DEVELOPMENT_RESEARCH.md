@@ -12,6 +12,8 @@ Démarrage : `uv run --locked --extra forecast --no-sync python -m forecast.deve
 
 Conserver `restartPolicyType=NEVER`. Utiliser Python 3.11.9 pour correspondre au runtime figé du candidat. Le worker refuse des versions numériques différentes. L'option `--run-now` permet une vérification manuelle du pipeline avec l'horloge réelle ; elle ne modifie jamais les dates des émissions.
 
+Le binaire Python 3.11.9 publié en 2024 ne possède pas l'attestation GitHub exigée par le builder Mise actuel. Development utilise `MISE_PYTHON_GITHUB_ATTESTATIONS=false` pour ce seul outil, conformément au [réglage Mise](https://mise.jdx.dev/lang/python.html#python-github-attestations). Le journal confirme le calcul du checksum Python et la vérification de l'attestation uv. Les dépendances du modèle restent exactement figées. Le contrôle des sources accepte seulement la conversion LF/CRLF effectuée par Git, sans changement de contenu.
+
 Les variables non secrètes sont :
 
 ```text
@@ -46,3 +48,11 @@ Avant chaque nouveau mois, publier un nouveau relevé vérifié sous `budget/AAA
 Les journaux `Forecast research status` indiquent le nombre d'émissions, de cibles matures et la clé du rapport. `ready_for_confirmation_review` dans ce rapport déclenche le besoin d'examiner les blocs temporels ; ce booléen n'est pas une promotion. Toute recette nouvelle demande sa propre confirmation.
 
 Rollback : retirer `FORECAST_RESEARCH_CONFIG` pour suspendre seulement la recherche, ou restaurer l'image précédente du cron. Conserver les objets et leurs copies. Ne pas appliquer de migration descendante pour annuler ce déploiement.
+
+## Preuve cloud du 13 septembre 2026
+
+Le déploiement `7434f703-c1e3-4d0e-a870-6d6487c0194f`, issu du commit `b78f8a53`, a exécuté le pipeline réel. dbt termine avec 92 succès, aucune erreur. La collecte dure 2,00 secondes, avec 126 054 400 octets de RSS maximal. La sauvegarde termine aussi, avec 1 229 273 octets archivés. Le runtime Python et les cinq dépendances numériques correspondent au manifeste original.
+
+Le rapport `development/research/hybrid-v1/reports/20260913T194010364418Z.json` porte l'empreinte `1f3c0a8b1e24c898cc2662063535b9bc249b711bf928b91638b94ce972a6926b`. Son snapshot porte l'empreinte `3ad3d1979bd22a249de109efdf7cf85fbcea7c8c0db181e155c3426f70a2aded`. Une relecture indépendante a vérifié les deux objets dans les deux buckets. Le rapport contient l'émission originale et zéro cible mature ; `publishable=false`.
+
+L'automatisation Codex de 09:00 a été supprimée après cette vérification. Le démarrage permanent n'inclut pas `--run-now`. La prochaine échéance annoncée par Railway est le 14 septembre à 05:00 UTC, soit 07:00 Europe/Paris.

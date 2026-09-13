@@ -1,5 +1,29 @@
 # Recherche de modèles après le premier benchmark
 
+## Complément du 13 septembre 2026
+
+Trois nouvelles hypothèses causales ont été figées avant mesure, puis exécutées successivement sur le même snapshot. Elles échouent toutes. Aucun modèle prêt pour la production n'est établi. Le [dossier de préparation](READINESS.md) fixe la suite et la collecte prospective.
+
+| Recette | WIS USD, 129 origines | Horizons en échec, sélection | Première période | Stress intermédiaire | Seconde période |
+|---|---:|---:|---:|---:|---:|
+| Variance EWMA, retour vers variance longue | 10 695,74 | 8 / 52 | 10 / 52 | 46 / 52 | 14 / 52 |
+| 64 régimes historiques proches, labels matures | 14 055,04 | 43 / 52 | 45 / 52 | 44 / 52 | 42 / 52 |
+| Erreurs normalisées regroupées entre horizons | 10 846,80 | 35 / 52 | 52 / 52 | 37 / 52 | 18 / 52 |
+
+Les médianes restent le dernier close. Leur MAE est donc celle de la référence. Les échecs concernent les bandes. Les trois périodes ont déjà été consultées ; aucune n'est une confirmation indépendante. Le regroupement suppose une normalisation par racine de l'horizon, à tester, sans garantie de stabilité des régimes. Les voisins utilisent uniquement les états connus et les labels matures, avec standardisation sur ces seuls états.
+
+Le manifeste de `regime_research.py` précise les équations, fenêtres et paramètres des trois recettes. Il archive le code, le lock et leurs empreintes avant scoring. Chaque worker vérifie les sources, les dépendances et le snapshot, puis conserve les prédictions, les 52 scores par période, les blocs temporels et un rechargement de contrôle. Les sorties finales sont des rejeux historiques, pas des émissions prospectives.
+
+Mesures supervisées, dans l'ordre du tableau : 1,87 s et 67,40 Mio ; 104,31 s et 61,80 Mio ; 2,88 s et 62,18 Mio. Deux CPU, plafond 4 Gio et 30 minutes par recette. Aucun entraînement Railway.
+
+Preuves conservées hors des dossiers temporaires dans `C:/Users/ggrft/forecast-evidence/20260913/regimes-a1/`, avec manifestes, rapports, prédictions, ressources, code et inventaire. L'ancien hybride est également conservé dans `hybrid-frozen/`. Les copies n'altèrent pas les mesures initiales.
+
+Contrôle de la source vivante le 13 septembre : 581 semaines complètes, une seule clôture différente du snapshot figé. La semaine du 31 août passe de 79 853,98 à 80 339,13 USD. Les scores ci-dessus conservent le snapshot initial pour comparer les recettes sur les mêmes données. La cause de cette révision n'est pas établie ; les deux versions sont archivées dans `snapshot-drift.json` et les snapshots voisins. Les prévisions figées ne sont pas réécrites.
+
+Les distributions gaussiennes et la simulation de trajectoires sont décrites dans [Forecasting: Principles and Practice, intervalles prédictifs](https://otexts.com/fpp3/prediction-intervals.html). Les recettes de ce lot sont nos hypothèses, pas des résultats validés par cette source. La littérature sur [l'adaptation sous changement de distribution](https://proceedings.neurips.cc/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html) motive la prudence sur les régimes ; aucune garantie conforme n'est revendiquée pour ces trois recettes.
+
+## Recherche du 10 septembre 2026
+
 Recherche du 10 septembre 2026, demandée par le propriétaire après les échecs du premier cycle. Suivi : [Rechercher et mesurer un modèle admissible après le premier benchmark](https://github.com/DOX69/Bitcoin-analysis/issues/92). Les propositions du dossier brainstorming ont servi à définir des expériences ; elles ne constituent pas des décisions de promotion.
 
 ## Résultats mesurés

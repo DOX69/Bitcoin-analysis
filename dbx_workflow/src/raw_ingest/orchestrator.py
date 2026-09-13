@@ -55,8 +55,13 @@ def _dbt_environment(database_url):
 
 def run_dbt_build(database_url):
     command = DBT_COMMAND
-    if os.environ.get("FORECAST_JOB_CONFIG") or os.environ.get(
-        "FORECAST_BACKUP_CONFIG"
+    if any(
+        os.environ.get(name)
+        for name in (
+            "FORECAST_JOB_CONFIG",
+            "FORECAST_BACKUP_CONFIG",
+            "FORECAST_RESEARCH_CONFIG",
+        )
     ):
         command = DBT_COMMAND[:2] + ["--no-sync"] + DBT_COMMAND[2:]
     subprocess.run(
@@ -98,6 +103,51 @@ def run_forecast():
             if log_path.exists():
                 logger.info("Forecast worker: %s", log_path.read_text(encoding="utf-8"))
     return {"status": "completed", **result}
+
+
+def run_forecast_research():
+    config = os.environ.get("FORECAST_RESEARCH_CONFIG")
+    if not config:
+        return {"status": "disabled"}
+    from forecast.pipeline import supervise
+
+    command = [
+        "uv",
+        "--directory",
+        str(REPOSITORY_ROOT),
+        "run",
+        "--locked",
+        "--extra",
+        "forecast",
+        "--no-sync",
+        "python",
+        "-m",
+        "forecast.cloud_research",
+        "--config",
+        config,
+    ]
+    with tempfile.TemporaryDirectory(prefix="forecast-research-") as directory:
+        log_path = Path(directory) / "worker.log"
+        resources = supervise(command, log_path, seconds=300, rss_bytes=4 * 1024**3)
+        report = json.loads(log_path.read_text(encoding="utf-8"))
+        from forecast.backups import validate_key
+
+        if report.get("report_key"):
+            validate_key(report["report_key"])
+    return {
+        **resources,
+        **{
+            key: report[key]
+            for key in (
+                "status",
+                "emissions",
+                "mature_points",
+                "report_key",
+                "independent_copy_verified",
+            )
+            if key in report
+        },
+    }
 
 
 def run_forecast_backup():
@@ -156,6 +206,7 @@ def run_pipeline(
     dbt_runner=run_dbt_build,
     forecast_runner=run_forecast,
     backup_runner=run_forecast_backup,
+    research_runner=run_forecast_research,
 ):
     with psycopg.connect(database_url, autocommit=True) as connection:
         with connection.cursor() as cursor:
@@ -173,6 +224,12 @@ def run_pipeline(
             except Exception:
                 # Forecast failure never changes ingestion/dbt success or replays it.
                 logger.error("Forecast failed; ingestion and dbt remain successful")
+            try:
+                logger.info("Forecast research status: %s", research_runner())
+            except Exception:
+                logger.error(
+                    "Forecast research failed; ingestion and dbt remain successful"
+                )
             return 0
         except Exception:
             logger.exception("Ingestion pipeline failed")

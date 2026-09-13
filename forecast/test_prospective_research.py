@@ -1,0 +1,180 @@
+from copy import deepcopy
+from datetime import date, datetime, timedelta, timezone
+import json
+from pathlib import Path
+import sys
+
+import pytest
+
+from forecast import prospective_research as research
+
+
+def emission():
+    start = date(2024, 1, 1)
+    weekly = [
+        {"date": (start + timedelta(weeks=i)).isoformat(), "close": 100.0}
+        for i in range(140)
+    ]
+    now = datetime.combine(
+        start + timedelta(weeks=140), datetime.min.time(), timezone.utc
+    )
+    document = research.make_emission(
+        weekly, [[-2, -1, 0, 1, 2]] * 52, now, evidence="prospective"
+    )
+    return document, weekly, now
+
+
+def test_target_is_not_mature_on_its_sunday():
+    document, weekly, now = emission()
+    next_monday = date.fromisoformat(weekly[-1]["date"]) + timedelta(weeks=1)
+    weekly.append({"date": next_monday.isoformat(), "close": 101.0})
+    sunday = now + timedelta(days=6)
+    report = research.score_emissions([document], weekly, sunday)
+    assert all(row["origins"] == 0 for row in report["per_horizon"])
+    report = research.score_emissions([document], weekly, sunday + timedelta(days=1))
+    assert report["per_horizon"][0]["origins"] == 1
+    assert report["per_horizon"][1]["origins"] == 0
+    assert not report["minimum_counts_met"]
+    assert not report["publishable"]
+
+
+def test_refuses_duplicate_synthetic_backdated_and_wrong_targets():
+    document, weekly, now = emission()
+    with pytest.raises(ValueError, match="Duplicate"):
+        research.score_emissions([document, document], weekly, now)
+    for changed in (
+        {"evidence": "fixture"},
+        {"created_at": (now + timedelta(days=2)).isoformat()},
+    ):
+        with pytest.raises(ValueError):
+            research.score_emissions([{**document, **changed}], weekly, now)
+    altered = deepcopy(document)
+    altered["points"][0]["target_date"] = now.date().isoformat()
+    with pytest.raises(ValueError, match="target"):
+        research.validate_emission(altered)
+
+
+def test_emission_refuses_stale_snapshot_and_wrong_day():
+    _, weekly, now = emission()
+    for observed, created in ((weekly[:-1], now), (weekly, now + timedelta(days=2))):
+        with pytest.raises(ValueError):
+            research.make_emission(
+                observed, [[-2, -1, 0, 1, 2]] * 52, created, evidence="fixture"
+            )
+
+
+def test_empty_evidence_keeps_all_52_horizons_explicitly_immature():
+    report = research.score_emissions([], [], datetime.now(timezone.utc))
+    assert len(report["per_horizon"]) == 52
+    assert all(row["wis"] is None for row in report["per_horizon"])
+    assert not report["ready_for_confirmation_review"]
+
+
+def test_legacy_exception_is_limited_to_the_previously_frozen_emission():
+    document, _, _ = emission()
+    origin = date(2026, 8, 31)
+    document.update(
+        {
+            "origin_week": str(origin),
+            "created_at": "2026-09-10T18:03:51.868753+00:00",
+            "legacy_shadow_sha256": research.LEGACY_SHADOW_HASH,
+        }
+    )
+    for point in document["points"]:
+        point["target_date"] = str(
+            origin + timedelta(days=6, weeks=point["horizon_weeks"])
+        )
+    research.validate_emission(document)
+    with pytest.raises(ValueError, match="weekly slot"):
+        research.validate_emission(
+            {**document, "legacy_shadow_sha256": "not-the-published-hash"}
+        )
+    with pytest.raises(ValueError, match="weekly slot"):
+        research.validate_emission(
+            {**document, "created_at": "2026-09-11T18:03:51.868753+00:00"}
+        )
+
+
+def test_legacy_reader_refuses_an_unrecognized_archive(tmp_path):
+    (tmp_path / "research-shadow.json").write_text("{}")
+    with pytest.raises(ValueError, match="Original shadow changed"):
+        research.read_legacy_emission(tmp_path, [[-2, -1, 0, 1, 2]] * 52)
+
+
+def test_archive_reader_rejects_modified_source_snapshot(tmp_path):
+    document, weekly, _ = emission()
+    first = date.fromisoformat(weekly[0]["date"])
+    daily = [
+        {"date": (first + timedelta(days=i)).isoformat(), "close": 100.0}
+        for i in range(140 * 7)
+    ]
+    snapshot = tmp_path / "daily.json"
+    research.write_json(snapshot, daily)
+    document.update(
+        {
+            "daily_snapshot_file": str(snapshot),
+            "daily_snapshot_sha256": research.sha256(snapshot),
+        }
+    )
+    archive = tmp_path / "emissions"
+    archive.mkdir()
+    path = archive / f"{document['origin_week']}.json"
+    research.write_json(path, document)
+    path.with_suffix(".sha256").write_text(research.sha256(path))
+    assert len(research.read_emissions(archive, [[-2, -1, 0, 1, 2]] * 52)) == 1
+    daily[-1]["close"] = 101.0
+    snapshot.write_text(json.dumps(daily))
+    with pytest.raises(ValueError, match="source snapshot changed"):
+        research.read_emissions(archive, [[-2, -1, 0, 1, 2]] * 52)
+
+
+def test_cli_archives_source_before_emission_and_preserves_monday_on_tuesday(
+    monkeypatch, tmp_path
+):
+    _, weekly, monday = emission()
+    first = date.fromisoformat(weekly[0]["date"])
+    daily = [
+        {"date": (first + timedelta(days=i)).isoformat(), "close": 100.0}
+        for i in range(140 * 7)
+    ]
+
+    class Clock(datetime):
+        current = monday
+
+        @classmethod
+        def now(cls, tz=None):
+            return cls.current
+
+    monkeypatch.setattr(research, "datetime", Clock)
+    monkeypatch.setattr(
+        research, "frozen_distribution", lambda _: [[-2, -1, 0, 1, 2]] * 52
+    )
+    monkeypatch.setattr(research.b, "fetch_daily_snapshot", lambda *args: daily)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "collector",
+            "--bundle",
+            str(tmp_path),
+            "--directory",
+            str(tmp_path / "observations"),
+            "--base-url",
+            "https://fixture.invalid",
+        ],
+    )
+    research.main()
+    path = next((tmp_path / "observations" / "emissions").glob("*.json"))
+    original = path.read_bytes()
+    document = json.loads(original)
+    assert (
+        research.sha256(Path(document["daily_snapshot_file"]))
+        == document["daily_snapshot_sha256"]
+    )
+    Clock.current += timedelta(days=1)
+    research.main()
+    assert path.read_bytes() == original
+    path.write_text("{}")
+    Clock.current += timedelta(seconds=1)
+    with pytest.raises(ValueError, match="Archived emission changed"):
+        research.main()

@@ -8,9 +8,9 @@ import { readResearchForecast, researchPreviewEnabled } from '@/lib/forecast-res
 const send = jest.fn();
 const destroy = jest.fn();
 const original = { ...process.env };
-const key = 'development/research/hybrid-v1/emissions/2026-09-07.json';
+const key = 'development/research/damped-trend-v1/emissions/2026-09-07.json';
 function archive() {
-    return { emission: { created_at: '2026-09-14T05:24:02.309673+00:00', origin_week: '2026-09-07', currency: 'USD', evidence: 'prospective', model_manifest_sha256: '3c8b3864ce908e1acdbb01c635ddd82eb1f61337b95c2c6a3d04377fb92d24c3', points: Array.from({ length: 52 }, (_, i) => ({ horizon_weeks: i + 1, target_date: new Date(Date.parse('2026-09-13') + (i + 1) * 7 * 86400000).toISOString().slice(0, 10), USD: [80, 90, 100, 110, 120] })) } };
+    return { emission: { created_at: '2026-09-14T05:24:02.309673+00:00', origin_week: '2026-09-07', currency: 'USD', evidence: 'prospective', model_manifest_sha256: 'f20851a615ece5351b0312e018b4fec1aed18cb1af9655370962a593c7c2382b', points: Array.from({ length: 52 }, (_, i) => ({ horizon_weeks: i + 1, target_date: new Date(Date.parse('2026-09-13') + (i + 1) * 7 * 86400000).toISOString().slice(0, 10), USD: [80, 90, 100, 110, 120] })) } };
 }
 function responses(value = archive()) {
     send.mockResolvedValueOnce({ Contents: [{ Key: key }] }).mockResolvedValueOnce({ Body: { transformToString: async () => JSON.stringify(value) } });
@@ -57,4 +57,20 @@ test('rejects incorrect target dates instead of drawing a misleading curve', asy
     value.emission.points[0].target_date = '2026-09-21';
     responses(value);
     await expect(readResearchForecast('USD', '2026-09-14')).rejects.toThrow('target');
+});
+
+test('preserves every horizon median instead of replacing it with the origin price', async () => {
+    const value = archive();
+    value.emission.points.forEach((point, i) => { point.USD = [80 + i, 90 + i, 100 + i, 110 + i, 120 + i]; });
+    responses(value);
+    const result = await readResearchForecast('USD', '2026-09-14');
+    expect(result.model?.id).toBe('research-damped-trend-v1');
+    expect(result.emissions[0].points.map(p => p.q50)).toEqual(Array.from({ length: 52 }, (_, i) => 100 + i));
+});
+
+test('rejects another model recipe in the trend namespace', async () => {
+    const value = archive();
+    value.emission.model_manifest_sha256 = '3c8b3864ce908e1acdbb01c635ddd82eb1f61337b95c2c6a3d04377fb92d24c3';
+    responses(value);
+    await expect(readResearchForecast('USD', '2026-09-14')).rejects.toThrow();
 });

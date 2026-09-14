@@ -1,5 +1,25 @@
 # Recherche de modèles après le premier benchmark
 
+## Aperçu de trajectoire du 14 septembre 2026
+
+À la demande du propriétaire, le dashboard Development affiche maintenant une tendance amortie apprise sur l'historique. Cette livraison expérimentale ne dépend pas du contrôle prospectif du 21 septembre et ne constitue pas une promotion en production.
+
+`trend_research.py` ajuste un modèle de Holt amorti sur les logarithmes des 104 derniers prix hebdomadaires. Alpha, bêta et phi minimisent les erreurs à une semaine, avec phi entre 0,8 et 0,98. Le niveau initial est le premier log-prix et la pente initiale zéro. Les équations suivent [Forecasting: Principles and Practice](https://otexts.com/fpp3/holt.html). Pour chaque horizon, les quantiles des 156 dernières erreurs historiques déjà arrivées à maturité corrigent la trajectoire et forment les bandes. La médiane peut donc varier chaque semaine ; aucune variation artificielle ni lissage graphique n'est ajouté.
+
+La recette a été définie avant son score. Le rejeu utilise 181 origines, indices 348 à 528 inclus, avec réentraînement et calibration utilisant seulement les observations disponibles à chaque origine. Cet historique a déjà été consulté et les cibles se chevauchent : il ne s'agit pas d'une preuve indépendante. Le snapshot courant contient 582 semaines complètes, jusqu'au 13 septembre.
+
+| Mesure historique, USD | Tendance amortie | Prix inchangé |
+|---|---:|---:|
+| MAE de la médiane | 21 279,45 | 17 515,59 |
+| RMSE de la médiane | 28 808,25 | 21 296,31 |
+| WIS | 15 111,93 | 17 515,59 |
+
+La MAE augmente de 21,5 %. Les couvertures agrégées sont 68,65 % pour la bande nominale 50 % et 94,17 % pour celle à 80 %. Le modèle n'est pas validé et le dashboard indique son erreur historique supérieure au prix inchangé. Le WIS compare ici à une référence sans largeur d'intervalle ; son amélioration ne prouve pas une meilleure estimation centrale.
+
+L'émission réelle prévoit une médiane de 76 940,65 USD à une semaine et de 131 588,82 USD à 52 semaines. Ce sont des sorties du modèle, pas des objectifs de cours. Le manifeste de recette est `f20851a615ece5351b0312e018b4fec1aed18cb1af9655370962a593c7c2382b`. Le code, le lock, le snapshot, le rapport par horizon, les prédictions du rejeu et l'émission sont archivés dans les deux buckets sous `development/research/damped-trend-v1/` et vérifiés à la relecture. L'ancien hybride et ses émissions restent intacts.
+
+L'entraînement de cet aperçu s'exécute localement avec `uv run --locked --extra forecast python -m forecast.trend_research --daily <snapshot-daily.json> --output <nouveau-dossier>`. Le cron Railway poursuit la collecte de l'hybride ; il ne réentraîne pas ce nouveau modèle. La prochaine reprise locale reste programmée le 21 septembre à 19:00 Europe/Paris. Le modèle affiché est identifié séparément afin de ne pas mélanger leurs preuves prospectives.
+
 ## Complément du 13 septembre 2026
 
 Trois nouvelles hypothèses causales ont été figées avant mesure, puis exécutées successivement sur le même snapshot. Elles échouent toutes. Aucun modèle prêt pour la production n'est établi. Le [dossier de préparation](READINESS.md) fixe la suite et la collecte prospective.

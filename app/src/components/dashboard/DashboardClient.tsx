@@ -283,7 +283,7 @@ export default function DashboardClient({
                             <CardContent className="px-0 py-0 md:p-6">
                                 {projectionControls}
                                 {showProjection && !prototypeVariant && <div className="mb-3 space-y-1 text-xs text-muted-foreground" role="status" aria-live="polite">
-                                    {researchPreview && <p className="font-medium text-amber-700 dark:text-amber-300">Prévision expérimentale · validation prospective en cours · non validée pour la production.</p>}
+                                    {researchPreview && <p className="font-medium text-amber-700 dark:text-amber-300">Prévision expérimentale · erreur historique supérieure au prix inchangé · non validée pour la production.</p>}
                                     {forecastMessages[forecast.status] && <p>{forecastMessages[forecast.status]}</p>}
                                     {forecast.emissions.filter(e => e.status === 'invalidated').map(e => <p key={e.id}>Émission du {e.emissionDate} invalidée. Courbe retirée.</p>)}
                                     {forecast.emissions.filter(e => selectedEmissionIds.includes(e.id) && e.status !== 'invalidated').map(e => <p key={e.id}>Calculée le {e.emissionDate} · origine {e.originDate}{e.status === 'delayed' ? ' · émission en retard' : ''}{initialCurrency !== 'USD' && e.fx[initialCurrency] ? ` · change ${initialCurrency} figé le ${e.fx[initialCurrency].date} (${e.fx[initialCurrency].rate})` : ''}</p>)}

@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { executeQuery } from './postgres';
 import type { ForecastEmission, ForecastResponse } from './forecast-types';
 
-const prefix = 'development/research/hybrid-v1/emissions/';
+const prefix = 'development/research/damped-trend-v1/emissions/';
 const quantiles = z.array(z.number().positive()).length(5).refine(values => values.every((v, i) => i === 0 || v >= values[i - 1]));
 const envelopeSchema = z.object({ emission: z.object({
     created_at: z.iso.datetime({ offset: true }), origin_week: z.iso.date(),
     currency: z.literal('USD'), evidence: z.literal('prospective'),
-    model_manifest_sha256: z.literal('3c8b3864ce908e1acdbb01c635ddd82eb1f61337b95c2c6a3d04377fb92d24c3'),
+    model_manifest_sha256: z.literal('f20851a615ece5351b0312e018b4fec1aed18cb1af9655370962a593c7c2382b'),
     points: z.array(z.object({ horizon_weeks: z.number().int(), target_date: z.iso.date(), USD: quantiles })).length(52),
 }) });
 
@@ -32,7 +32,7 @@ export async function readResearchForecast(currency: string, asOf: string): Prom
         }
         token = page.IsTruncated ? page.NextContinuationToken : undefined;
     } while (token);
-    const model = { id: 'research-hybrid-v1', name: 'Hybride expérimental' };
+    const model = { id: 'research-damped-trend-v1', name: 'Tendance amortie expérimentale' };
     const emissions: ForecastEmission[] = [];
     try {
         for (const key of objectKeys.sort().reverse()) {

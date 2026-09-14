@@ -6,6 +6,44 @@ on:
       - '**'
 
 jobs:
+  test_forecast:
+    name: Forecast pipeline and reproducible artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FORECAST_TEST_DATABASE_URL: postgresql://postgres@localhost:55432/forecast_test
+      FORECAST_JOBS_TEST_DATABASE_URL: postgresql://postgres@localhost:55432/forecast_jobs_test
+      FORECAST_INTEGRATION_DATABASE_URL: postgresql://postgres@localhost:55432/forecast_integration_test
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: forecast_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d forecast_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.9.17'
+          enable-cache: true
+      - name: Prepare isolated jobs database
+        run: uv run --locked --extra dev --extra forecast python -c "import os, psycopg; c = psycopg.connect(os.environ['FORECAST_TEST_DATABASE_URL'], autocommit=True); c.execute('CREATE DATABASE forecast_jobs_test'); c.execute('CREATE DATABASE forecast_integration_test'); c.close()"
+      - name: Run forecast tests with locked runtime dependencies
+        run: uv run --locked --extra dev --extra forecast pytest forecast
+
   test_package:
     name: PostgreSQL backend and dbt
     runs-on: ubuntu-latest

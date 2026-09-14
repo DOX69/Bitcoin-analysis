@@ -9,6 +9,7 @@ export type ForecastEmission = {
     points: ForecastPoint[];
 };
 export type ForecastResponse = {
+    experimental?: boolean;
     status: 'available' | 'absent' | 'stale' | 'withdrawn' | 'invalid';
     model: { id: string; name: string } | null;
     emissions: ForecastEmission[];

@@ -4,6 +4,10 @@ import type { ForecastEmission, ForecastResponse } from './forecast-types';
 type StoredEmission = { id: string; emission_date: string; origin_week: string; status: ForecastEmission['status']; payload: { fx: ForecastEmission['fx']; points: Array<Record<string, unknown>> } };
 
 export async function readForecast(currency: string, asOf: string): Promise<ForecastResponse> {
+    if (process.env.RAILWAY_ENVIRONMENT_NAME?.toLowerCase() === 'development' && process.env.FORECAST_RESEARCH_PREVIEW === 'true') {
+        const { readResearchForecast } = await import('./forecast-research-server');
+        return readResearchForecast(currency, asOf);
+    }
     const versions = await executeQuery<{ id: string; name: string; withdrawn: boolean }>(
         `SELECT v.id, v.manifest->>'candidate' AS name, v.withdrawn
          FROM forecast.publication p JOIN forecast.versions v ON v.id=p.active_version`);

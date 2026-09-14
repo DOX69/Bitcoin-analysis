@@ -1,6 +1,6 @@
 # Préparation d'un forecast pour la production
 
-État du 13 septembre 2026 : objectif non atteint. La validation logicielle Development existe ; aucun modèle ne réunit encore les preuves statistiques et les conditions de promotion. Les trois nouveaux essais sont documentés dans [RESEARCH.md](RESEARCH.md).
+État du 14 septembre 2026 : objectif non atteint. La première émission hebdomadaire réelle à 52 horizons est enregistrée dans Railway Development et sa copie indépendante est vérifiée. Une cible de l'archive précédente est mature. Aucun modèle ne réunit encore les preuves statistiques et les conditions de promotion. Les trois nouveaux essais sont documentés dans [RESEARCH.md](RESEARCH.md).
 
 ## Décision de travail
 
@@ -48,7 +48,7 @@ Avant publication, la suite Python complète a passé 242 tests avec PostgreSQL 
 
 La suite forecast exécutée après ajout des recettes passe 103 tests, avec 18 tests ignorés faute de configuration PostgreSQL ou de dépendances optionnelles. Les huit tests ajoutés ensuite pour le collecteur passent aussi, dont un parcours émission lundi, reprise mardi, conservation du snapshot et détection de modification. Total de 111 tests distincts réussis sur ces exécutions. Les 17 nouveaux tests couvrent notamment causalité, maturité, quantiles, snapshots figés et archives. Les tests du collecteur vérifient aussi le refus d'un snapshot modifié et la portée exacte de l'exception du 10 septembre.
 
-Ruff, Black et `git diff --check` passent sur les changements. Les 42 entrées des deux inventaires d'archives copiées correspondent à leurs empreintes. L'appel réel du collecteur ce dimanche retourne `not_due`, sans émission antidatée. La première collecte planifiée n'a pas encore eu lieu. Aucun test PostgreSQL ignoré, test de fixture ou contrôle de code n'est compté comme preuve de qualité prédictive.
+Ruff, Black et `git diff --check` passent sur les changements. Les 42 entrées des deux inventaires d'archives copiées correspondent à leurs empreintes. L'appel réel du collecteur ce dimanche retourne `not_due`, sans émission antidatée. Le premier lancement planifié du lundi a échoué sur Frankfurter ; sa reprise réelle du 14 septembre a créé l'émission hebdomadaire. Les preuves figurent dans [DEVELOPMENT_RESEARCH.md](DEVELOPMENT_RESEARCH.md). Aucun test PostgreSQL ignoré, test de fixture ou contrôle de code n'est compté comme preuve de qualité prédictive.
 
 ## Conditions encore nécessaires
 

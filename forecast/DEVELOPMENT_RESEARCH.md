@@ -56,3 +56,11 @@ Le déploiement `7434f703-c1e3-4d0e-a870-6d6487c0194f`, issu du commit `b78f8a53
 Le rapport `development/research/hybrid-v1/reports/20260913T194010364418Z.json` porte l'empreinte `1f3c0a8b1e24c898cc2662063535b9bc249b711bf928b91638b94ce972a6926b`. Son snapshot porte l'empreinte `3ad3d1979bd22a249de109efdf7cf85fbcea7c8c0db181e155c3426f70a2aded`. Une relecture indépendante a vérifié les deux objets dans les deux buckets. Le rapport contient l'émission originale et zéro cible mature ; `publishable=false`.
 
 L'automatisation Codex de 09:00 a été supprimée après cette vérification. Le démarrage permanent n'inclut pas `--run-now`. La prochaine échéance annoncée par Railway est le 14 septembre à 05:00 UTC, soit 07:00 Europe/Paris.
+
+## Première émission hebdomadaire du 14 septembre
+
+Le lancement planifié à 07:03 Europe/Paris a échoué sur un timeout de lecture Frankfurter après dix secondes. Le forecast n'a pas été exécuté ; la sauvegarde a réussi. La reprise manuelle avec l'horloge réelle a terminé à 07:24. dbt passe ses 92 contrôles. Le collecteur conserve deux émissions, dont l'archive du 10 septembre, et une cible mature. Le modèle reste en recherche.
+
+L'émission de la semaine d'origine `2026-09-07` a été créée le `2026-09-14T05:24:02.309673+00:00`, avec 52 horizons. Son objet `development/research/hybrid-v1/emissions/2026-09-07.json` porte l'empreinte `11125d88dba0e5e99f1a4ffa3a6897fa85b09d2b8873d90f1b8df29fe097c942`. Le rapport `development/research/hybrid-v1/reports/20260914T052402309673Z.json` porte l'empreinte `1e8dd065cac5e36852473e66901846543c83f2608224585280b16e586f9a8ade`. Émission, rapport et snapshot ont été relus dans les deux buckets avec égalité des octets.
+
+Le fetcher Frankfurter ajoute deux reprises de la même page sur timeout ou coupure de connexion, espacées de une puis deux secondes. Chaque tentative conserve le timeout de dix secondes. Après trois échecs, il propage l'erreur sans retourner les pages partielles. Les réponses HTTP invalides et les erreurs de contenu restent des échecs immédiats.

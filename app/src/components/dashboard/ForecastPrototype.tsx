@@ -47,10 +47,10 @@ export default function ForecastPrototype({ enabled, onEnabledChange, model, onM
                 {new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${emission.issued}T00:00:00Z`))}{index === 0 && <small>Dernière</small>}
             </label>)}
         </div>
-        <small className="forecast-demo">{publishedModel !== undefined ? 'Médiane Q50 · intervalle Q25–Q75' : 'Projections simulées'}</small>
+        <small className="forecast-demo">{publishedModel !== undefined ? 'Hebdomadaire · Médiane Q50 · Q25–Q75' : 'Projections simulées'}</small>
         <div id={infoId} popover="auto" className="forecast-explanation" aria-label="À propos des prévisions">
             <button className="forecast-close" type="button" popoverTarget={infoId} popoverTargetAction="hide" aria-label="Fermer les informations"><X size={18} aria-hidden="true" /></button>
-            <p>À partir de l’évolution passée du Bitcoin, le modèle estime son prix semaine par semaine pour les 12 prochains mois. La médiane donne l’estimation centrale, entourée d’une estimation basse et haute. Les prévisions sont mises à jour chaque semaine, sans effacer les anciennes. Le prix réel peut sortir de cette zone : ce n’est pas une garantie.</p>
+            <p>Le modèle estime la clôture du Bitcoin chaque dimanche pour les 52 prochaines semaines. La première échéance est le dimanche suivant la dernière semaine complète observée. Il ne calcule pas de prix pour les jours intermédiaires. La médiane donne l’estimation centrale, entourée d’une estimation haute et basse. Les anciennes émissions sont conservées. Le prix réel peut sortir de cette zone : ce n’est pas une garantie.</p>
         </div>
         <style jsx global>{`
             .forecast-controls {display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;color:var(--foreground);font-size:13px}

@@ -357,6 +357,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 bodyColor: '#9ca3af',
                 borderColor: 'rgba(255, 165, 0, 0.3)',
                 borderWidth: 1,
+                itemSort: (a: ChartTooltipItem, b: ChartTooltipItem) => {
+                    if (projectionLabels.has(a.dataset.label ?? '') && projectionLabels.has(b.dataset.label ?? '')) {
+                        return (getParsedY(b) ?? 0) - (getParsedY(a) ?? 0);
+                    }
+                    return a.datasetIndex - b.datasetIndex;
+                },
                 filter: function (tooltipItem: ChartTooltipItem, index: number, tooltipItems: ChartTooltipItem[]) {
                     // Deduplicate: only show first item for each dataset label
                     const label = tooltipItem.dataset.label;
@@ -540,7 +546,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                         <tbody>{projection?.emissions.flatMap(emission => emission.points.map(point => <tr key={`${emission.id}-${point.date}`}><td>{emission.issued}</td><td>{point.date}</td><td>{formatAccessiblePrice(point.low, currencySymbol)}</td><td>{formatAccessiblePrice(point.median, currencySymbol)}</td><td>{formatAccessiblePrice(point.high, currencySymbol)}</td></tr>))}</tbody>
                     </table></div>}
                     {hasProjection && <ul aria-label="Courbes de projection" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">
-                        {(['Basse', 'Médiane', 'Haute'] as const).map((label, index) => <li key={label} className="flex items-center gap-1.5">
+                        {(['Haute', 'Médiane', 'Basse'] as const).map((label, index) => <li key={label} className="flex items-center gap-1.5">
                             <span aria-hidden="true" className="w-4 shrink-0 border-t-2" style={{
                                 borderColor: index === 1 ? '#f4c684' : '#ba9364',
                                 borderTopStyle: index === 1 ? 'dashed' : 'solid',

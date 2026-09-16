@@ -5,6 +5,24 @@ const points = Array.from({ length: 52 }, (_, i) => ({ horizonWeeks: i + 1, targ
 const payload = { status: 'available', model: { id: 'v1', name: 'Published' }, emissions: [{ id: 'e1', emissionDate: '2026-09-07', originWeek: '2026-08-31', originDate: '2026-09-06', fx: { EUR: { rate: 0.9, date: '2026-09-07' } }, status: 'valid', points }] };
 beforeEach(() => { global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => payload }); });
 
+it('keeps all 365 daily dates, including the first day, without weekly resampling', async () => {
+    const dailyPoints = Array.from({ length: 365 }, (_, i) => ({ horizonDays: i + 1, targetDate: new Date(Date.parse('2026-09-06') + (i + 1) * 86400000).toISOString().slice(0, 10), q25: 80 + i, q50: 100 + i, q75: 120 + i }));
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ ...payload, frequency: 'daily', emissions: [{ ...payload.emissions[0], points: dailyPoints }] }) });
+    const { result } = renderHook(() => useForecast(true, 'USD', '', ''));
+    await waitFor(() => expect(result.current.status).toBe('available'));
+    expect(result.current.frequency).toBe('daily');
+    expect(result.current.projection.emissions[0].points).toHaveLength(365);
+    expect(result.current.projection.emissions[0].points[0]).toEqual({ date: '2026-09-07', low: 80, median: 100, high: 120 });
+    expect(result.current.projection.emissions[0].points[364].date).toBe('2027-09-06');
+});
+
+it('rejects weekly points mislabeled as daily', async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ ...payload, frequency: 'daily' }) });
+    const { result } = renderHook(() => useForecast(true, 'USD', '', ''));
+    await waitFor(() => expect(result.current.status).toBe('invalid'));
+    expect(result.current.projection.emissions).toEqual([]);
+});
+
 it('fetches only when enabled and preserves frozen values and weekly dates', async () => {
     const { result, rerender } = renderHook(({ enabled }) => useForecast(enabled, 'EUR', '', ''), { initialProps: { enabled: false } });
     expect(fetch).not.toHaveBeenCalled();

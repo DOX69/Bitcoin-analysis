@@ -8,9 +8,9 @@ import { readResearchForecast, researchPreviewEnabled } from '@/lib/forecast-res
 const send = jest.fn();
 const destroy = jest.fn();
 const original = { ...process.env };
-const key = 'development/research/damped-trend-v1/emissions/2026-09-07.json';
+const key = 'development/research/daily-v1/emissions/2026-09-13.json';
 function archive() {
-    return { emission: { created_at: '2026-09-14T05:24:02.309673+00:00', origin_week: '2026-09-07', currency: 'USD', evidence: 'prospective', model_manifest_sha256: 'f20851a615ece5351b0312e018b4fec1aed18cb1af9655370962a593c7c2382b', points: Array.from({ length: 52 }, (_, i) => ({ horizon_weeks: i + 1, target_date: new Date(Date.parse('2026-09-13') + (i + 1) * 7 * 86400000).toISOString().slice(0, 10), USD: [80, 90, 100, 110, 120] })) } };
+    return { emission: { created_at: '2026-09-14T05:24:02.309673+00:00', origin_week: '2026-09-07', origin_date: '2026-09-13', frequency: 'daily', candidate: 'ridge', currency: 'USD', evidence: 'prospective', model_manifest_sha256: 'b82ed95b45afb3531c1ce6e26fd2a71c030d35e4b6f94b82a3ea8df03c50d065', points: Array.from({ length: 365 }, (_, i) => ({ horizon_days: i + 1, target_date: new Date(Date.parse('2026-09-13') + (i + 1) * 86400000).toISOString().slice(0, 10), USD: [80, 90, 100, 110, 120] })) } };
 }
 function responses(value = archive()) {
     send.mockResolvedValueOnce({ Contents: [{ Key: key }] }).mockResolvedValueOnce({ Body: { transformToString: async () => JSON.stringify(value) } });
@@ -34,8 +34,8 @@ test('serves only the existing prototype quantiles and experimental status', asy
     responses();
     const result = await readResearchForecast('USD', '2026-09-14');
     expect(result.experimental).toBe(true);
-    expect(result.emissions[0].points).toHaveLength(52);
-    expect(result.emissions[0].points[0]).toEqual({ horizonWeeks: 1, targetDate: '2026-09-20', q25: 90, q50: 100, q75: 110 });
+    expect(result.emissions[0].points).toHaveLength(365);
+    expect(result.emissions[0].points[0]).toEqual({ horizonDays: 1, targetDate: '2026-09-14', q25: 90, q50: 100, q75: 110 });
     expect(JSON.stringify(result)).not.toMatch(/private-bucket|snapshot|sha256/);
     expect(executeQuery).not.toHaveBeenCalled();
     expect(destroy).toHaveBeenCalled();
@@ -64,8 +64,8 @@ test('preserves every horizon median instead of replacing it with the origin pri
     value.emission.points.forEach((point, i) => { point.USD = [80 + i, 90 + i, 100 + i, 110 + i, 120 + i]; });
     responses(value);
     const result = await readResearchForecast('USD', '2026-09-14');
-    expect(result.model?.id).toBe('research-damped-trend-v1');
-    expect(result.emissions[0].points.map(p => p.q50)).toEqual(Array.from({ length: 52 }, (_, i) => 100 + i));
+    expect(result.model?.id).toBe('research-daily-v1');
+    expect(result.emissions[0].points.map(p => p.q50)).toEqual(Array.from({ length: 365 }, (_, i) => 100 + i));
 });
 
 test('rejects another model recipe in the trend namespace', async () => {

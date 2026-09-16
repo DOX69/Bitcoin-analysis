@@ -1,4 +1,4 @@
-export type ForecastPoint = { horizonWeeks: number; targetDate: string; q25: number; q50: number; q75: number };
+export type ForecastPoint = { horizonWeeks?: number; horizonDays?: number; targetDate: string; q25: number; q50: number; q75: number };
 export type ForecastEmission = {
     id: string;
     emissionDate: string;
@@ -9,6 +9,7 @@ export type ForecastEmission = {
     points: ForecastPoint[];
 };
 export type ForecastResponse = {
+    frequency?: 'daily' | 'weekly';
     experimental?: boolean;
     status: 'available' | 'absent' | 'stale' | 'withdrawn' | 'invalid';
     model: { id: string; name: string } | null;

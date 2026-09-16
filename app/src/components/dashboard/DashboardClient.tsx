@@ -80,7 +80,7 @@ export default function DashboardClient({
     const selectionScope = `${projectionModel}:${availableEmissions.map(({ id }) => id).join(',')}`;
     const selectedEmissionIds = emissionSelection?.scope === selectionScope ? emissionSelection.ids : availableEmissions.slice(0, 1).map(({ id }) => id);
     const projection = showProjection ? { ...availableProjection, emissions: availableProjection.emissions.filter(({ id }) => selectedEmissionIds.includes(id)) } : undefined;
-    const projectionControls = <ForecastPrototype enabled={showProjection} onEnabledChange={setShowProjection} model={projectionModel} onModelChange={(model) => { setProjectionModel(model); setEmissionSelection(null); }} emissions={availableEmissions} selectedIds={selectedEmissionIds} onSelectionChange={(ids) => setEmissionSelection({ scope: selectionScope, ids: ids.filter((id) => availableEmissions.some((emission) => emission.id === id)).slice(0, 3) })} {...(!prototypeVariant ? { publishedModel: forecast.model } : {})} />;
+    const projectionControls = <ForecastPrototype enabled={showProjection} onEnabledChange={setShowProjection} model={projectionModel} onModelChange={(model) => { setProjectionModel(model); setEmissionSelection(null); }} emissions={availableEmissions} selectedIds={selectedEmissionIds} onSelectionChange={(ids) => setEmissionSelection({ scope: selectionScope, ids: ids.filter((id) => availableEmissions.some((emission) => emission.id === id)).slice(0, 3) })} {...(!prototypeVariant ? { publishedModel: forecast.model, frequency: forecast.frequency } : {})} />;
     const forecastMessages = {
         loading: 'Chargement des prévisions…', absent: 'Aucune prévision disponible pour cette période.',
         stale: 'Prévision en retard. Les dates et valeurs d’origine sont conservées.',
@@ -283,7 +283,7 @@ export default function DashboardClient({
                             <CardContent className="px-0 py-0 md:p-6">
                                 {projectionControls}
                                 {showProjection && !prototypeVariant && <div className="mb-3 space-y-1 text-xs text-muted-foreground" role="status" aria-live="polite">
-                                    {researchPreview && <p className="font-medium text-amber-700 dark:text-amber-300">Prévision expérimentale · erreur historique supérieure au prix inchangé · non validée pour la production.</p>}
+                                    {researchPreview && <p className="font-medium text-amber-700 dark:text-amber-300">Prévision expérimentale · erreur historique moyenne 97 % supérieure au prix inchangé · non validée pour la production.</p>}
                                     {forecastMessages[forecast.status] && <p>{forecastMessages[forecast.status]}</p>}
                                     {forecast.emissions.filter(e => e.status === 'invalidated').map(e => <p key={e.id}>Émission du {e.emissionDate} invalidée. Courbe retirée.</p>)}
                                     {forecast.emissions.filter(e => selectedEmissionIds.includes(e.id) && e.status !== 'invalidated').map(e => <p key={e.id}>Calculée le {e.emissionDate} · origine {e.originDate}{e.status === 'delayed' ? ' · émission en retard' : ''}{initialCurrency !== 'USD' && e.fx[initialCurrency] ? ` · change ${initialCurrency} figé le ${e.fx[initialCurrency].date} (${e.fx[initialCurrency].rate})` : ''}</p>)}

@@ -3,13 +3,14 @@ import { z } from 'zod';
 import { executeQuery } from './postgres';
 import type { ForecastEmission, ForecastResponse } from './forecast-types';
 
-const prefix = 'development/research/damped-trend-v1/emissions/';
+const prefix = 'development/research/daily-v1/emissions/';
 const quantiles = z.array(z.number().positive()).length(5).refine(values => values.every((v, i) => i === 0 || v >= values[i - 1]));
 const envelopeSchema = z.object({ emission: z.object({
-    created_at: z.iso.datetime({ offset: true }), origin_week: z.iso.date(),
+    created_at: z.iso.datetime({ offset: true }), origin_week: z.iso.date(), origin_date: z.iso.date(),
+    frequency: z.literal('daily'), candidate: z.literal('ridge'),
     currency: z.literal('USD'), evidence: z.literal('prospective'),
-    model_manifest_sha256: z.literal('f20851a615ece5351b0312e018b4fec1aed18cb1af9655370962a593c7c2382b'),
-    points: z.array(z.object({ horizon_weeks: z.number().int(), target_date: z.iso.date(), USD: quantiles })).length(52),
+    model_manifest_sha256: z.literal('b82ed95b45afb3531c1ce6e26fd2a71c030d35e4b6f94b82a3ea8df03c50d065'),
+    points: z.array(z.object({ horizon_days: z.number().int(), target_date: z.iso.date(), USD: quantiles })).length(365),
 }) });
 
 export function researchPreviewEnabled() {
@@ -32,7 +33,7 @@ export async function readResearchForecast(currency: string, asOf: string): Prom
         }
         token = page.IsTruncated ? page.NextContinuationToken : undefined;
     } while (token);
-    const model = { id: 'research-damped-trend-v1', name: 'Tendance amortie expérimentale' };
+    const model = { id: 'research-daily-v1', name: 'Régression quotidienne expérimentale' };
     const emissions: ForecastEmission[] = [];
     try {
         for (const key of objectKeys.sort().reverse()) {
@@ -41,9 +42,9 @@ export async function readResearchForecast(currency: string, asOf: string): Prom
             const emissionDate = emission.created_at.slice(0, 10);
             if (emissionDate > asOf) continue;
             const origin = Date.parse(emission.origin_week);
-            if (new Date(origin).getUTCDay() !== 1 || key !== `${prefix}${emission.origin_week}.json`) throw new Error('Invalid research origin');
-            const originDate = new Date(origin + 6 * 86400000).toISOString().slice(0, 10);
-            if (Date.parse(emission.created_at) <= Date.parse(originDate) + 86400000 - 1) throw new Error('Incomplete research week');
+            const originDate = emission.origin_date;
+            if (new Date(origin).getUTCDay() !== 1 || Date.parse(originDate) < origin || Date.parse(originDate) > origin + 6 * 86400000 || key !== `${prefix}${originDate}.json`) throw new Error('Invalid research origin');
+            if (Date.parse(emissionDate) !== Date.parse(originDate) + 86400000) throw new Error('Incomplete or stale research day');
             const fx: ForecastEmission['fx'] = {};
             if (currency !== 'USD') {
                 const table = currency === 'EUR' ? 'usd_eur_rates' : currency === 'CHF' ? 'usd_chf_rates' : null;
@@ -55,12 +56,12 @@ export async function readResearchForecast(currency: string, asOf: string): Prom
             }
             const multiplier = currency === 'USD' ? 1 : fx[currency].rate;
             const points = emission.points.map((point, index) => {
-                if (point.horizon_weeks !== index + 1 || Date.parse(point.target_date) !== Date.parse(originDate) + (index + 1) * 7 * 86400000) throw new Error('Invalid research target');
-                return { horizonWeeks: index + 1, targetDate: point.target_date, q25: point.USD[1] * multiplier, q50: point.USD[2] * multiplier, q75: point.USD[3] * multiplier };
+                if (point.horizon_days !== index + 1 || Date.parse(point.target_date) !== Date.parse(originDate) + (index + 1) * 86400000) throw new Error('Invalid research target');
+                return { horizonDays: index + 1, targetDate: point.target_date, q25: point.USD[1] * multiplier, q50: point.USD[2] * multiplier, q75: point.USD[3] * multiplier };
             });
-            emissions.push({ id: `research-${emission.origin_week}`, emissionDate, originWeek: emission.origin_week, originDate, status: 'valid', fx, points });
+            emissions.push({ id: `research-daily-${originDate}`, emissionDate, originWeek: emission.origin_week, originDate, status: 'valid', fx, points });
             if (emissions.length === 3) break;
         }
     } finally { client.destroy(); }
-    return { status: !emissions.length ? 'absent' : Date.parse(asOf) - Date.parse(emissions[0].emissionDate) > 8 * 86400000 ? 'stale' : 'available', model, emissions, experimental: true };
+    return { status: !emissions.length ? 'absent' : Date.parse(asOf) - Date.parse(emissions[0].emissionDate) > 8 * 86400000 ? 'stale' : 'available', model, emissions, experimental: true, frequency: 'daily' };
 }

@@ -2,6 +2,9 @@
 
 Recherche et premier benchmark du 16 septembre 2026. Le protocole initial ci-dessous est suivi des résultats exécutés et de l'intégration Development. Aucun modèle n'est validé pour la production.
 
+La [reprise du 17 septembre](RECOVERY_RESEARCH.md) documente le diagnostic de
+calibration, trois approches distinctes et l'essai quotidien non linéaire rejeté.
+
 ## Recommandation
 
 Conserver l'objectif d'un an : produire 365 clôtures quotidiennes BTC/USD, calculées chaque lundi à 07:00 Europe/Paris avec les journées UTC complètes disponibles. Comparer explicitement les résultats à six mois calendaires. Le quotidien répond mieux au besoin d'affichage immédiat, mais son avantage statistique reste à mesurer.

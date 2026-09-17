@@ -68,18 +68,20 @@ def predict(logs, features, origin):
     return logs[origin] + model.predict(future) * np.sqrt(daily.HORIZONS)
 
 
-def run(rows):
+def run(rows, feature_sets=None):
     days, values = daily.observations(rows)
     logs = np.log(values)
-    features = daily.features(logs)
+    if feature_sets is None:
+        feature_sets = {"pooled": daily.features(logs)}
     origins = [j for j in range(1095, len(days) - 365) if days[j].weekday() == 6]
-    raw = {}
+    forecasts = {name: {} for name in feature_sets}
     for index, j in enumerate(origins):
-        raw[j] = predict(logs, features, j)
+        for name, features in feature_sets.items():
+            forecasts[name][j] = predict(logs, features, j)
         if index % 50 == 0:
             print(f"Fitted {index + 1}/{len(origins)} origins", flush=True)
-    naive = {j: np.repeat(logs[j], 365) for j in raw}
-    evaluable = [j for j in origins if sum(k + 365 <= j for k in raw) >= 26]
+    naive = {j: np.repeat(logs[j], 365) for j in origins}
+    evaluable = [j for j in origins if sum(k + 365 <= j for k in origins) >= 26]
     split = date(2023, 9, 13)
     groups = {}
     for name, js in {
@@ -92,15 +94,18 @@ def run(rows):
             "first_origin": str(days[js[0]]),
             "last_origin": str(days[js[-1]]),
             "models": {
-                "pooled": daily.scores(
-                    [centered_calibration(logs, j, raw) for j in js], actuals
-                ),
+                **{
+                    candidate: daily.scores(
+                        [centered_calibration(logs, j, raw) for j in js], actuals
+                    )
+                    for candidate, raw in forecasts.items()
+                },
                 "naive": daily.scores(
                     [daily.calibrated(logs, j, naive, naive=True) for j in js], actuals
                 ),
             },
         }
-    accepted = shortlist(groups, candidates=("pooled",))
+    accepted = shortlist(groups, candidates=tuple(feature_sets))
     return {
         "recipe": RECIPE,
         "groups": groups,

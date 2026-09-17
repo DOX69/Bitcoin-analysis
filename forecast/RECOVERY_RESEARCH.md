@@ -1,5 +1,8 @@
 # Reprise des recherches quotidiennes — 17 septembre 2026
 
+Suite exécutée : [audit OHLCV et comparaison des volumes/amplitudes](OHLCV_RESEARCH.md).
+Les données sont disponibles ; les variantes testées n'améliorent pas la précision.
+
 ## Problème
 
 La recette daily-v1 sélectionnait obligatoirement Holt ou Ridge, même lorsque les

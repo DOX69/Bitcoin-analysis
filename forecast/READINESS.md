@@ -1,5 +1,8 @@
 # Préparation d'un forecast pour la production
 
+Le [guide d’audit en lecture seule](RESEARCH_AUDIT.md) décrit les statuts explicites,
+la vérification des copies et l’export des scores sans relancer la collecte.
+
 État du 14 septembre 2026 : objectif non atteint. La première émission hebdomadaire réelle à 52 horizons est enregistrée dans Railway Development et sa copie indépendante est vérifiée. Une cible de l'archive précédente est mature. Aucun modèle ne réunit encore les preuves statistiques et les conditions de promotion. Les trois nouveaux essais sont documentés dans [RESEARCH.md](RESEARCH.md).
 
 ## Décision de travail

@@ -203,3 +203,52 @@ def test_cli_archives_source_before_emission_and_preserves_monday_on_tuesday(
     Clock.current += timedelta(seconds=1)
     with pytest.raises(ValueError, match="Archived emission changed"):
         research.main()
+
+
+def test_rescoring_and_source_revision_do_not_add_evidence():
+    document, weekly, now = emission()
+    weekly.append({"date": now.date().isoformat(), "close": 101.0})
+    original = deepcopy(document)
+    first = research.score_emissions([document], weekly, now + timedelta(days=7))
+    again = research.score_emissions([document], weekly, now + timedelta(days=8))
+    weekly[-1]["close"] = 102.0
+    revised = research.score_emissions([document], weekly, now + timedelta(days=9))
+    for report in (first, again, revised):
+        assert report["validation_status"] == "insufficient_evidence"
+        assert report["per_horizon"][0]["validation_status"] == "insufficient_evidence"
+        assert sum(row["origins"] for row in report["per_horizon"]) == 1
+        assert not report["ready_for_confirmation_review"]
+        assert not report["publishable"]
+        observation = report["observations"][1][0]
+        assert observation["origin_close"] == document["origin_close"]
+        assert observation["issued_at"] == document["created_at"]
+    assert first["observations"] == again["observations"]
+    assert revised["observations"][1][0]["mae"] != first["observations"][1][0]["mae"]
+    assert document == original
+
+
+@pytest.mark.parametrize(
+    "origins,blocks,mae,c50,c80,expected",
+    [
+        (1, 1, 1, 1, 1, "insufficient_evidence"),
+        (103, 2, 1, 0.5, 0.8, "insufficient_evidence"),
+        (104, 1, 1, 0.5, 0.8, "insufficient_evidence"),
+        (104, 2, 1.05, 0.4, 0.7, "guardrails_met"),
+        (104, 2, 1.05, 0.6, 0.9, "guardrails_met"),
+        (104, 2, 1.05001, 0.5, 0.8, "outside_guardrails"),
+        (104, 2, 1, 0.60001, 0.8, "outside_guardrails"),
+        (104, 2, 1, 0.5, 0.69999, "outside_guardrails"),
+    ],
+)
+def test_evidence_status_preserves_count_block_and_quality_thresholds(
+    origins, blocks, mae, c50, c80, expected
+):
+    row = {
+        "origins": origins,
+        "dependence_blocks": [{"complete_contiguous": True}] * blocks,
+        "mae": mae,
+        "naive_mae": 1,
+        "coverage_50": c50,
+        "coverage_80": c80,
+    }
+    assert research.horizon_assessment(row)["validation_status"] == expected

@@ -142,7 +142,9 @@ def run_forecast_research(*, daily=False):
                 "status",
                 "emissions",
                 "mature_points",
+                "validation_status",
                 "report_key",
+                "report_sha256",
                 "independent_copy_verified",
             )
             if key in report

@@ -112,6 +112,7 @@ def collect(source, backup, bundle, daily, now, *, emit=True):
         "status": "completed",
         "emissions": len(documents) + 1,
         "mature_points": sum(row["origins"] for row in report["per_horizon"]),
+        "validation_status": report["validation_status"],
         "ready_for_confirmation_review": report["ready_for_confirmation_review"],
         "publishable": False,
         "report_key": report_key,

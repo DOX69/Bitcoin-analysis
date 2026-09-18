@@ -17,6 +17,31 @@ DISTRIBUTION_HASH = "be7cb63eb804c813123c6918eae43a1201591e0b888e9e4a2ab490edb60
 LEGACY_SHADOW_HASH = "6e3b828e2b34b416ea4aee780d9db531b34917238e2ec4f018d16a54cfeb2aff"
 
 
+def validation_status(minimum_counts_met, guardrails_passed):
+    """Describe evidence without treating a small sample as model rejection."""
+    if not minimum_counts_met:
+        return "insufficient_evidence"
+    return "guardrails_met" if guardrails_passed else "outside_guardrails"
+
+
+def horizon_assessment(row):
+    counts = (
+        row["origins"] >= MINIMUM_ORIGINS
+        and sum(block["complete_contiguous"] for block in row["dependence_blocks"]) >= 2
+    )
+    guardrails = (
+        row["origins"] > 0
+        and row["mae"] <= 1.05 * row["naive_mae"]
+        and 0.4 <= row["coverage_50"] <= 0.6
+        and 0.7 <= row["coverage_80"] <= 0.9
+    )
+    return {
+        "minimum_counts_met": counts,
+        "guardrails_passed": guardrails,
+        "validation_status": validation_status(counts, guardrails),
+    }
+
+
 def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -121,6 +146,8 @@ def score_emissions(documents, weekly, now):
             records[point["horizon_weeks"]].append(
                 {
                     "origin_week": origin,
+                    "issued_at": document["created_at"],
+                    "origin_close": document["origin_close"],
                     "target_date": target.isoformat(),
                     "actual": actual,
                     "prediction": row,
@@ -167,18 +194,10 @@ def score_emissions(documents, weekly, now):
                 "dependence_blocks": blocks,
             }
         )
-    sufficient_count = all(
-        row["origins"] >= MINIMUM_ORIGINS
-        and sum(block["complete_contiguous"] for block in row["dependence_blocks"]) >= 2
-        for row in per_horizon
-    )
-    guardrails = all(
-        row["origins"] > 0
-        and row["mae"] <= 1.05 * row["naive_mae"]
-        and 0.4 <= row["coverage_50"] <= 0.6
-        and 0.7 <= row["coverage_80"] <= 0.9
-        for row in per_horizon
-    )
+    for row in per_horizon:
+        row.update(horizon_assessment(row))
+    sufficient_count = all(row["minimum_counts_met"] for row in per_horizon)
+    guardrails = all(row["guardrails_passed"] for row in per_horizon)
     return {
         "created_at": now.isoformat(),
         "evidence": "prospective",
@@ -186,6 +205,7 @@ def score_emissions(documents, weekly, now):
         "minimum_origins_per_horizon": MINIMUM_ORIGINS,
         "minimum_counts_met": sufficient_count,
         "guardrails_passed": guardrails,
+        "validation_status": validation_status(sufficient_count, guardrails),
         "ready_for_confirmation_review": sufficient_count and guardrails,
         "publishable": False,
         "limitations": "Counts and contiguous blocks do not establish independence. Historical stress failed 46 horizons. Requires dependence review, production-compatible artifact and manual promotion.",

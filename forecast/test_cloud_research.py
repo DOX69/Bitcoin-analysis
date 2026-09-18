@@ -92,7 +92,9 @@ def test_research_hook_is_bounded_and_does_not_install_packages(monkeypatch):
                     "status": "completed",
                     "emissions": 1,
                     "mature_points": 0,
+                    "validation_status": "insufficient_evidence",
                     "report_key": cloud.PREFIX + "/reports/example.json",
+                    "report_sha256": "a" * 64,
                     "independent_copy_verified": True,
                 }
             )
@@ -100,6 +102,9 @@ def test_research_hook_is_bounded_and_does_not_install_packages(monkeypatch):
         return {}
 
     monkeypatch.setattr(pipeline, "supervise", supervise)
-    assert orchestrator.run_forecast_research()["independent_copy_verified"]
+    result = orchestrator.run_forecast_research()
+    assert result["independent_copy_verified"]
+    assert result["validation_status"] == "insufficient_evidence"
+    assert result["report_sha256"] == "a" * 64
     assert "--no-sync" in calls[0][0]
     assert calls[0][1] == {"seconds": 300, "rss_bytes": 4 * 1024**3}

@@ -29,8 +29,9 @@ describe('global UI hygiene', () => {
         expect(layout).not.toContain('<EnergyBeam />');
     });
 
-    it('keeps local dashboard prototypes out of the nominal route', () => {
-        expect(dashboardPage).not.toMatch(/PrototypeD|prototypeVariant|variant\?:/);
+    it('keeps the approved forecast fixture restricted to development variant A', () => {
+        expect(dashboardPage).not.toMatch(/PrototypeD/);
+        expect(dashboardPage).toContain("process.env.NODE_ENV === 'development' && params.variant === 'A'");
         expect(gitignore).toContain('app/src/components/dashboard/prototype/');
     });
 });

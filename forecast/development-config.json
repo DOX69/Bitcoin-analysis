@@ -1,0 +1,7 @@
+{
+  "environment": "development",
+  "artifact_bucket": "forecast-v1-artifacts-fp6nst",
+  "backup_bucket": "forecast-v1-backups-apnibc",
+  "daily_schema": "dlh_silver__crypto_prices",
+  "bronze_schema": "bronze"
+}

@@ -3,6 +3,11 @@
 Suite exécutée : [audit OHLCV et comparaison des volumes/amplitudes](OHLCV_RESEARCH.md).
 Les données sont disponibles ; les variantes testées n'améliorent pas la précision.
 
+La tentative suivante, [Chronos-2 quotidien multivarié](CHRONOS2_DAILY_RESEARCH.md),
+a aussi été exécutée sur les mêmes origines et la même référence. Elle perd dans
+les deux partitions. Aucun modèle quotidien testé dans cette série ne remplace
+donc la référence prix inchangé.
+
 ## Problème
 
 La recette daily-v1 sélectionnait obligatoirement Holt ou Ridge, même lorsque les
@@ -145,9 +150,10 @@ Development reste une expérimentation désactivée par défaut avec son avertis
 Le présent changement ajoute des outils de recherche et un rejet explicite des
 candidats perdants ; il ne remplace pas rétroactivement la recette daily-v1 figée.
 
-La prochaine piste recommandée est l'ajout de variables externes avec historique
-de disponibilité, en commençant par auditer les séries déjà collectées avant
-d'ajouter une API. Les essais sur le seul prix n'ont pas fourni de gain robuste.
+La piste restante est l'ajout de variables externes avec historique de
+disponibilité, en commençant par auditer les séries déjà collectées avant
+d'ajouter une API. Les essais sur le seul prix, les volumes, les amplitudes et
+le checkpoint multivarié n'ont pas fourni de gain robuste.
 Le collecteur Coinbase expose déjà les colonnes OHLCV ; leur volume et leur
 amplitude quotidienne sont les premières variables à auditer, sans nouvelle clé
 API. Leur disponibilité et leur qualité dans le snapshot de recherche restent à

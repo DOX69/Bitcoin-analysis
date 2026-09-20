@@ -126,7 +126,7 @@ def test_promotion_refuses_missing_horizon_confirmation_and_naive_recipe():
     for change in (
         {"per_horizon": rows[:-1]},
         {"confirmation_review": ""},
-        {"candidate": "price_unchanged"},
+        {"candidate": "last_close_holdout_reference"},
         {"data_verified": False},
         {"evidence": "fixture"},
     ):
@@ -212,9 +212,11 @@ def seeded_store(connection):
 
 
 def candidate_loader(*args):
-    from forecast.benchmark import PersistenceCandidate
+    from forecast.benchmark import GaussianRandomWalkCandidate
 
-    return PersistenceCandidate()
+    candidate = GaussianRandomWalkCandidate()
+    candidate.fit([100.0] * 160, 160)
+    return candidate
 
 
 def snapshot_writer(prefix, document):

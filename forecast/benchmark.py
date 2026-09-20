@@ -278,21 +278,9 @@ def _actuals(closes: Sequence[float], origins: Sequence[int]) -> list[list[float
     ]
 
 
-class PersistenceCandidate:
-    name = "price_unchanged"
-    threads_configured = 1
-    preserve_median = True
-
-    def fit(self, closes: Sequence[float], train_end: int) -> None:
-        self.train_end = train_end
-
-    def predict(self, closes: Sequence[float], origin: int) -> list[list[float]]:
-        return [[closes[origin]] * len(QUANTILES) for _ in range(MAX_HORIZON)]
-
-    def artifact_bytes(self) -> int:
-        return len(
-            json.dumps({"candidate": self.name, "horizons": MAX_HORIZON}).encode()
-        )
+def last_close_reference(closes: Sequence[float], origin: int) -> list[list[float]]:
+    """Return the evaluation-only last-close reference for one origin."""
+    return [[closes[origin]] * len(QUANTILES) for _ in range(MAX_HORIZON)]
 
 
 class GaussianRandomWalkCandidate:

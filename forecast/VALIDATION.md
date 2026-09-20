@@ -4,17 +4,17 @@ Mesure du 9 septembre 2026 pour [Implémenter le pipeline du modèle et les arte
 
 ## Résultat
 
-Le pipeline et ses contrôles logiciels sont validés localement. Aucun candidat probabiliste ne passe tous les garde-fous historiques de première version. Aucune promotion. Ces observations restent exploratoires et ne remplacent pas une confirmation prospective.
+Le pipeline et ses contrôles logiciels sont validés localement. Aucun candidat probabiliste ne passe tous les garde-fous historiques de première version. Aucune promotion. Ces observations restent exploratoires et ne remplacent pas une confirmation prospective. La référence de dernier close est affichée séparément à titre de contrôle, pas comme une recette candidate.
 
 | Recette | WIS USD | MAE USD | Durée totale s | Pic RSS arbre Mio | Artefacts recette Mio | Horizons en échec |
 |---|---:|---:|---:|---:|---:|---:|
-| price_unchanged | 16157.37 | 16157.37 | 0.68 | 62.85 | 1.11 | 52/52 |
+| référence holdout — dernier close | 16157.37 | 16157.37 | — | — | — | contrôle |
 | gaussian_random_walk | 17911.19 | 22781.65 | 0.76 | 59.79 | 1.44 | 52/52 |
 | lightgbm_quantile | 17148.07 | 24198.92 | 71.37 | 244.91 | 77.59 | 51/52 |
 
-Le prix inchangé sert seulement de référence centrale. Les échecs comptent les horizons ne respectant pas au moins un contrôle de MAE ou de couverture. Les contrôles ne se limitent pas aux moyennes du tableau.
+La référence holdout répète le dernier close connu à chaque origine de test et n'est jamais entraînée ni publiée. Elle n'a pas de bande probabiliste : ses quantiles identiques ne servent qu'à comparer la médiane et le WIS. Les échecs comptent les horizons ne respectant pas au moins un contrôle de MAE ou de couverture. Les contrôles ne se limitent pas aux moyennes du tableau.
 
-Les trois recettes passent les limites de ressources. Le processus de calcul LightGBM a été observé avec une affinité de deux processeurs. Les durées incluent deux entraînements de folds, leurs prédictions et contrôles de rechargement, puis un entraînement final sur 581 semaines. Tous les rechargements passent la tolérance figée de `rtol=1e-10`, `atol=1e-8` USD.
+Les deux recettes candidates passent les limites de ressources. Le processus de calcul LightGBM a été observé avec une affinité de deux processeurs. Les durées incluent deux entraînements de folds, leurs prédictions et contrôles de rechargement, puis un entraînement final sur 581 semaines. Tous les rechargements passent la tolérance figée de `rtol=1e-10`, `atol=1e-8` USD.
 
 Taille totale du dossier vérifié, rapports et inventaire inclus : 85417979 octets. Aucune dépense Railway. Les estimations CPU/RAM équivalentes du JSON ne comprennent pas le futur stockage, les sauvegardes ou les transferts.
 
@@ -34,11 +34,11 @@ Un premier passage a révélé que Windows lançait un interpréteur enfant non 
 
 | Recette | Horizon semaines | WIS USD | MAE USD | Couverture 50 % | Couverture 80 % |
 |---|---:|---:|---:|---:|---:|
-| price_unchanged | 1 | 2686.82 | 2686.82 | 0.0% | 0.0% |
-| price_unchanged | 4 | 5616.13 | 5616.13 | 0.0% | 0.0% |
-| price_unchanged | 13 | 11439.15 | 11439.15 | 0.0% | 0.0% |
-| price_unchanged | 26 | 16725.06 | 16725.06 | 0.0% | 0.0% |
-| price_unchanged | 52 | 26539.07 | 26539.07 | 0.0% | 0.0% |
+| référence holdout — dernier close | 1 | 2686.82 | 2686.82 | 0.0% | 0.0% |
+| référence holdout — dernier close | 4 | 5616.13 | 5616.13 | 0.0% | 0.0% |
+| référence holdout — dernier close | 13 | 11439.15 | 11439.15 | 0.0% | 0.0% |
+| référence holdout — dernier close | 26 | 16725.06 | 16725.06 | 0.0% | 0.0% |
+| référence holdout — dernier close | 52 | 26539.07 | 26539.07 | 0.0% | 0.0% |
 | gaussian_random_walk | 1 | 2196.83 | 2754.63 | 76.0% | 93.8% |
 | gaussian_random_walk | 4 | 4679.58 | 6106.10 | 66.7% | 91.5% |
 | gaussian_random_walk | 13 | 9814.15 | 13263.73 | 58.9% | 91.5% |

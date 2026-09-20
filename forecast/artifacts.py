@@ -20,7 +20,6 @@ RELOAD_TOLERANCE = {"rtol": 1e-10, "atol": 1e-8}
 CANDIDATES = {
     c.name: c
     for c in (
-        b.PersistenceCandidate,
         b.GaussianRandomWalkCandidate,
         b.LightGBMQuantileCandidate,
     )
@@ -62,14 +61,7 @@ def save_model(candidate, directory: Path, context: dict):
                     str(directory / f"h{h:02d}-q{int(q*100):02d}.txt")
                 )
     else:
-        state = (
-            {"train_end": candidate.train_end}
-            if candidate.name == "price_unchanged"
-            else {
-                "mu": candidate.mu,
-                "sigma": candidate.sigma,
-            }
-        )
+        state = {"mu": candidate.mu, "sigma": candidate.sigma}
         write_json(directory / "state.json", state)
     manifest = {
         "schema_version": 1,
@@ -112,7 +104,10 @@ def load_model(directory: Path):
         path = directory / filename
         if not path.is_file() or b._file_sha256(path) != digest:
             raise ValueError(f"Model integrity check failed: {filename}")
-    candidate = CANDIDATES[name]()
+    try:
+        candidate = CANDIDATES[name]()
+    except KeyError as error:
+        raise ValueError(f"Unsupported forecast candidate: {name}") from error
     if name == "lightgbm_quantile":
         import lightgbm
 
@@ -127,16 +122,13 @@ def load_model(directory: Path):
         ]
     else:
         state = json.loads((directory / "state.json").read_text(encoding="utf-8"))
-        if name == "price_unchanged":
-            candidate.train_end = int(state["train_end"])
-        else:
-            candidate.mu, candidate.sigma = float(state["mu"]), float(state["sigma"])
-            if (
-                not math.isfinite(candidate.mu)
-                or not math.isfinite(candidate.sigma)
-                or candidate.sigma <= 0
-            ):
-                raise ValueError("Invalid Gaussian state")
+        candidate.mu, candidate.sigma = float(state["mu"]), float(state["sigma"])
+        if (
+            not math.isfinite(candidate.mu)
+            or not math.isfinite(candidate.sigma)
+            or candidate.sigma <= 0
+        ):
+            raise ValueError("Invalid Gaussian state")
     return candidate
 
 

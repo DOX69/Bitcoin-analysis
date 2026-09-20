@@ -9,15 +9,15 @@ Tarifs utilisés : [ressources Railway](https://docs.railway.com/pricing/plans) 
 | Jobs forecast | 31 × 5 min, 2 CPU / 4 Gio | 0,2973 |
 | Sauvegardes | 31 × 5 min, mêmes ressources | 0,2973 |
 | Essais et reprises supplémentaires | 10 × 5 min | 0,0959 |
-| Cycle trimestriel entier | 3 candidats × 30 min | 0,1726 |
+| Cycle trimestriel entier | 2 candidats × 30 min | 0,1151 |
 | Web et PostgreSQL complets | Moyenne cumulée 0,25 Go RAM | 2,5780 |
 | Web et PostgreSQL complets | Moyenne cumulée 0,01 CPU | 0,2067 |
 | Volume PostgreSQL | 1 Go | 0,1500 |
 | Buckets, copies et historique | 2 Go au total | 0,0300 |
 | Sortie réseau des services | 2 Go | 0,1000 |
-| Sous-total | | 3,9278 |
-| Provision de 20 % | | 0,7856 |
-| Projection arrondie | | **4,72** |
+| Sous-total | | 3,8703 |
+| Provision de 20 % | | 0,7741 |
+| Projection arrondie | | **4,64** |
 
 L'heure observée comprend les redéploiements : moyenne cumulée RAM 0,2223 Go, CPU 0,002254 ; volume PostgreSQL maximal 0,1926 Go. Les buckets contiennent alors 336 901 octets primaires et 1 622 547 octets indépendants. Ces valeurs sont inférieures aux allocations du scénario. Une heure ne démontre pas une moyenne mensuelle ; les copies quotidiennes et les nouveaux candidats feront croître ces volumes.
 

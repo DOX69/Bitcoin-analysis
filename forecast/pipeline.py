@@ -1,4 +1,4 @@
-"""Frozen, sequential, resource-bounded evaluation of the three accepted recipes."""
+"""Frozen, sequential, resource-bounded evaluation of two forecast candidates."""
 
 from __future__ import annotations
 
@@ -32,9 +32,15 @@ LIMITS = {
     "cpu_count": 2,
     "rss_bytes": 4 * 1024**3,
     "seconds_per_recipe": 1800,
-    "recipes": 3,
+    "recipes": 2,
     "concurrency": 1,
     "retries": 0,
+}
+REFERENCE = {
+    "name": "last_close_holdout_reference",
+    "scope": "evaluation_only",
+    "definition": "last observed close at each out-of-sample origin",
+    "prospective": "origin_close compared with each later matured observation",
 }
 ROOT = Path(__file__).resolve().parents[1]
 RUN_LOCK = Path(tempfile.gettempdir()) / (
@@ -101,6 +107,7 @@ def prepare_run(snapshot: Path, directory: Path):
         "features": FEATURES,
         "recalibration": None,
         "recipes": list(CANDIDATES),
+        "reference": REFERENCE,
         "lightgbm_target": "log(P[t+h]/P[t])",
         "lightgbm_parameters_by_quantile": {
             str(q): LGBMRegressor(alpha=q, **b.LIGHTGBM_PARAMS).get_params()
@@ -119,7 +126,7 @@ def prepare_run(snapshot: Path, directory: Path):
         },
         "wis": "(0.5*abs_error_median + 0.25*IS_0.5 + 0.10*IS_0.2)/2.5",
         "first_version_gates": {
-            "mae_vs_persistence_max": 1.05,
+            "mae_vs_holdout_reference_max": 1.05,
             "coverage_50": [0.4, 0.6],
             "coverage_80": [0.7, 0.9],
         },
@@ -175,12 +182,12 @@ def dependence_blocks(weekly, origins, predictions, actuals):
             rows = []
             for i in indices:
                 target, row = actuals[i][h - 1], predictions[i][h - 1]
-                baseline = weekly[origins[i]]["close"]
+                reference = weekly[origins[i]]["close"]
                 rows.append(
                     {
                         "wis_delta": b._wis(target, row)
-                        - b._wis(target, [baseline] * 5),
-                        "mae_delta": abs(target - row[2]) - abs(target - baseline),
+                        - b._wis(target, [reference] * 5),
+                        "mae_delta": abs(target - row[2]) - abs(target - reference),
                         "coverage_50": float(row[1] <= target <= row[3]),
                         "coverage_80": float(row[0] <= target <= row[4]),
                     }
@@ -207,7 +214,13 @@ def run_candidate(directory: Path, name: str):
     weekly = b._read_weekly_csv(directory / "snapshot.csv")
     closes = [row["close"] for row in weekly]
     started = time.perf_counter()
-    all_predictions, all_actuals, all_origins, periods = [], [], [], []
+    all_predictions, all_reference_predictions, all_actuals, all_origins, periods = (
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
     fit_seconds = 0.0
     with b.PeakRssSampler() as sampler:
         for index, fold in enumerate(manifest["folds"]):
@@ -222,6 +235,12 @@ def run_candidate(directory: Path, name: str):
             ]
             actuals = b._actuals(closes, origins)
             metrics, horizons = b._score(predictions, actuals)
+            reference_predictions = [
+                b.last_close_reference(closes, origin) for origin in origins
+            ]
+            reference_metrics, reference_horizons = b._score(
+                reference_predictions, actuals
+            )
             model_dir = candidate_dir / f"fold-{index}"
             save_model(
                 candidate,
@@ -235,15 +254,21 @@ def run_candidate(directory: Path, name: str):
                     "origins": len(origins),
                     "metrics": metrics,
                     "per_horizon": horizons,
+                    "reference_metrics": reference_metrics,
+                    "reference_per_horizon": reference_horizons,
                     "dependence_blocks": dependence_blocks(
                         weekly, origins, predictions, actuals
                     ),
                 }
             )
             all_predictions.extend(predictions)
+            all_reference_predictions.extend(reference_predictions)
             all_actuals.extend(actuals)
             all_origins.extend(origins)
         metrics, horizons = b._score(all_predictions, all_actuals)
+        reference_metrics, reference_horizons = b._score(
+            all_reference_predictions, all_actuals
+        )
         candidate = CANDIDATES[name]()
         fit_start = time.perf_counter()
         candidate.fit(closes, len(closes))
@@ -290,6 +315,8 @@ def run_candidate(directory: Path, name: str):
             "reload_verified": True,
             "metrics": metrics,
             "per_horizon": horizons,
+            "reference_metrics": reference_metrics,
+            "reference_per_horizon": reference_horizons,
             "per_period": periods,
             "promotion": "not_evaluated_prospective_confirmation_required",
         }
@@ -394,11 +421,10 @@ def _execute_run(directory: Path):
             resources["wall_seconds"]
         )
         measurements.append(result)
-    baseline = measurements[0]
     for result in measurements:
         result["historical_gate_failures"] = [
             row["horizon_weeks"]
-            for row, ref in zip(result["per_horizon"], baseline["per_horizon"])
+            for row, ref in zip(result["per_horizon"], result["reference_per_horizon"])
             if not (
                 row["mae"] <= 1.05 * ref["mae"]
                 and 0.4 <= row["coverage_50"] <= 0.6
@@ -409,6 +435,7 @@ def _execute_run(directory: Path):
     report = {
         "manifest_sha256": b._file_sha256(directory / "manifest.json"),
         "protocol": manifest,
+        "reference": manifest["reference"],
         "candidates": measurements,
         "evidence": "exploratory; insufficient prospective evidence; no promotion",
         "actual_railway_cost_usd": 0.0,

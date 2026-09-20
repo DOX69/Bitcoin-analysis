@@ -26,9 +26,16 @@ def test_runner_never_uses_residual_calibration(monkeypatch):
     monkeypatch.setattr(b.ResidualQuantileCalibrator, "fit", forbidden)
     closes = [r["close"] for r in series()]
     result = b._candidate_measurement(
-        b.PersistenceCandidate(), closes, b.split_series(series())
+        b.GaussianRandomWalkCandidate(), closes, b.split_series(series())
     )
     assert result.metrics["mae"] > 0
+
+
+def test_last_close_reference_is_evaluation_only():
+    from forecast.artifacts import CANDIDATES
+
+    assert set(CANDIDATES) == {"gaussian_random_walk", "lightgbm_quantile"}
+    assert b.last_close_reference([100.0, 110.0], 1) == [[110.0] * 5] * 52
 
 
 def test_wis_uses_accepted_interval_weights():
@@ -112,7 +119,8 @@ def test_manifest_is_frozen_before_execution_and_rejects_reuse(tmp_path):
     manifest = prepare_run(snapshot, tmp_path / "run")
     assert manifest["recalibration"] is None
     assert manifest["reload_tolerance"] == {"rtol": 1e-10, "atol": 1e-8}
-    assert len(manifest["recipes"]) == 3
+    assert manifest["recipes"] == ["gaussian_random_walk", "lightgbm_quantile"]
+    assert manifest["reference"]["scope"] == "evaluation_only"
     assert len(manifest["folds"]) == 2
     assert (tmp_path / "run/manifest.json").exists()
     assert (tmp_path / "run/source/forecast/pipeline.py").exists()
@@ -123,16 +131,13 @@ def test_manifest_is_frozen_before_execution_and_rejects_reuse(tmp_path):
         prepare_run(snapshot, tmp_path / "run")
 
 
-@pytest.mark.parametrize(
-    "kind", ["price_unchanged", "gaussian_random_walk", "lightgbm_quantile"]
-)
+@pytest.mark.parametrize("kind", ["gaussian_random_walk", "lightgbm_quantile"])
 def test_artifacts_reload_and_detect_corruption(tmp_path, kind):
     from forecast.artifacts import save_model, load_model
 
     candidates = {
         c.name: c
         for c in [
-            b.PersistenceCandidate(),
             b.GaussianRandomWalkCandidate(),
             b.LightGBMQuantileCandidate(),
         ]
@@ -158,7 +163,7 @@ def test_artifacts_reload_and_detect_corruption(tmp_path, kind):
 def test_emission_uses_sunday_targets_and_known_constant_fx(tmp_path):
     from forecast.artifacts import emit_forecast
 
-    candidate = b.PersistenceCandidate()
+    candidate = b.GaussianRandomWalkCandidate()
     rows = series(160)
     candidate.fit([r["close"] for r in rows], 160)
     cutoff = date.fromisoformat(rows[-1]["date"]) + timedelta(days=7)
@@ -175,7 +180,9 @@ def test_emission_uses_sunday_targets_and_known_constant_fx(tmp_path):
         result["points"][-1]["target_date"]
         == (cutoff + timedelta(days=363)).isoformat()
     )
-    assert result["points"][-1]["EUR"][2] == pytest.approx(rows[-1]["close"] * 0.9)
+    assert result["points"][-1]["EUR"][2] == pytest.approx(
+        result["points"][-1]["USD"][2] * 0.9
+    )
     fx["EUR"]["date"] = (cutoff + timedelta(days=1)).isoformat()
     with pytest.raises(ValueError, match="FX"):
         emit_forecast(candidate, rows, cutoff.isoformat(), fx)
@@ -196,6 +203,8 @@ def test_worker_reports_both_periods_without_promoting(tmp_path, monkeypatch):
     assert result["recalibration"] is None
     assert len(result["per_period"]) == 2
     assert len(result["per_horizon"]) == 52
+    assert len(result["reference_per_horizon"]) == 52
+    assert result["reference_metrics"]["mae"] > 0
     assert result["artifact_bytes"] > 0
     assert result["reload_verified"]
     assert result["promotion"] == "not_evaluated_prospective_confirmation_required"
@@ -223,11 +232,11 @@ def test_modified_snapshot_is_rejected_before_training(tmp_path):
     prepare_run(snapshot, tmp_path / "run")
     (tmp_path / "run/snapshot.csv").write_text("modified")
     with pytest.raises(ValueError, match="integrity"):
-        run_candidate(tmp_path / "run", "price_unchanged")
-    assert not (tmp_path / "run/price_unchanged").exists()
+        run_candidate(tmp_path / "run", "gaussian_random_walk")
+    assert not (tmp_path / "run/gaussian_random_walk").exists()
 
 
-def test_complete_cycle_runs_three_workers_and_cannot_retry(tmp_path):
+def test_complete_cycle_runs_two_workers_and_cannot_retry(tmp_path):
     from forecast.pipeline import prepare_run, execute_run
 
     snapshot = tmp_path / "input.csv"
@@ -235,11 +244,13 @@ def test_complete_cycle_runs_three_workers_and_cannot_retry(tmp_path):
     directory = tmp_path / "run"
     prepare_run(snapshot, directory)
     report = execute_run(directory)
-    assert len(report["candidates"]) == 3
+    assert len(report["candidates"]) == 2
+    assert report["reference"]["scope"] == "evaluation_only"
     for result in report["candidates"]:
         assert result["resources"]["peak_rss_bytes"] > 0
         assert result["publishable"] is False
         assert len(result["per_horizon"]) == 52
+        assert len(result["reference_per_horizon"]) == 52
         assert result["artifact_bytes"] == sum(
             p.stat().st_size
             for p in (directory / result["name"]).rglob("*")

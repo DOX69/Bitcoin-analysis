@@ -33,4 +33,4 @@ Les migrations descendantes suppriment l'historique. Elles servent au test de r�
 
 ## Suivi
 
-Le propriétaire examine le rapport mensuel de calibration et le coût total. Un cycle de candidats trimestriel reste borné à trois recettes, exécutées successivement, sans promotion automatique. Consigner les horizons encore immatures. Les commandes et contrats de travail figurent dans [OPERATIONS.md](OPERATIONS.md).
+Le propriétaire examine le rapport mensuel de calibration et le coût total. Un cycle de candidats trimestriel reste borné à deux recettes, exécutées successivement, sans promotion automatique. La référence holdout reste hors du registre des candidats. Consigner les horizons encore immatures. Les commandes et contrats de travail figurent dans [OPERATIONS.md](OPERATIONS.md).

@@ -1,10 +1,11 @@
 # Pipeline du forecast Bitcoin V1
 
-Le cycle compare les trois recettes acceptées dans [Réexaminer le contrat et les recettes après les nouveaux rapports](https://github.com/DOX69/Bitcoin-analysis/issues/91#issuecomment-5575374789).
+Le cycle compare les deux recettes candidates acceptées dans [Réexaminer le contrat et les recettes après les nouveaux rapports](https://github.com/DOX69/Bitcoin-analysis/issues/91#issuecomment-5575374789).
 
-- `price_unchanged` maintient le dernier close. Ses quantiles identiques servent au scoring de référence, sans constituer des bandes probabilistes publiables.
 - `gaussian_random_walk` conserve la dérive et l'écart-type de population des rendements log d'apprentissage.
 - `lightgbm_quantile` apprend `log(P[t+h]/P[t])`, puis reconstruit `P[t] * exp(q)`. Les variables et paramètres acceptés restent inchangés. Les cinq quantiles sont réordonnés.
+
+La référence `last_close_holdout_reference` n'est pas une recette ni un modèle enregistré. Elle est calculée séparément sur les origines hors échantillon : pour chaque origine de test, elle répète le dernier close connu et mesure ensuite les cibles arrivées à maturité. Le suivi prospectif applique la même règle au `origin_close` de l'émission et aux observations réelles reçues après l'émission.
 
 Aucune recette n'applique de recalibration. L'ancien `ResidualQuantileCalibrator` reste disponible pour comprendre les résultats exploratoires précédents ; le pipeline ne l'appelle pas.
 
@@ -14,7 +15,7 @@ Le CSV contient `date,close`. `date` désigne le lundi UTC de la semaine ISO com
 
 Le manifeste précède tout entraînement. Il archive l'empreinte du snapshot, `uv.lock`, les versions Python et numériques, les paramètres LightGBM complets par quantile, l'ordre des variables, une copie du code avec ses empreintes, les limites et la tolérance de rechargement.
 
-Pour `n` semaines, deux coupures expansives utilisent `floor(0.6*n)` et `floor(0.8*n)` observations d'apprentissage. Dans chaque période suivante, seules les origines dont les 52 cibles arrivent avant la fin de période sont évaluées. Les bornes d'indices sont inclusives au début et exclusives à la fin. Les labels LightGBM vérifient `origine+h < train_end`. Les variables d'inférence n'utilisent que les closes jusqu'à l'origine.
+Pour `n` semaines, deux coupures expansives utilisent `floor(0.6*n)` et `floor(0.8*n)` observations d'apprentissage. Dans chaque période suivante, seules les origines dont les 52 cibles arrivent avant la fin de période sont évaluées. Les bornes d'indices sont inclusives au début et exclusives à la fin. Les labels LightGBM vérifient `origine+h < train_end`. Les variables d'inférence n'utilisent que les closes jusqu'à l'origine. La référence holdout n'entre jamais dans `recipes` et ne peut pas être entraînée, chargée ou publiée.
 
 Après les deux évaluations, chaque recette est entraînée sur le snapshot complet. Cet artefact final reste candidat. Les scores appartiennent aux modèles des folds, pas à une évaluation indépendante de ce modèle final.
 

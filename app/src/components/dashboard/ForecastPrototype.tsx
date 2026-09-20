@@ -17,7 +17,7 @@ interface ForecastPrototypeProps {
 
 // Shared controls for the published model and the development-only fixture.
 export default function ForecastPrototype({ enabled, onEnabledChange, model, onModelChange, emissions, selectedIds, onSelectionChange, publishedModel, frequency = 'weekly' }: ForecastPrototypeProps) {
-    const modelNames: Record<string, string> = { gaussian_random_walk: 'Marche aléatoire gaussienne', lightgbm_quantile: 'LightGBM quantile', price_unchanged: 'Prix inchangé' };
+    const modelNames: Record<string, string> = { gaussian_random_walk: 'Marche aléatoire gaussienne', lightgbm_quantile: 'LightGBM quantile' };
     const infoId = useId();
     const historyId = useId();
     const [historyPosition, setHistoryPosition] = useState({ top: 0, left: 0 });

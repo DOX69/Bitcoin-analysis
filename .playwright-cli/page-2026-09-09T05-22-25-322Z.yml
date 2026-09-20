@@ -1,0 +1,24 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e4]:
+    - img [ref=e5]
+    - generic [ref=e7]: Dashboard unavailable
+    - generic [ref=e8]:
+      - paragraph [ref=e9]: Market data could not be loaded. Try again, or return to the home page.
+      - generic [ref=e10]:
+        - button "Try again" [ref=e11] [cursor=pointer]
+        - link "Go home" [ref=e12] [cursor=pointer]:
+          - /url: /
+  - generic [ref=e17] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e18]:
+      - img [ref=e19]
+    - generic [ref=e22]:
+      - button "Open issues overlay" [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: "2"
+          - generic [ref=e26]: "3"
+        - generic [ref=e27]:
+          - text: Issue
+          - generic [ref=e28]: s
+      - button "Collapse issues badge" [ref=e29]:
+        - img [ref=e30]
+  - alert [ref=e32]

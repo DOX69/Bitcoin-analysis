@@ -9,6 +9,29 @@ La référence `last_close_holdout_reference` n'est pas une recette ni un modèl
 
 Aucune recette n'applique de recalibration. L'ancien `ResidualQuantileCalibrator` reste disponible pour comprendre les résultats exploratoires précédents ; le pipeline ne l'appelle pas.
 
+## Sources d'évidence
+
+Chaque manifeste nomme trois sources distinctes :
+
+- `selection` contient les folds historiques qui servent à comparer les recettes.
+- `final_holdout` est soit une plage historique entièrement mûre, disjointe de la sélection et verrouillée avant son exécution, soit `not_available` avec une raison explicite. Une période déjà relue ne peut pas être renommée en test final.
+- `prospective` contient les émissions immuables et les observations reçues après leur création. Elle reste nécessaire quand aucun historique vierge n'est disponible.
+
+Le cycle standard marque `final_holdout` comme indisponible. Pour fournir une plage réellement vierge, il faut la geler au moment de la préparation :
+
+```powershell
+uv run --locked --extra benchmark python -m forecast.pipeline prepare `
+  --snapshot "$env:TEMP\forecast-snapshot.csv" `
+  --directory "$env:TEMP\forecast-cycle" `
+  --final-holdout-train-end 620 `
+  --final-holdout-origin-start 620 `
+  --final-holdout-origin-end 648
+```
+
+Les bornes sont inclusives au début et exclusives à la fin. Toutes les cibles de la dernière origine doivent être présentes dans le snapshot. Le score du holdout ne sélectionne pas de recette, ne recale pas les quantiles et n'est jamais réinjecté dans le cycle.
+
+Les rapports conservent le prix inchangé comme baseline centrale et une baseline probabiliste séparée. Cette dernière utilise un random walk sans dérive, avec l'écart-type de population des rendements log connus jusqu'à l'origine. Elle sert uniquement à comparer les bandes. Les rapports prospectifs ajoutent les différences appariées, les fenêtres glissantes et une lecture descriptive par régime réalisé. Les blocs et les régimes ne prouvent pas l'indépendance des erreurs.
+
 ## Contrat et fenêtres figés
 
 Le CSV contient `date,close`. `date` désigne le lundi UTC de la semaine ISO complète dont `close` est le prix BTC/USD du dimanche. Le fetch quotidien refuse doublons, trous, valeurs invalides et semaines incomplètes. Un CSV hebdomadaire importé doit provenir de cette agrégation ou d'une source vérifiée équivalente. Sa structure ne prouve pas à elle seule la présence des sept observations sources.

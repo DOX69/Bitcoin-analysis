@@ -13,6 +13,10 @@ L'hybride du 10 septembre reste le candidat à observer : il passe les 52 horizo
 
 ## Confirmation prospective
 
+Les rapports distinguent maintenant `selection`, `final_holdout` et `prospective`. Le holdout final reste `not_available` tant qu'une plage historique non consultée n'a pas été fournie avant le lancement. La recherche quotidienne suit la même règle avec une maturité de 365 jours ; ses anciens groupes ne sont pas renommés artificiellement.
+
+Chaque émission conserve la version du modèle, l'empreinte du snapshot, les quantiles de la recette et ceux de la baseline probabiliste. Le scoring archive la révision, la source et l'instant de connaissance de chaque observation. Une révision produit un nouveau résultat sans modifier l'émission originale.
+
 Le collecteur `prospective_research.py` conserve les émissions locales du lundi, avec reprise possible le mardi, sous l'empreinte de manifeste `3c8b3864ce908e1acdbb01c635ddd82eb1f61337b95c2c6a3d04377fb92d24c3`. Il vérifie le code de recette, les versions numériques et la distribution archivée. Il ne contient aucun accès au registre de production.
 
 - Minimum choisi : 104 observations matures à chacun des 52 horizons, et au moins deux blocs complets de h origines hebdomadaires contiguës pour chaque horizon h. À un an, cela fournit au moins deux blocs annuels pour examiner les différences de régime. Ce minimum est une règle de travail conservatrice, pas un seuil de significativité ni une preuve d'indépendance.

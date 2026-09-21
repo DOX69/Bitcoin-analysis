@@ -1,6 +1,7 @@
 """Durable PostgreSQL forecast data, separate from dbt output."""
 
 from datetime import date, timedelta, timezone
+import hashlib
 import json
 import math
 import uuid
@@ -9,6 +10,18 @@ import uuid
 def validate_emission(payload, created_at):
     if created_at.tzinfo is None:
         raise ValueError("Creation timestamp must have a timezone")
+    if "model_manifest" in payload:
+        if not payload.get("model_version_id") or not payload.get(
+            "model_manifest_sha256"
+        ):
+            raise ValueError("Model version and manifest are required together")
+        expected_manifest_hash = hashlib.sha256(
+            json.dumps(
+                payload["model_manifest"], sort_keys=True, separators=(",", ":")
+            ).encode()
+        ).hexdigest()
+        if payload["model_manifest_sha256"] != expected_manifest_hash:
+            raise ValueError("Model manifest checksum mismatch")
     emitted = date.fromisoformat(payload["emission_date"])
     origin = date.fromisoformat(payload["origin_week"])
     if (
@@ -51,6 +64,19 @@ def validate_emission(payload, created_at):
                 for v, usd in zip(values, point["USD"])
             ):
                 raise ValueError("Quantiles differ from frozen FX")
+        baseline = point.get("baseline")
+        if baseline is not None:
+            values = baseline.get("USD") if isinstance(baseline, dict) else None
+            if (
+                not isinstance(baseline, dict)
+                or baseline.get("name") != "probabilistic_last_close_reference"
+                or not isinstance(values, list)
+                or len(values) != 5
+                or any(not math.isfinite(v) or v <= 0 for v in values)
+                or values != sorted(values)
+                or not math.isclose(values[2], payload["origin_close"], rel_tol=1e-10)
+            ):
+                raise ValueError("Invalid probabilistic baseline")
 
 
 class ForecastStore:
@@ -59,6 +85,7 @@ class ForecastStore:
 
     def register_version(self, version_id, manifest, artifact_prefix):
         from forecast.artifacts import FEATURES
+        from forecast.evaluation import version_signature
 
         if (
             manifest.get("schema_version") != 1
@@ -67,6 +94,10 @@ class ForecastStore:
             or manifest.get("quantiles") != [0.1, 0.25, 0.5, 0.75, 0.9]
             or manifest.get("horizons") != list(range(1, 53))
             or not manifest.get("files")
+            or (
+                "version" in manifest
+                and manifest["version"] != version_signature(manifest)
+            )
         ):
             raise ValueError("Unsupported artifact manifest")
         with self.connection.transaction():

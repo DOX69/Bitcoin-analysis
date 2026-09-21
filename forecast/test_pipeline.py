@@ -131,6 +131,43 @@ def test_manifest_is_frozen_before_execution_and_rejects_reuse(tmp_path):
         prepare_run(snapshot, tmp_path / "run")
 
 
+def test_manifest_can_freeze_a_disjoint_final_holdout(tmp_path):
+    from forecast.pipeline import prepare_run
+
+    snapshot = tmp_path / "input.csv"
+    rows = series(700)
+    b._write_weekly_csv(snapshot, rows)
+    manifest = prepare_run(
+        snapshot,
+        tmp_path / "run",
+        {"train_end": 620, "origin_start": 620, "origin_end": 648},
+    )
+
+    assert manifest["partitions"]["selection"]["name"] == "selection"
+    assert manifest["partitions"]["final_holdout"]["status"] == "available"
+    assert manifest["partitions"]["final_holdout"]["origin_start"] == 620
+    assert manifest["folds"][1]["origin_end"] == 568
+
+
+def test_final_holdout_scores_are_reported_separately_from_selection(tmp_path):
+    from forecast.pipeline import prepare_run, run_candidate
+
+    snapshot = tmp_path / "input.csv"
+    b._write_weekly_csv(snapshot, series(700))
+    prepare_run(
+        snapshot,
+        tmp_path / "run",
+        {"train_end": 620, "origin_start": 620, "origin_end": 648},
+    )
+    result = run_candidate(tmp_path / "run", "gaussian_random_walk")
+
+    assert result["final_holdout"]["status"] == "available"
+    assert result["final_holdout"]["evidence_source"] == "final_holdout"
+    assert len(result["final_holdout"]["per_horizon"]) == 52
+    assert "baseline_probabilistic" in result["final_holdout"]
+    assert result["promotion"] == "not_evaluated_prospective_confirmation_required"
+
+
 @pytest.mark.parametrize("kind", ["gaussian_random_walk", "lightgbm_quantile"])
 def test_artifacts_reload_and_detect_corruption(tmp_path, kind):
     from forecast.artifacts import save_model, load_model

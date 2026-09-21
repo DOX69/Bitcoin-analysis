@@ -11,6 +11,7 @@ from scipy.optimize import least_squares
 from threadpoolctl import threadpool_limits
 
 from forecast import trend_research as weekly
+from forecast import evaluation
 
 HORIZONS = np.arange(1, 366)
 QUANTILES = [0.1, 0.25, 0.5, 0.75, 0.9]
@@ -217,6 +218,36 @@ def benchmark(rows):
         "recipe": RECIPE,
         "model_manifest_sha256": MODEL_MANIFEST,
         "evidence": "historical_replay_revised_snapshot",
+        "evidence_sources": {
+            "selection": {
+                "status": "historical_candidate_selection",
+                "group": "selection",
+            },
+            "final_holdout": {
+                "status": "already_examined_not_final",
+                "group": "holdout",
+                "maturity_horizon_days": 365,
+                "reason": "The snapshot has already been read during research; no untouched final holdout is claimed",
+            },
+            "prospective": {
+                "status": "required_for_confirmation",
+                "maturity": "365 complete UTC days after each daily origin",
+            },
+        },
+        "partitions": {
+            "selection": {"name": "selection", "status": "available"},
+            "final_holdout": {
+                "name": "final_holdout",
+                "status": "not_available",
+                "horizon_days": 365,
+                "read_only_after_scores": True,
+                "reason": "The revised research snapshot has already been read",
+            },
+            "prospective": {
+                "name": "prospective",
+                "status": "required_for_confirmation",
+            },
+        },
         "groups": {},
     }
     for group, js in groups.items():
@@ -278,6 +309,9 @@ def emission(rows, now, candidate):
         raise ValueError("Future ingestion timestamp")
     raw = raw_forecasts(days, values, latest_only=True, candidate=candidate)[candidate]
     points = calibrated(np.log(values), len(values) - 1, raw)
+    baseline = evaluation.probabilistic_last_close_reference(
+        values.tolist(), len(values) - 1, horizon_count=365, quantiles=QUANTILES
+    )
     return {
         "created_at": now.isoformat(),
         "origin_date": str(days[-1]),
@@ -293,8 +327,12 @@ def emission(rows, now, candidate):
                 "horizon_days": int(h),
                 "target_date": str(days[-1] + timedelta(days=int(h))),
                 "USD": p.tolist(),
+                "baseline": {
+                    "name": "probabilistic_last_close_reference",
+                    "USD": row,
+                },
             }
-            for h, p in zip(HORIZONS, points)
+            for h, p, row in zip(HORIZONS, points, baseline)
         ],
     }
 
@@ -313,6 +351,32 @@ def main():
         "snapshot_sha256": hashlib.sha256(source).hexdigest(),
         "code_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "evidence_sources": {
+            "selection": {"status": "historical_candidate_selection"},
+            "final_holdout": {
+                "status": "already_examined_not_final",
+                "horizon_days": 365,
+                "reason": "The revised research snapshot has already been read",
+            },
+            "prospective": {
+                "status": "required_for_confirmation",
+                "maturity": "365 complete UTC days after each origin",
+            },
+        },
+        "partitions": {
+            "selection": {"name": "selection", "status": "historical_research"},
+            "final_holdout": {
+                "name": "final_holdout",
+                "status": "not_available",
+                "horizon_days": 365,
+                "read_only_after_scores": True,
+                "reason": "The revised research snapshot has already been read",
+            },
+            "prospective": {
+                "name": "prospective",
+                "status": "immutable_emissions",
+            },
+        },
     }
     (output / "manifest.json").write_bytes(encode(manifest))
     with threadpool_limits(limits=2):

@@ -1,5 +1,7 @@
 import copy
 from datetime import date, datetime, timedelta, timezone
+import hashlib
+import json
 import pytest
 
 from forecast.storage import validate_emission
@@ -100,6 +102,24 @@ def emission():
 
 def test_emission_contract():
     validate_emission(emission(), datetime(2026, 9, 7, tzinfo=timezone.utc))
+
+
+def test_emission_archives_model_manifest_with_verified_hash():
+    value = emission()
+    manifest = {"version": "v2", "candidate": "gaussian_random_walk"}
+    value.update(
+        {
+            "model_version_id": "v2",
+            "model_manifest": manifest,
+            "model_manifest_sha256": hashlib.sha256(
+                json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
+        }
+    )
+    validate_emission(value, datetime(2026, 9, 7, tzinfo=timezone.utc))
+    value["model_manifest_sha256"] = "bad"
+    with pytest.raises(ValueError, match="manifest checksum"):
+        validate_emission(value, datetime(2026, 9, 7, tzinfo=timezone.utc))
 
 
 @pytest.mark.parametrize("change", ["crossed", "target", "fx", "backdate", "missing"])

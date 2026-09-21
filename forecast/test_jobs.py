@@ -105,12 +105,16 @@ def test_promotion_refuses_missing_horizon_confirmation_and_naive_recipe():
     rows = [
         {
             "horizon_weeks": h,
-            "origins": 20,
+            "origins": 104,
             "mae": 1,
             "naive_mae": 1,
             "wis": 1,
             "coverage_50": 0.5,
             "coverage_80": 0.8,
+            "dependence_blocks": [
+                {"complete_contiguous": True},
+                {"complete_contiguous": True},
+            ],
         }
         for h in range(1, 53)
     ]
@@ -118,6 +122,9 @@ def test_promotion_refuses_missing_horizon_confirmation_and_naive_recipe():
         "candidate": "gaussian_random_walk",
         "per_horizon": rows,
         "confirmation_review": "review-with-block-dependence",
+        "manual_dependence_review": True,
+        "manual_regime_review": True,
+        "baseline_verified": True,
         "data_verified": True,
         "resources_verified": True,
         "evidence": "prospective",

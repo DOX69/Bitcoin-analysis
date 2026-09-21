@@ -16,6 +16,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from forecast import benchmark as b
+from forecast import evaluation
 from forecast.artifacts import (
     CANDIDATES,
     FEATURES,
@@ -68,15 +69,28 @@ def validate_weekly(weekly):
         previous = observed
 
 
-def prepare_run(snapshot: Path, directory: Path):
+def prepare_run(snapshot: Path, directory: Path, final_holdout: dict | None = None):
     weekly = b._read_weekly_csv(snapshot)
     validate_weekly(weekly)
     split = b.split_series(weekly)
+    if final_holdout is not None:
+        try:
+            final_train_end = int(final_holdout["train_end"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("Final holdout requires a valid train_end") from error
+        if not (split.calibration_end + b.MAX_HORIZON < final_train_end <= len(weekly)):
+            raise ValueError("Final holdout leaves no mature second selection period")
+        fold_ends = (
+            (split.train_end, split.calibration_end),
+            (split.calibration_end, final_train_end),
+        )
+    else:
+        fold_ends = (
+            (split.train_end, split.calibration_end),
+            (split.calibration_end, len(weekly)),
+        )
     folds = []
-    for start, end in (
-        (split.train_end, split.calibration_end),
-        (split.calibration_end, len(weekly)),
-    ):
+    for start, end in fold_ends:
         stop = end - 52
         if stop <= start:
             raise ValueError("Each evaluation period requires mature 52-week targets")
@@ -90,6 +104,20 @@ def prepare_run(snapshot: Path, directory: Path):
                 "last_origin_week": weekly[stop - 1]["date"],
                 "last_target_week": weekly[end - 1]["date"],
             }
+        )
+    selection_origin_end = max(fold["origin_end"] for fold in folds)
+    if final_holdout is None:
+        final_partition = evaluation.unavailable_final_holdout(
+            "No untouched historical period was supplied; prospective evidence is required"
+        )
+    else:
+        final_partition = evaluation.make_final_holdout(
+            weekly,
+            train_end=final_holdout["train_end"],
+            origin_start=final_holdout["origin_start"],
+            origin_end=final_holdout["origin_end"],
+            horizon=b.MAX_HORIZON,
+            selection_origin_end=selection_origin_end,
         )
     from lightgbm import LGBMRegressor
 
@@ -108,6 +136,15 @@ def prepare_run(snapshot: Path, directory: Path):
         "recalibration": None,
         "recipes": list(CANDIDATES),
         "reference": REFERENCE,
+        "baseline": {
+            "central": REFERENCE,
+            "probabilistic": {
+                "name": "probabilistic_last_close_reference",
+                "scope": "evaluation_only",
+                "definition": "zero-drift lognormal random-walk bands; population sigma of returns known through each origin; no future observations",
+                "quantiles": list(b.QUANTILES),
+            },
+        },
         "lightgbm_target": "log(P[t+h]/P[t])",
         "lightgbm_parameters_by_quantile": {
             str(q): LGBMRegressor(alpha=q, **b.LIGHTGBM_PARAMS).get_params()
@@ -122,7 +159,7 @@ def prepare_run(snapshot: Path, directory: Path):
         "lock_sha256": b._file_sha256(ROOT / "uv.lock"),
         "source_sha256": {
             name: b._file_sha256(ROOT / "forecast" / name)
-            for name in ("benchmark.py", "artifacts.py", "pipeline.py")
+            for name in ("benchmark.py", "artifacts.py", "evaluation.py", "pipeline.py")
         },
         "wis": "(0.5*abs_error_median + 0.25*IS_0.5 + 0.10*IS_0.2)/2.5",
         "first_version_gates": {
@@ -133,6 +170,26 @@ def prepare_run(snapshot: Path, directory: Path):
         "evidence": "exploratory; overlapping targets; prospective confirmation required",
         "period_policy": "two expanding training cuts at floor(0.6*n), floor(0.8*n); no calibration; all 52 labels mature inside each evaluation period",
         "dependence_policy": "paired errors retained by origin; contiguous blocks of h origins for horizon h; blocks do not establish independence",
+        "partitions": {
+            "selection": {
+                "name": "selection",
+                "status": "available",
+                "folds": folds,
+                "read_before_final_holdout": True,
+                "historical_research": True,
+            },
+            "final_holdout": {
+                **final_partition,
+                "snapshot_sha256": b._file_sha256(snapshot),
+                "scoring_rules": evaluation.SCORING_RULES,
+            },
+            "prospective": {
+                "name": "prospective",
+                "status": "separate_immutable_emissions",
+                "maturity": "weekly targets are scoreable after Monday 00:00 UTC; daily targets after the completed UTC day",
+                "publishable": False,
+            },
+        },
     }
     directory.mkdir(parents=True, exist_ok=False)
     shutil.copyfile(snapshot, directory / "snapshot.csv")
@@ -157,6 +214,35 @@ def read_manifest(directory):
     manifest = json.loads(path.read_text(encoding="utf-8"))
     if manifest["limits"] != LIMITS or manifest["recalibration"] is not None:
         raise ValueError("Unsupported run contract")
+    partitions = manifest.get("partitions")
+    if not isinstance(partitions, dict) or set(partitions) != {
+        "selection",
+        "final_holdout",
+        "prospective",
+    }:
+        raise ValueError(
+            "Run manifest must name selection, final_holdout and prospective"
+        )
+    selection = partitions["selection"]
+    if (
+        selection.get("name") != "selection"
+        or selection.get("historical_research") is not True
+    ):
+        raise ValueError("Selection partition is not explicitly marked as research")
+    selection_end = max(fold["origin_end"] for fold in manifest["folds"])
+    evaluation.validate_final_holdout(
+        partitions["final_holdout"],
+        row_count=manifest["weekly_rows"],
+        horizon=b.MAX_HORIZON,
+        selection_origin_end=selection_end,
+    )
+    if partitions["final_holdout"].get("snapshot_sha256") not in (
+        None,
+        manifest["snapshot_sha256"],
+    ):
+        raise ValueError("Final holdout snapshot differs from the frozen snapshot")
+    if partitions["prospective"].get("name") != "prospective":
+        raise ValueError("Prospective evidence partition is missing")
     for filename, digest in {
         "snapshot.csv": manifest["snapshot_sha256"],
         "uv.lock": manifest["lock_sha256"],
@@ -214,7 +300,15 @@ def run_candidate(directory: Path, name: str):
     weekly = b._read_weekly_csv(directory / "snapshot.csv")
     closes = [row["close"] for row in weekly]
     started = time.perf_counter()
-    all_predictions, all_reference_predictions, all_actuals, all_origins, periods = (
+    (
+        all_predictions,
+        all_reference_predictions,
+        all_probabilistic_predictions,
+        all_actuals,
+        all_origins,
+        periods,
+    ) = (
+        [],
         [],
         [],
         [],
@@ -241,6 +335,13 @@ def run_candidate(directory: Path, name: str):
             reference_metrics, reference_horizons = b._score(
                 reference_predictions, actuals
             )
+            probabilistic_predictions = [
+                evaluation.probabilistic_last_close_reference(closes, origin)
+                for origin in origins
+            ]
+            probabilistic_metrics, probabilistic_horizons = b._score(
+                probabilistic_predictions, actuals
+            )
             model_dir = candidate_dir / f"fold-{index}"
             save_model(
                 candidate,
@@ -256,6 +357,8 @@ def run_candidate(directory: Path, name: str):
                     "per_horizon": horizons,
                     "reference_metrics": reference_metrics,
                     "reference_per_horizon": reference_horizons,
+                    "baseline_probabilistic_metrics": probabilistic_metrics,
+                    "baseline_probabilistic_per_horizon": probabilistic_horizons,
                     "dependence_blocks": dependence_blocks(
                         weekly, origins, predictions, actuals
                     ),
@@ -263,12 +366,59 @@ def run_candidate(directory: Path, name: str):
             )
             all_predictions.extend(predictions)
             all_reference_predictions.extend(reference_predictions)
+            all_probabilistic_predictions.extend(probabilistic_predictions)
             all_actuals.extend(actuals)
             all_origins.extend(origins)
         metrics, horizons = b._score(all_predictions, all_actuals)
         reference_metrics, reference_horizons = b._score(
             all_reference_predictions, all_actuals
         )
+        probabilistic_metrics, probabilistic_horizons = b._score(
+            all_probabilistic_predictions, all_actuals
+        )
+        final_partition = manifest["partitions"]["final_holdout"]
+        if final_partition["status"] == "available":
+            final_origins = list(
+                range(final_partition["origin_start"], final_partition["origin_end"])
+            )
+            final_candidate = CANDIDATES[name]()
+            final_candidate.fit(
+                closes[: final_partition["train_end"]], final_partition["train_end"]
+            )
+            final_predictions = [
+                validate_prediction(
+                    final_candidate.predict(closes[: origin + 1], origin)
+                )
+                for origin in final_origins
+            ]
+            final_actuals = b._actuals(closes, final_origins)
+            final_baseline = [
+                evaluation.probabilistic_last_close_reference(closes, origin)
+                for origin in final_origins
+            ]
+            final_holdout = evaluation.score_partition(
+                final_predictions,
+                final_baseline,
+                final_actuals,
+                final_origins,
+                weekly,
+            )
+            final_holdout.update(
+                {
+                    "name": final_partition["name"],
+                    "status": final_partition["status"],
+                    "train_end": final_partition["train_end"],
+                    "origin_start": final_partition["origin_start"],
+                    "origin_end": final_partition["origin_end"],
+                    "read_only_after_scores": final_partition["read_only_after_scores"],
+                    "selection_locked": final_partition["selection_locked"],
+                    "partition": final_partition,
+                    "origins": len(final_origins),
+                }
+            )
+        else:
+            final_holdout = final_partition
+        write_json(candidate_dir / "final-holdout.json", final_holdout)
         candidate = CANDIDATES[name]()
         fit_start = time.perf_counter()
         candidate.fit(closes, len(closes))
@@ -317,7 +467,10 @@ def run_candidate(directory: Path, name: str):
             "per_horizon": horizons,
             "reference_metrics": reference_metrics,
             "reference_per_horizon": reference_horizons,
+            "baseline_probabilistic_metrics": probabilistic_metrics,
+            "baseline_probabilistic_per_horizon": probabilistic_horizons,
             "per_period": periods,
+            "final_holdout": final_holdout,
             "promotion": "not_evaluated_prospective_confirmation_required",
         }
         write_json(candidate_dir / "result.json", result)
@@ -431,12 +584,33 @@ def _execute_run(directory: Path):
                 and 0.7 <= row["coverage_80"] <= 0.9
             )
         ]
+        final = result["final_holdout"]
+        if final.get("status") == "available":
+            result["final_holdout_gate_failures"] = [
+                row["horizon_weeks"]
+                for row in final["per_horizon"]
+                if not (
+                    row["mae"] <= 1.05 * row["baseline_last_close"]["mae"]
+                    and 0.4 <= row["coverage_50"] <= 0.6
+                    and 0.7 <= row["coverage_80"] <= 0.9
+                )
+            ]
+        else:
+            result["final_holdout_gate_failures"] = None
         result["publishable"] = False
     report = {
         "manifest_sha256": b._file_sha256(directory / "manifest.json"),
         "protocol": manifest,
         "reference": manifest["reference"],
         "candidates": measurements,
+        "evidence_sources": {
+            "selection": {
+                "status": "historical_research",
+                "read_before_final_holdout": True,
+            },
+            "final_holdout": manifest["partitions"]["final_holdout"],
+            "prospective": manifest["partitions"]["prospective"],
+        },
         "evidence": "exploratory; insufficient prospective evidence; no promotion",
         "actual_railway_cost_usd": 0.0,
     }
@@ -461,11 +635,34 @@ def main():
     parser.add_argument("--directory", required=True, type=Path)
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--candidate", choices=list(CANDIDATES))
+    parser.add_argument("--final-holdout-train-end", type=int)
+    parser.add_argument("--final-holdout-origin-start", type=int)
+    parser.add_argument("--final-holdout-origin-end", type=int)
     args = parser.parse_args()
     if args.command == "prepare":
         if args.snapshot is None:
             parser.error("prepare requires --snapshot")
-        prepare_run(args.snapshot, args.directory)
+        holdout_values = (
+            args.final_holdout_train_end,
+            args.final_holdout_origin_start,
+            args.final_holdout_origin_end,
+        )
+        if any(value is not None for value in holdout_values) and not all(
+            value is not None for value in holdout_values
+        ):
+            parser.error(
+                "final holdout requires train-end, origin-start and origin-end together"
+            )
+        final_holdout = (
+            {
+                "train_end": args.final_holdout_train_end,
+                "origin_start": args.final_holdout_origin_start,
+                "origin_end": args.final_holdout_origin_end,
+            }
+            if all(value is not None for value in holdout_values)
+            else None
+        )
+        prepare_run(args.snapshot, args.directory, final_holdout)
     elif args.command == "run":
         execute_run(args.directory)
     else:

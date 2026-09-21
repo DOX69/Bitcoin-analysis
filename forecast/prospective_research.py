@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 
 from forecast import benchmark as b
+from forecast import evaluation
 from forecast import hybrid_research as hybrid
 from forecast.artifacts import dependencies, validate_prediction, write_json
 
@@ -79,7 +80,22 @@ def make_emission(weekly, distribution, now, *, evidence):
     if evidence not in ("prospective", "fixture"):
         raise ValueError("Explicit evidence required")
     document = hybrid.shadow(weekly, distribution, now)
-    document.update({"evidence": evidence, "model_manifest_sha256": MODEL_MANIFEST})
+    closes = [row["close"] for row in weekly]
+    for point, baseline in zip(
+        document["points"],
+        evaluation.probabilistic_last_close_reference(closes, len(closes) - 1),
+    ):
+        point["baseline"] = {
+            "name": "probabilistic_last_close_reference",
+            "USD": baseline,
+        }
+    document.update(
+        {
+            "evidence": evidence,
+            "model_manifest_sha256": MODEL_MANIFEST,
+            "emission_schema_version": 2,
+        }
+    )
     return document
 
 
@@ -113,19 +129,80 @@ def validate_emission(document):
     if [point["horizon_weeks"] for point in points] != list(range(1, 53)):
         raise ValueError("Incomplete horizons")
     validate_prediction([point["USD"] for point in points])
+    if document.get("emission_schema_version", 1) not in (1, 2):
+        raise ValueError("Unsupported emission schema")
+    if not legacy and document.get("emission_schema_version", 1) == 2:
+        for point in points:
+            baseline = point.get("baseline")
+            values = baseline.get("USD") if isinstance(baseline, dict) else None
+            if (
+                not isinstance(baseline, dict)
+                or baseline.get("name") != "probabilistic_last_close_reference"
+                or not isinstance(values, list)
+                or len(values) != 5
+                or any(not math.isfinite(value) or value <= 0 for value in values)
+                or values != sorted(values)
+                or not math.isclose(
+                    values[2], document["origin_close"], rel_tol=1e-12, abs_tol=1e-9
+                )
+            ):
+                raise ValueError("Invalid or missing probabilistic baseline")
     for point in points:
         expected = origin + timedelta(days=6, weeks=point["horizon_weeks"])
         if point["target_date"] != expected.isoformat() or expected <= created.date():
             raise ValueError("Invalid or nonfuture target at emission")
 
 
-def score_emissions(documents, weekly, now):
+def _observation_index(weekly):
+    observations = {}
+    for row in weekly:
+        target = date.fromisoformat(row["date"]) + timedelta(days=6)
+        if target in observations:
+            raise ValueError("Duplicate scoring observation")
+        close = float(row["close"])
+        if not math.isfinite(close) or close <= 0:
+            raise ValueError("Invalid scoring observation")
+        observations[target] = {
+            "close": close,
+            "revision": row.get(
+                "revision", hashlib.sha256(f"{target}:{close!r}".encode()).hexdigest()
+            ),
+            "source": row.get("source", "weekly_snapshot"),
+            "observed_at": row.get("observed_at"),
+        }
+    return observations
+
+
+def _summary(rows):
+    return {
+        "origins": len(rows),
+        **{
+            key: sum(row[key] for row in rows) / len(rows) if rows else None
+            for key in (
+                "mae",
+                "naive_mae",
+                "wis",
+                "coverage_50",
+                "coverage_80",
+                "width_50",
+                "width_80",
+                "baseline_probabilistic_mae",
+                "baseline_probabilistic_wis",
+                "baseline_probabilistic_coverage_50",
+                "baseline_probabilistic_coverage_80",
+                "baseline_probabilistic_width_50",
+                "baseline_probabilistic_width_80",
+                "mae_delta",
+                "wis_delta",
+            )
+        },
+    }
+
+
+def score_emissions(documents, weekly, now, *, source_version=None):
     if now.utcoffset() != timedelta(0):
         raise ValueError("Scoring requires UTC")
-    observations = {
-        date.fromisoformat(row["date"]) + timedelta(days=6): row["close"]
-        for row in weekly
-    }
+    observations = _observation_index(weekly)
     records = {h: [] for h in range(1, 53)}
     seen = set()
     for document in documents:
@@ -141,8 +218,12 @@ def score_emissions(documents, weekly, now):
             # The Sunday close is not complete until Monday 00:00 UTC.
             if target >= now.date() or target not in observations:
                 continue
+            observation = observations[target]
+            actual = observation["close"]
             row = point["USD"]
-            actual = observations[target]
+            baseline = point.get("baseline", {"USD": [document["origin_close"]] * 5})[
+                "USD"
+            ]
             records[point["horizon_weeks"]].append(
                 {
                     "origin_week": origin,
@@ -156,15 +237,34 @@ def score_emissions(documents, weekly, now):
                     "wis": b._wis(actual, row),
                     "coverage_50": float(row[1] <= actual <= row[3]),
                     "coverage_80": float(row[0] <= actual <= row[4]),
+                    "width_50": row[3] - row[1],
+                    "width_80": row[4] - row[0],
+                    "baseline_prediction": baseline,
+                    "baseline_probabilistic_mae": abs(actual - baseline[2]),
+                    "baseline_probabilistic_wis": b._wis(actual, baseline),
+                    "baseline_probabilistic_coverage_50": float(
+                        baseline[1] <= actual <= baseline[3]
+                    ),
+                    "baseline_probabilistic_coverage_80": float(
+                        baseline[0] <= actual <= baseline[4]
+                    ),
+                    "baseline_probabilistic_width_50": baseline[3] - baseline[1],
+                    "baseline_probabilistic_width_80": baseline[4] - baseline[0],
+                    "mae_delta": abs(actual - row[2]) - abs(actual - baseline[2]),
+                    "wis_delta": b._wis(actual, row) - b._wis(actual, baseline),
+                    "regime": evaluation.realized_regime(
+                        actual, document["origin_close"]
+                    ),
+                    "observation_revision": observation["revision"],
+                    "observation_source": observation["source"],
+                    "observation_known_at": observation["observed_at"],
+                    "source_version": source_version,
                 }
             )
     per_horizon = []
     for h, rows in records.items():
         rows.sort(key=lambda row: row["origin_week"])
-        metrics = {
-            key: sum(row[key] for row in rows) / len(rows) if rows else None
-            for key in ("mae", "naive_mae", "wis", "coverage_50", "coverage_80")
-        }
+        metrics = _summary(rows)
         blocks = []
         for start in range(0, len(rows), h):
             block = rows[start : start + h]
@@ -180,18 +280,30 @@ def score_emissions(documents, weekly, now):
                     "last_origin_week": block[-1]["origin_week"],
                     "origins": len(block),
                     "complete_contiguous": len(block) == h and contiguous,
-                    **{
-                        key: sum(row[key] for row in block) / len(block)
-                        for key in metrics
-                    },
+                    **_summary(block),
                 }
             )
+        widths = (
+            sorted({min(26, len(rows)), min(52, len(rows)), min(104, len(rows))})
+            if rows
+            else []
+        )
+        rolling = [
+            {"window_origins": width, **_summary(rows[-width:])} for width in widths
+        ]
+        by_regime = {
+            regime: _summary([row for row in rows if row["regime"] == regime])
+            for regime in ("up", "down", "flat")
+            if any(row["regime"] == regime for row in rows)
+        }
         per_horizon.append(
             {
                 "horizon_weeks": h,
                 "origins": len(rows),
                 **metrics,
                 "dependence_blocks": blocks,
+                "rolling": rolling,
+                "by_regime": by_regime,
             }
         )
     for row in per_horizon:
@@ -211,6 +323,17 @@ def score_emissions(documents, weekly, now):
         "limitations": "Counts and contiguous blocks do not establish independence. Historical stress failed 46 horizons. Requires dependence review, production-compatible artifact and manual promotion.",
         "per_horizon": per_horizon,
         "observations": records,
+        "evidence_sources": {
+            "selection": {"status": "historical_research_only"},
+            "final_holdout": {
+                "status": "not_available",
+                "reason": "No untouched historical period is claimed by this prospective collector",
+            },
+            "prospective": {
+                "status": "immutable_emissions_and_revisioned_observations",
+                "source_version": source_version,
+            },
+        },
     }
 
 
@@ -317,7 +440,12 @@ def main():
     documents = read_emissions(emissions, distribution)
     if args.include_legacy_shadow:
         documents.append(read_legacy_emission(args.bundle, distribution))
-    report = score_emissions(documents, weekly, now)
+    report = score_emissions(
+        documents,
+        weekly,
+        now,
+        source_version=sha256(run / "daily-snapshot.json"),
+    )
     write_json(run / "report.json", report)
     write_json(
         run / "inventory.json",

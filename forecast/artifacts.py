@@ -10,6 +10,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 from forecast import benchmark as b
+from forecast import evaluation
 
 FEATURES = (
     ["log_close"]
@@ -71,6 +72,32 @@ def save_model(candidate, directory: Path, context: dict):
         "horizons": list(range(1, 53)),
         "features": FEATURES,
         "recalibration": None,
+        "parameters": (
+            dict(b.LIGHTGBM_PARAMS)
+            if candidate.name == "lightgbm_quantile"
+            else {
+                "fit": "population mean and std of training log returns",
+                "sigma_floor": 1e-9,
+            }
+        ),
+        "version": evaluation.version_signature(
+            {
+                "candidate": candidate.name,
+                "features": FEATURES,
+                "target": "BTC/USD ISO Sunday close",
+                "quantiles": list(b.QUANTILES),
+                "horizons": list(range(1, 53)),
+                "parameters": (
+                    dict(b.LIGHTGBM_PARAMS)
+                    if candidate.name == "lightgbm_quantile"
+                    else {
+                        "fit": "population mean and std of training log returns",
+                        "sigma_floor": 1e-9,
+                    }
+                ),
+                "calibration": None,
+            }
+        ),
         "reload_tolerance": RELOAD_TOLERANCE,
         "dependencies": dependencies(),
         "context": context,
@@ -88,6 +115,7 @@ def load_model(directory: Path):
         or manifest["features"] != FEATURES
         or manifest["quantiles"] != list(b.QUANTILES)
         or manifest["horizons"] != list(range(1, 53))
+        or manifest.get("version") != evaluation.version_signature(manifest)
     ):
         raise ValueError("Unsupported model contract")
     if manifest["dependencies"] != dependencies():
@@ -162,6 +190,7 @@ def emit_forecast(candidate, weekly, emission_date: str, fx: dict | None = None)
         rates[currency] = value["rate"]
     closes = [row["close"] for row in weekly]
     predictions = validate_prediction(candidate.predict(closes, len(closes) - 1))
+    baseline = evaluation.probabilistic_last_close_reference(closes, len(closes) - 1)
     points = []
     for h, row in enumerate(predictions, 1):
         converted = {
@@ -177,6 +206,10 @@ def emit_forecast(candidate, weekly, emission_date: str, fx: dict | None = None)
             {
                 "horizon_weeks": h,
                 "target_date": (last_monday + timedelta(days=6, weeks=h)).isoformat(),
+                "baseline": {
+                    "name": "probabilistic_last_close_reference",
+                    "USD": baseline[h - 1],
+                },
                 **converted,
             }
         )

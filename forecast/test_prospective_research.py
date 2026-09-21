@@ -51,6 +51,10 @@ def emission():
 
 def test_target_is_not_mature_on_its_sunday():
     document, weekly, now = emission()
+    assert (
+        document["points"][0]["baseline"]["name"]
+        == "probabilistic_last_close_reference"
+    )
     next_monday = date.fromisoformat(weekly[-1]["date"]) + timedelta(weeks=1)
     weekly.append({"date": next_monday.isoformat(), "close": 101.0})
     sunday = now + timedelta(days=6)
@@ -61,6 +65,18 @@ def test_target_is_not_mature_on_its_sunday():
     assert report["per_horizon"][1]["origins"] == 0
     assert not report["minimum_counts_met"]
     assert not report["publishable"]
+
+
+def test_duplicate_observations_are_rejected_without_rewriting_emission():
+    document, weekly, now = emission()
+    duplicate = dict(weekly[-1])
+    with pytest.raises(ValueError, match="Duplicate scoring observation"):
+        research.score_emissions(
+            [document], [*weekly, duplicate], now + timedelta(days=7)
+        )
+    assert document["points"][0]["baseline"]["USD"][2] == pytest.approx(
+        document["origin_close"]
+    )
 
 
 def test_refuses_duplicate_synthetic_backdated_and_wrong_targets():

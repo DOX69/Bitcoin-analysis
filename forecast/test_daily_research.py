@@ -69,6 +69,9 @@ def test_initial_emission_uses_real_clock_and_starts_today(monkeypatch):
     result = daily.emission(data, now, "ridge")
     assert result["points"][0]["target_date"] == "2026-09-16"
     assert result["points"][-1]["target_date"] == "2027-09-15"
+    assert (
+        result["points"][0]["baseline"]["name"] == "probabilistic_last_close_reference"
+    )
     assert result["created_at"] == now.isoformat()
     with pytest.raises(ValueError, match="Latest completed"):
         daily.emission(data[:-1], now, "ridge")
@@ -160,5 +163,6 @@ def test_prospective_scoring_waits_for_completed_targets_and_preserves_emission(
     report = json.loads(source.client.objects[result["score_report_key"]])
     assert report["per_horizon"][0]["mae"] == 0
     assert report["per_horizon"][0]["naive_mae"] == 10
+    assert "baseline_probabilistic_wis" in report["per_horizon"][0]
     assert report["per_horizon"][2]["origins"] == 0
     assert source.client.objects[key] == backup.client.objects[key] == content

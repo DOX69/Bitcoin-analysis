@@ -306,6 +306,32 @@ def prepare(snapshot: Path, directory: Path) -> None:
         "point_in_time_history": False,
         "pretraining_overlap": "not excluded",
         "production_ready": False,
+        "evidence_sources": {
+            "selection": {"status": "historical_research_only"},
+            "final_holdout": {
+                "status": "already_examined_not_final",
+                "horizon_days": HORIZON,
+                "reason": "The revised research snapshot is not an untouched final holdout",
+            },
+            "prospective": {
+                "status": "required_for_confirmation",
+                "maturity": "365 complete UTC days after each origin",
+            },
+        },
+        "partitions": {
+            "selection": {"name": "selection", "status": "available"},
+            "final_holdout": {
+                "name": "final_holdout",
+                "status": "not_available",
+                "horizon_days": HORIZON,
+                "read_only_after_scores": True,
+                "reason": "The revised research snapshot is not an untouched final holdout",
+            },
+            "prospective": {
+                "name": "prospective",
+                "status": "required_for_confirmation",
+            },
+        },
         "dependencies": {
             package: importlib.metadata.version(package)
             for package in (
@@ -445,6 +471,32 @@ def worker(directory: Path) -> None:
         ),
         "production_ready": False,
         "evidence": "retrospective_replay_on_revised_snapshot; prospective_confirmation_required",
+        "evidence_sources": {
+            "selection": {"status": "historical_research_only"},
+            "final_holdout": {
+                "status": "already_examined_not_final",
+                "maturity_horizon_days": HORIZON,
+                "reason": "This replay uses revised history and is not an untouched holdout",
+            },
+            "prospective": {
+                "status": "required_for_confirmation",
+                "maturity": "365 complete UTC days after each daily origin",
+            },
+        },
+        "partitions": {
+            "selection": {"name": "selection", "status": "historical_research"},
+            "final_holdout": {
+                "name": "final_holdout",
+                "status": "not_available",
+                "horizon_days": HORIZON,
+                "read_only_after_scores": True,
+                "reason": "This replay uses revised history and is not an untouched final holdout",
+            },
+            "prospective": {
+                "name": "prospective",
+                "status": "immutable_emissions",
+            },
+        },
         "origins": len(origins),
         "load_seconds": None,
         "worker_seconds": time.perf_counter() - started,

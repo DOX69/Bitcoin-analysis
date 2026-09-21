@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from threadpoolctl import threadpool_limits
 
 from forecast import daily_research as model
+from forecast import evaluation
 from forecast.backups import configured_repositories, digest, put_verified, read
 from forecast.cloud_research import keys
 from forecast.benchmark import _wis
@@ -83,7 +84,11 @@ def score_existing(source, backup, rows, now):
     dates, _ = model.observations(rows)
     if dates[-1] >= now.date():
         raise ValueError("Cannot score an incomplete UTC day")
-    actuals = {row["date"]: row["close"] for row in rows}
+    actuals = {}
+    for row in rows:
+        if row["date"] in actuals:
+            raise ValueError("Duplicate daily scoring observation")
+        actuals[row["date"]] = row
     metrics = [[] for _ in range(365)]
     for key in keys(source, f"{model.PREFIX}/emissions"):
         content = read(source, key)
@@ -94,10 +99,17 @@ def score_existing(source, backup, rows, now):
             continue
         put_verified(backup, key, content)
         for point in document["points"]:
-            if point["target_date"] not in actuals:
+            if (
+                point["target_date"] not in actuals
+                or point["target_date"] >= now.date().isoformat()
+            ):
                 continue
-            value = actuals[point["target_date"]]
+            observation = actuals[point["target_date"]]
+            value = float(observation["close"])
             q = point["USD"]
+            baseline = point.get("baseline", {"USD": [document["origin_close"]] * 5})[
+                "USD"
+            ]
             metrics[point["horizon_days"] - 1].append(
                 {
                     "mae": abs(q[2] - value),
@@ -105,28 +117,104 @@ def score_existing(source, backup, rows, now):
                     "wis": _wis(value, q),
                     "coverage_50": int(q[1] <= value <= q[3]),
                     "coverage_80": int(q[0] <= value <= q[4]),
+                    "width_50": q[3] - q[1],
+                    "width_80": q[4] - q[0],
+                    "baseline_probabilistic_mae": abs(baseline[2] - value),
+                    "baseline_probabilistic_wis": _wis(value, baseline),
+                    "baseline_probabilistic_coverage_50": int(
+                        baseline[1] <= value <= baseline[3]
+                    ),
+                    "baseline_probabilistic_coverage_80": int(
+                        baseline[0] <= value <= baseline[4]
+                    ),
+                    "baseline_probabilistic_width_50": baseline[3] - baseline[1],
+                    "baseline_probabilistic_width_80": baseline[4] - baseline[0],
+                    "mae_delta": abs(q[2] - value) - abs(baseline[2] - value),
+                    "wis_delta": _wis(value, q) - _wis(value, baseline),
+                    "regime": evaluation.realized_regime(
+                        value, document["origin_close"]
+                    ),
+                    "observation_revision": observation.get("revision"),
+                    "observation_source": observation.get("source"),
+                    "observation_known_at": observation.get("observed_at"),
                 }
             )
     snapshot = model.encode(rows)
     snapshot_key = f"{model.PREFIX}/snapshots/{digest(snapshot)}.json"
+
+    def summary(values):
+        return {
+            "origins": len(values),
+            **{
+                key: (
+                    sum(value[key] for value in values) / len(values)
+                    if values
+                    else None
+                )
+                for key in (
+                    "mae",
+                    "naive_mae",
+                    "wis",
+                    "coverage_50",
+                    "coverage_80",
+                    "width_50",
+                    "width_80",
+                    "baseline_probabilistic_mae",
+                    "baseline_probabilistic_wis",
+                    "baseline_probabilistic_coverage_50",
+                    "baseline_probabilistic_coverage_80",
+                    "baseline_probabilistic_width_50",
+                    "baseline_probabilistic_width_80",
+                    "mae_delta",
+                    "wis_delta",
+                )
+            },
+        }
+
+    per_horizon = []
+    for i, values in enumerate(metrics):
+        rolling = (
+            [
+                {"window_origins": width, **summary(values[-width:])}
+                for width in sorted(
+                    {min(26, len(values)), min(52, len(values)), min(104, len(values))}
+                )
+            ]
+            if values
+            else []
+        )
+        by_regime = {
+            regime: summary([value for value in values if value["regime"] == regime])
+            for regime in ("up", "down", "flat")
+            if any(value["regime"] == regime for value in values)
+        }
+        per_horizon.append(
+            {
+                "horizon_days": i + 1,
+                **summary(values),
+                "rolling": rolling,
+                "by_regime": by_regime,
+            }
+        )
     report = {
         "as_of": now.isoformat(),
         "evidence": "prospective",
         "production_ready": False,
         "snapshot_key": snapshot_key,
         "snapshot_sha256": digest(snapshot),
-        "per_horizon": [
-            {
-                "horizon_days": i + 1,
-                "origins": len(values),
-                **(
-                    {k: sum(v[k] for v in values) / len(values) for k in values[0]}
-                    if values
-                    else {}
-                ),
-            }
-            for i, values in enumerate(metrics)
-        ],
+        "evidence_sources": {
+            "selection": {"status": "historical_research_only"},
+            "final_holdout": {
+                "status": "not_available",
+                "reason": "Daily preview history was already examined; prospective collection is separate",
+                "maturity_horizon_days": 365,
+            },
+            "prospective": {
+                "status": "immutable_emissions_and_revisioned_observations",
+                "maturity": "completed UTC day only",
+            },
+        },
+        "per_horizon": per_horizon,
     }
     report_key = f"{model.PREFIX}/reports/{now:%Y%m%dT%H%M%S%fZ}.json"
     for repository in (source, backup):

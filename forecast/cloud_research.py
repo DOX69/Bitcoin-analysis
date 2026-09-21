@@ -63,7 +63,17 @@ def load_emissions(source, backup, distribution):
             datetime.fromisoformat(document["created_at"]),
             evidence="prospective",
         )
-        if document != expected:
+        if document.get("emission_schema_version", 1) == 1:
+            legacy_expected = {
+                key: value
+                for key, value in expected.items()
+                if key != "emission_schema_version"
+            }
+            for point in legacy_expected["points"]:
+                point.pop("baseline", None)
+            if document != legacy_expected:
+                raise ValueError("Research emission differs from its source replay")
+        elif document != expected:
             raise ValueError("Research emission differs from its source replay")
         # Also repairs an interrupted independent copy without rewriting the source.
         put_verified(backup, snapshot_key, snapshot)
@@ -101,7 +111,12 @@ def collect(source, backup, bundle, daily, now, *, emit=True):
                 },
             )
             documents.append(document)
-    report = local.score_emissions([legacy, *documents], weekly, now)
+    report = local.score_emissions(
+        [legacy, *documents],
+        weekly,
+        now,
+        source_version=digest(snapshot),
+    )
     report["snapshot_key"] = snapshot_key
     report["snapshot_sha256"] = digest(snapshot)
     report["runtime"] = local.dependencies()

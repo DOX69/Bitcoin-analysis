@@ -229,6 +229,13 @@ def _emit(
         )
         payload.update(
             {
+                "model_version_id": active[0],
+                "model_manifest_sha256": hashlib.sha256(
+                    json.dumps(
+                        active[1], sort_keys=True, separators=(",", ":")
+                    ).encode()
+                ).hexdigest(),
+                "model_manifest": active[1],
                 "origin_close": weekly[-1]["close"],
                 "data_cutoff": (origin + timedelta(days=6)).isoformat(),
                 "data_read_at": now.isoformat(),
@@ -327,6 +334,12 @@ def score_point(point, observation, origin_close, now, *, evidence="unverified")
         return None
     actual = float(observation["close"])
     values = point["USD"]
+    baseline_payload = point.get("baseline")
+    baseline = (
+        baseline_payload.get("USD")
+        if isinstance(baseline_payload, dict)
+        else [origin_close] * 5
+    )
     if (
         str(observation["date"])[:10] != target.isoformat()
         or not observation.get("revision")
@@ -336,6 +349,9 @@ def score_point(point, observation, origin_close, now, *, evidence="unverified")
             for value in [actual, origin_close, *values]
         )
         or values != sorted(values)
+        or len(baseline) != 5
+        or any(not math.isfinite(value) or value <= 0 for value in baseline)
+        or baseline != sorted(baseline)
     ):
         raise ValueError("Invalid scoring observation, origin or quantiles")
     return {
@@ -347,6 +363,19 @@ def score_point(point, observation, origin_close, now, *, evidence="unverified")
         "width_80": values[4] - values[0],
         "naive_mae": abs(actual - origin_close),
         "naive_wis": _wis(actual, [origin_close] * 5),
+        "baseline_probabilistic_mae": abs(actual - baseline[2]),
+        "baseline_probabilistic_wis": _wis(actual, baseline),
+        "baseline_probabilistic_coverage_50": int(baseline[1] <= actual <= baseline[3]),
+        "baseline_probabilistic_coverage_80": int(baseline[0] <= actual <= baseline[4]),
+        "baseline_probabilistic_width_50": baseline[3] - baseline[1],
+        "baseline_probabilistic_width_80": baseline[4] - baseline[0],
+        "mae_delta": abs(actual - values[2]) - abs(actual - baseline[2]),
+        "wis_delta": _wis(actual, values) - _wis(actual, baseline),
+        "regime": (
+            "up"
+            if actual > origin_close
+            else "down" if actual < origin_close else "flat"
+        ),
         "observation_revision": observation["revision"],
         "observation_source": observation.get("source"),
         "observation_known_at": observation.get("observed_at"),
@@ -363,25 +392,71 @@ def calibration_report(scores, month):
                 "horizon_weeks": horizon,
                 "origins": len(metrics),
                 **{
-                    key: statistics.mean(m[key] for m in metrics) if metrics else None
-                    for key in ("mae", "wis", "coverage_50", "coverage_80", "naive_mae")
+                    key: (
+                        statistics.mean(
+                            value for m in metrics if (value := m.get(key)) is not None
+                        )
+                        if any(key in m for m in metrics)
+                        else None
+                    )
+                    for key in (
+                        "mae",
+                        "wis",
+                        "coverage_50",
+                        "coverage_80",
+                        "naive_mae",
+                        "width_50",
+                        "width_80",
+                        "baseline_probabilistic_mae",
+                        "baseline_probabilistic_wis",
+                        "baseline_probabilistic_coverage_50",
+                        "baseline_probabilistic_coverage_80",
+                        "baseline_probabilistic_width_50",
+                        "baseline_probabilistic_width_80",
+                        "mae_delta",
+                        "wis_delta",
+                    )
                 },
             }
         )
-    return {"month": month, "per_horizon": rows, "action": "manual_review_only"}
+    return {
+        "month": month,
+        "per_horizon": rows,
+        "action": "manual_review_only",
+        "evidence_sources": {
+            "selection": {"status": "not_included_in_prospective_report"},
+            "final_holdout": {
+                "status": "must_be_provided_separately",
+                "publishable_from_this_report": False,
+            },
+            "prospective": {"status": "revisioned_scores"},
+        },
+    }
 
 
 def check_promotion(report):
     rows = report.get("per_horizon", [])
+    evidence_source = report.get("evidence_source") or report.get("evidence")
+    final_holdout = report.get("final_holdout")
     if (
         report.get("candidate") not in ("gaussian_random_walk", "lightgbm_quantile")
-        or report.get("evidence") != "prospective"
+        or evidence_source not in ("prospective", "final_holdout")
         or not report.get("confirmation_review")
+        or report.get("manual_dependence_review") is not True
+        or report.get("manual_regime_review") is not True
+        or report.get("baseline_verified") is not True
         or report.get("data_verified") is not True
         or report.get("resources_verified") is not True
         or [row.get("horizon_weeks") for row in rows] != list(range(1, 53))
     ):
         raise ValueError("Refused promotion: incomplete evidence or ineligible recipe")
+    if evidence_source == "final_holdout" and (
+        not isinstance(final_holdout, dict)
+        or final_holdout.get("status") != "available"
+        or final_holdout.get("read_only_after_scores") is not True
+        or final_holdout.get("selection_locked") is not True
+    ):
+        raise ValueError("Refused promotion: final holdout was not frozen and locked")
     active = report.get("active_per_horizon")
     if active is not None and [row.get("horizon_weeks") for row in active] != list(
         range(1, 53)
@@ -390,7 +465,12 @@ def check_promotion(report):
     for index, row in enumerate(rows):
         if (
             type(row.get("origins")) is not int
-            or row["origins"] <= 0
+            or row["origins"] < 104
+            or sum(
+                block.get("complete_contiguous", False)
+                for block in row.get("dependence_blocks", [])
+            )
+            < 2
             or any(
                 not isinstance(row.get(k), (float, int))
                 or not math.isfinite(row[k])

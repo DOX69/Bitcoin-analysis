@@ -209,6 +209,7 @@ def test_emission_uses_sunday_targets_and_known_constant_fx(tmp_path):
         "CHF": {"date": cutoff.isoformat(), "rate": 0.8},
     }
     result = emit_forecast(candidate, rows, cutoff.isoformat(), fx)
+    assert result["origin_close"] == rows[-1]["close"]
     assert len(result["points"]) == 52
     assert (
         result["points"][0]["target_date"] == (cutoff + timedelta(days=6)).isoformat()

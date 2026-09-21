@@ -216,6 +216,7 @@ def emit_forecast(candidate, weekly, emission_date: str, fx: dict | None = None)
     return {
         "emission_date": emission_date,
         "origin_week": weekly[-1]["date"],
+        "origin_close": weekly[-1]["close"],
         "quantiles": list(b.QUANTILES),
         "fx": fx or {},
         "points": points,

@@ -1,5 +1,6 @@
 {
   "environment": "development",
+  "research_model": "lightgbm_quantile",
   "artifact_bucket": "forecast-v1-artifacts-fp6nst",
   "backup_bucket": "forecast-v1-backups-apnibc",
   "daily_schema": "dlh_silver__crypto_prices",

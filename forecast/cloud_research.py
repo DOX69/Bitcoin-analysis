@@ -145,6 +145,11 @@ def main():
     parser.add_argument("--score-only", action="store_true")
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
+    if config.get("research_model") == "lightgbm_quantile":
+        from forecast.candidate_cloud import main as candidate_main
+
+        candidate_main()
+        return
     if (
         config.get("environment") != "development"
         or os.environ.get("RAILWAY_ENVIRONMENT_NAME", "").lower() != "development"

@@ -108,3 +108,17 @@ def test_research_hook_is_bounded_and_does_not_install_packages(monkeypatch):
     assert result["report_sha256"] == "a" * 64
     assert "--no-sync" in calls[0][0]
     assert calls[0][1] == {"seconds": 300, "rss_bytes": 4 * 1024**3}
+
+
+def test_configured_research_candidate_uses_isolated_collector(monkeypatch, tmp_path):
+    from forecast import candidate_cloud
+
+    config = tmp_path / "research.json"
+    config.write_text(json.dumps({"research_model": "lightgbm_quantile"}))
+    calls = []
+    monkeypatch.setattr(sys, "argv", ["cloud", "--config", str(config)])
+    monkeypatch.setattr(candidate_cloud, "main", lambda: calls.append("candidate"))
+
+    cloud.main()
+
+    assert calls == ["candidate"]

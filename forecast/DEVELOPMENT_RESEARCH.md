@@ -27,13 +27,19 @@ Les commandes `RAILPACK_BUILD_CMD` et `RAILPACK_START_CMD`, si présentes, doive
 
 Après ingestion et dbt réussis, l'orchestrateur appelle `forecast.cloud_research` dans un worker limité à deux CPU, 4 Gio et cinq minutes. Son échec n'annule pas l'ingestion. Le mécanisme de sauvegarde existant s'exécute aussi après échec.
 
-Le worker lit les clôtures directement dans PostgreSQL et vérifie leur concordance avec la révision bronze connue. Il recharge depuis S3 le manifeste, la distribution et la prévision figés du 10 septembre. Toutes les données sont conservées sous `development/research/hybrid-v1/` :
+Le worker lit les clôtures directement dans PostgreSQL et vérifie leur concordance avec la révision bronze connue. Les archives historiques de l'hybride restent conservées sous `development/research/hybrid-v1/`. La piste prospective active est désormais dédiée à LightGBM sous `development/research/lightgbm-v1/` :
 
 - `bundle/` : modèle de recherche et archive originale, vérifiés par empreinte.
 - `snapshots/` : observations quotidiennes et révisions, adressées par SHA-256.
 - `emissions/` : une émission par semaine, créée le lundi ou lors de la reprise du mardi.
 - `reports/` : scoring daté sur cibles matures, avec les 52 horizons et leurs blocs.
 - `budget/AAAA-MM.json` : relevé et projection mensuels exigés avant calcul.
+
+## Piste prospective LightGBM
+
+Le benchmark historique plaçait `lightgbm_quantile` devant `gaussian_random_walk` au WIS, mais ce résultat reste exploratoire et échoue encore les garde-fous historiques. Au premier passage Development, le worker entraîne une seule fois l'artefact LightGBM sur le snapshot courant, le conserve sous `lightgbm-v1/bundle/model/` avec son manifeste et son reçu de bootstrap, puis réutilise exactement ce modèle pour les émissions suivantes. Le snapshot d'entraînement, les émissions, les observations et les rapports sont immuables et copiés dans le bucket indépendant.
+
+Cette piste est isolée de l'ancien suivi hybride, ne crée aucune version dans le registre de production et force `publishable=false`. Elle reste soumise à 104 observations matures par horizon, deux blocs contigus complets, la revue de dépendance et la décision manuelle avant toute promotion.
 
 Un verrou PostgreSQL empêche deux collectes concurrentes. Les écritures S3 sont conditionnelles et relues. Chaque snapshot, émission et rapport est aussi copié dans le bucket indépendant avant succès. Une reprise répare une copie interrompue sans réécrire l'original. Un nouveau conteneur recharge les émissions et leurs données sources ; aucun disque local persistant n'est nécessaire.
 

@@ -192,11 +192,11 @@ def connection():
 def daily_rows():
     return [
         {
-            "date": (date(2026, 8, 31) + timedelta(days=i)).isoformat(),
+            "date": (date(2026, 8, 24) + timedelta(days=i)).isoformat(),
             "close": 100,
             "revision": "r1",
         }
-        for i in range(7)
+        for i in range(14)
     ]
 
 

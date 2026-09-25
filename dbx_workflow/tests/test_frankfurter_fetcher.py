@@ -103,15 +103,16 @@ class TestFrankfurterFetcherFetchHistoricalData:
             requests.exceptions.ConnectionError("Network unavailable"),
         ],
     )
+    @patch('time.sleep')
     @patch('requests.get')
     def test_failure_after_a_successful_page_raises(
-        self, mock_get, failure, mock_logger
+        self, mock_get, mock_sleep, failure, mock_logger
     ):
         successful_page = Mock(status_code=200)
         successful_page.json.return_value = {
             "rates": {"2025-08-30": {"EUR": 0.90}}
         }
-        mock_get.side_effect = [successful_page, failure]
+        mock_get.side_effect = [successful_page, failure, failure, failure]
         fetcher = FrankfurterFetcher(
             logger=mock_logger,
             ticker="USD",
@@ -125,7 +126,8 @@ class TestFrankfurterFetcherFetchHistoricalData:
                 start_date_time=datetime.now() - pd.Timedelta(days=400)
             )
 
-        assert mock_get.call_count == 2
+        assert mock_get.call_count == 4
+        assert [call.args[0] for call in mock_sleep.call_args_list] == [1, 2]
 
     @patch('requests.get')
     def test_non_2xx_after_a_successful_page_raises(self, mock_get, mock_logger):
@@ -224,3 +226,20 @@ class TestFrankfurterFetcherFetchHistoricalData:
                 start_date_time=datetime.now() - pd.Timedelta(days=2)
             )
 
+@pytest.mark.parametrize("failure", [
+    requests.exceptions.ReadTimeout("timeout"),
+    requests.exceptions.ConnectionError("disconnected"),
+])
+@patch("time.sleep")
+@patch("requests.get")
+def test_network_retry_preserves_page_and_returns_no_duplicate_rows(
+    mock_get, mock_sleep, failure, mock_logger
+):
+    response = Mock(status_code=200)
+    response.json.return_value = {"rates": {"2026-09-11": {"EUR": 0.9}}}
+    mock_get.side_effect = [failure, response]
+    fetcher = FrankfurterFetcher(mock_logger, "USD", "EUR", "dev", "bronze")
+    frame = fetcher.fetch_historical_data(datetime.now() - pd.Timedelta(days=3))
+    assert frame["rate"].tolist() == [0.9]
+    assert mock_get.call_args_list[0] == mock_get.call_args_list[1]
+    mock_sleep.assert_called_once_with(1)

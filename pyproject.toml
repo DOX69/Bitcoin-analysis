@@ -28,6 +28,18 @@ analytics = [
     "numpy>=1.24.0",
     "scipy>=1.11.0",
 ]
+benchmark = [
+    "lightgbm>=4.0.0",
+    "psutil>=7.0.0",
+    "scikit-learn>=1.3.0",
+]
+forecast = [
+    "boto3>=1.42.0",
+    "psycopg[binary]>=3.2.0",
+    "lightgbm>=4.0.0",
+    "psutil>=7.0.0",
+    "scikit-learn>=1.3.0",
+]
 streamlit = [
     "streamlit>=1.28.0",
     "plotly>=5.17.0",
@@ -38,7 +50,7 @@ build-backend = "hatchling.build"
 
 # Dit à hatchling où est le code
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["forecast"]
 
 [tool.uv.workspace]
 members = [

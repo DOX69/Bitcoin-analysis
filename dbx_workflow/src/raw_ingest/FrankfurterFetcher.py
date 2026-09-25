@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import time
 import requests
 import pandas as pd
 from raw_ingest.BaseFetcher import BaseFetcher, require_2xx
@@ -88,7 +89,17 @@ class FrankfurterFetcher(BaseFetcher):
                 url = self.base_url + endpoint
                 self.logger.debug(f"Requesting {url}")
                 
-                response = requests.get(url, params=params, timeout=10)
+                for attempt in range(3):
+                    try:
+                        response = requests.get(url, params=params, timeout=10)
+                        break
+                    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                        if attempt == 2:
+                            raise
+                        self.logger.warning(
+                            "Frankfurter network failure; retry %s/2", attempt + 1
+                        )
+                        time.sleep(attempt + 1)
                 require_2xx(response)
                 data = response.json()
                 if not isinstance(data, dict) or not isinstance(

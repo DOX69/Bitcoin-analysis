@@ -1,0 +1,7 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - status "Loading" [ref=e7]
+    - paragraph [ref=e9]: Loading Bitcoin Dashboard...
+  - button "Open Next.js Dev Tools" [ref=e15] [cursor=pointer]:
+    - img [ref=e16]
+  - alert [ref=e19]

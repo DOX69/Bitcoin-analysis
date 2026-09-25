@@ -1,5 +1,9 @@
 import importlib
+import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import psycopg
 import pytest
@@ -181,3 +185,158 @@ def test_fixture_parity_tests_are_tagged(test_name):
     contents = (repository_root / "dbt_silver_gold" / "tests" / test_name).read_text()
 
     assert "{{ config(tags=['fixture']) }}" in contents
+
+
+@pytest.mark.parametrize("failed_stage", [None, "market", "dbt", "forecast"])
+@pytest.mark.parametrize("backup_fails", [False, True])
+def test_backup_runs_under_lock_despite_pipeline_failures(
+    database_url, failed_stage, backup_fails, caplog
+):
+    from raw_ingest import orchestrator
+
+    events = []
+
+    def stage(name):
+        def run(*args):
+            events.append(name)
+            if failed_stage == name:
+                raise RuntimeError("stage failed")
+
+        return run
+
+    def backup():
+        events.append("backup")
+        with psycopg.connect(database_url, autocommit=True) as competitor:
+            assert not competitor.execute(
+                "SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,)
+            ).fetchone()[0]
+        if backup_fails:
+            raise RuntimeError("postgresql://secret-password@private")
+        return {"status": "completed"}
+
+    code = orchestrator.run_pipeline(
+        database_url,
+        run_id="backup-test",
+        market_ingestor=stage("market"),
+        indicator_ingestor=stage("indicators"),
+        dbt_runner=stage("dbt"),
+        forecast_runner=stage("forecast"),
+        backup_runner=backup,
+    )
+    assert events[-1] == "backup"
+    assert events.count("backup") == 1
+    assert code == int(failed_stage in ("market", "dbt"))
+    assert "secret-password" not in caplog.text
+    if backup_fails:
+        assert "Forecast backup failed" in caplog.text
+
+
+def test_backup_disabled_without_configuration(monkeypatch):
+    from raw_ingest import orchestrator
+
+    monkeypatch.delenv("FORECAST_BACKUP_CONFIG", raising=False)
+    assert orchestrator.run_forecast_backup() == {"status": "disabled"}
+
+
+def test_backup_supervisor_bounds_worker_and_does_not_log_raw_output(
+    monkeypatch, tmp_path, caplog
+):
+    from raw_ingest import orchestrator
+    from forecast import pipeline
+
+    calls = []
+    config = str(tmp_path / "backup.json")
+    monkeypatch.setenv("FORECAST_BACKUP_CONFIG", config)
+
+    def supervise(command, log_path, **limits):
+        calls.append((command, limits))
+        log_path.write_text(
+            json.dumps(
+                {
+                    "manifest_key": "development/backups/20260909/manifest.json",
+                    "bytes": 120,
+                    "seconds": 0.5,
+                    "debug": "secret-password",
+                }
+            )
+        )
+        return {"wall_seconds": 1, "peak_rss_bytes": 1024}
+
+    monkeypatch.setattr(pipeline, "supervise", supervise)
+    result = orchestrator.run_forecast_backup()
+    assert result == {
+        "status": "completed",
+        "wall_seconds": 1,
+        "peak_rss_bytes": 1024,
+        "manifest_key": "development/backups/20260909/manifest.json",
+        "bytes": 120,
+        "seconds": 0.5,
+    }
+    assert calls[0][0][-3:] == ["backup", "--config", config]
+    assert calls[0][1] == {"seconds": 300, "rss_bytes": 4 * 1024**3}
+    assert "--no-sync" in calls[0][0]
+    assert "secret-password" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "secret-password: invalid JSON",
+        '{"manifest_key":"secret-password\\nforged","bytes":1,"seconds":0}',
+        '{"manifest_key":"development/manifest.json","bytes":-1,"seconds":0}',
+        '{"manifest_key":"development/manifest.json","bytes":1,"seconds":NaN}',
+    ],
+)
+def test_backup_rejects_invalid_report_without_logging_worker_text(
+    monkeypatch, tmp_path, caplog, output
+):
+    from raw_ingest import orchestrator
+    from forecast import pipeline
+
+    monkeypatch.setenv("FORECAST_BACKUP_CONFIG", str(tmp_path / "backup.json"))
+
+    def supervise(command, log_path, **limits):
+        log_path.write_text(output)
+        return {"wall_seconds": 1, "peak_rss_bytes": 1024}
+
+    monkeypatch.setattr(pipeline, "supervise", supervise)
+    with pytest.raises((ValueError, TypeError)):
+        orchestrator.run_forecast_backup()
+    assert "secret-password" not in caplog.text
+
+
+def test_backup_config_preserves_forecast_dependencies_during_dbt(monkeypatch):
+    from raw_ingest import orchestrator
+
+    monkeypatch.delenv("FORECAST_JOB_CONFIG", raising=False)
+    monkeypatch.setenv("FORECAST_BACKUP_CONFIG", "/config/backup.json")
+    monkeypatch.setenv("DBT_TARGET_SCHEMA", "validation")
+    calls = []
+    monkeypatch.setattr(
+        orchestrator.subprocess, "run", lambda command, **kwargs: calls.append(command)
+    )
+    orchestrator.run_dbt_build("postgresql://postgres@localhost/test")
+    assert "--no-sync" in calls[0]
+
+
+@pytest.mark.parametrize("level, visible", [(None, True), ("WARNING", False)])
+def test_main_configures_backup_status_logging_in_fresh_process(level, visible):
+    environment = os.environ.copy()
+    environment.pop("LOG_LEVEL", None)
+    environment["DATABASE_URL"] = "unused-by-test"
+    if level is not None:
+        environment["LOG_LEVEL"] = level
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from raw_ingest import orchestrator as o; "
+            "o.run_pipeline = lambda *a, **k: "
+            "o.logger.info('Forecast backup status: completed') or 0; o.main()",
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert ("Forecast backup status: completed" in result.stderr) is visible

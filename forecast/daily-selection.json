@@ -1,0 +1,7 @@
+{
+  "candidate": "ridge",
+  "model_manifest_sha256": "b82ed95b45afb3531c1ce6e26fd2a71c030d35e4b6f94b82a3ea8df03c50d065",
+  "benchmark_report_sha256": "58132a612c0180c121401324be82fc4ffdd9f37ed6cc3ff5692edd6be396db5a",
+  "holdout_mae_ratio": 1.9662094716038945,
+  "production_ready": false
+}

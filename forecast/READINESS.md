@@ -3,13 +3,17 @@
 Le [guide d’audit en lecture seule](RESEARCH_AUDIT.md) décrit les statuts explicites,
 la vérification des copies et l’export des scores sans relancer la collecte.
 
-État du 14 septembre 2026 : objectif non atteint. La première émission hebdomadaire réelle à 52 horizons est enregistrée dans Railway Development et sa copie indépendante est vérifiée. Une cible de l'archive précédente est mature. Aucun modèle ne réunit encore les preuves statistiques et les conditions de promotion. Les trois nouveaux essais sont documentés dans [RESEARCH.md](RESEARCH.md).
+État du 2 octobre 2026 : objectif non atteint. La relecture des deux buckets confirme zéro émission LightGBM et zéro observation mature pour ce candidat. Les deux rapports du 25 septembre sont conservés, mais ne prouvent aucune émission. Les archives hybrides et quotidiennes appartiennent à d'autres recettes et ne comptent pas pour LightGBM.
+
+Le cron principal utilisait encore l'image du 23 septembre, antérieure au correctif `libgomp1`. Ses journaux montrent un échec de la recherche les 28 et 29 septembre. Le service LightGBM corrigé du 25 septembre était ponctuel, sans cron. Le 2 octobre, le cron principal a reçu le correctif et le service dédié est configuré pour un passage quotidien à 06:30 UTC, après ingestion, avec `restartPolicyType=NEVER`. Voir [l'exploitation Development](DEVELOPMENT_RESEARCH.md).
+
+La première émission régulière attendue est le 5 octobre 2026. Si elle a effectivement lieu et si aucune semaine ne manque ensuite, la première cible annuelle devient mature le 4 octobre 2027 et la 104e le 24 septembre 2029. Ces dates découlent du minimum actuel de 104 origines matures sur chacun des 52 horizons. Elles ne promettent pas une validation. Un lancement immédiat ou une émission antidatée ne réduit pas ce délai.
 
 ## Décision de travail
 
 Le propriétaire demande de poursuivre jusqu'à disposer d'un forecast prêt pour la production et délègue le choix du minimum d'observations nouvelles. Les seuils de qualité, les 52 horizons et la séparation historique/prospectif restent inchangés. Le passage de seuils sur des données déjà consultées ne suffit pas.
 
-L'hybride du 10 septembre reste le candidat à observer : il passe les 52 horizons du benchmark de sélection, mais échoue sur 46 horizons du stress. Il reste en recherche. Ses équations et sa distribution sont conservées sans retouche. Le suivi ne constitue ni une sélection validée ni une activation de modèle.
+La piste active est `lightgbm_quantile`, figée sous `development/research/lightgbm-v1/`. Ses résultats historiques restent exploratoires et échouent encore les garde-fous historiques. L'hybride du 10 septembre reste archivé séparément : il passe les 52 horizons du benchmark de sélection, mais échoue sur 46 horizons du stress. Aucun de ces résultats ne justifie une activation de modèle.
 
 ## Confirmation prospective
 

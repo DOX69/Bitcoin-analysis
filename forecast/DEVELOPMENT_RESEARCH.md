@@ -21,7 +21,17 @@ FORECAST_RESEARCH_CONFIG=/app/forecast/development-config.json
 FORECAST_BACKUP_CONFIG=/app/forecast/development-config.json
 ```
 
-Les commandes `RAILPACK_BUILD_CMD` et `RAILPACK_START_CMD`, si présentes, doivent correspondre au build et au démarrage ci-dessus. Les accès PostgreSQL et S3 restent dans les variables privées du service.
+Les commandes `RAILPACK_BUILD_CMD` et `RAILPACK_START_CMD`, si présentes, doivent correspondre au build et au démarrage ci-dessus. Les accès PostgreSQL et S3 restent dans les variables privées du service. Le fichier `railpack.json` ajoute `libgomp1` au runtime, nécessaire au chargement LightGBM. Déployer ce correctif sur chaque service qui exécute le candidat, pas seulement sur un service ponctuel.
+
+Depuis le 2 octobre 2026, `bitcoin-forecast-validation-run-20260925` sert aussi de collecte dédiée quotidienne dans Development. Son cron est `30 6 * * *`, soit 08:30 à Paris en été et 07:30 en hiver, après le passage du cron d'ingestion à 07:00. Sa commande appelle `raw_ingest.orchestrator.run_forecast_research`, qui supervise `forecast.cloud_research` pendant cinq minutes au maximum et surveille la limite de 4 Gio. Conserver `restartPolicyType=NEVER` et `FORECAST_RESEARCH_CONFIG=/app/forecast/development-config.json`. Le verrou et l'unicité de l'origine empêchent une double émission si le cron principal a déjà collecté. Le worker utilise toujours l'horloge réelle et n'émet que lundi ou mardi UTC.
+
+Commande de démarrage dédiée :
+
+```sh
+uv run --locked --extra forecast --no-sync python -c "import json; from raw_ingest.orchestrator import run_forecast_research; print(json.dumps(run_forecast_research()))"
+```
+
+Le contrôle réel du 2 octobre a terminé dans le conteneur Development `ce41fa9a-06f3-4ed1-af3e-06566d556236`. Le rapport `development/research/lightgbm-v1/reports/20261002T094130228276Z.json` porte l'empreinte `7c0f6b0fb346e7efd40363e9d8892c704f97a2e2cc051499e9af95cc2cba52e7`. Il indique `completed`, `independent_copy_verified=true`, zéro émission, zéro cible mature et `publishable=false`. Les émissions des 28 et 29 septembre n'existent pas et ne sont pas recréées après leur date. La prochaine émission autorisée est le 5 octobre.
 
 ## Exécution et conservation
 
@@ -52,6 +62,8 @@ La collecte réutilise l'allocation « jobs forecast » du scénario [COST.md](C
 Avant chaque nouveau mois, publier un nouveau relevé vérifié sous `budget/AAAA-MM.json` dans les deux buckets. Une absence de relevé, un mois périmé ou un total mesuré/projeté atteignant cinq USD suspend les nouveaux calculs. Les sauvegardes continuent. Le cron n'a pas d'identifiant d'administration Railway et ne peut pas inventer les prochains relevés de facturation.
 
 Les journaux `Forecast research status` indiquent le nombre d'émissions, de cibles matures et la clé du rapport. `ready_for_confirmation_review` dans ce rapport déclenche le besoin d'examiner les blocs temporels ; ce booléen n'est pas une promotion. Toute recette nouvelle demande sa propre confirmation.
+
+Le relevé d'octobre est conservé dans les deux buckets sous `development/research/hybrid-v1/budget/2026-10.json`. Le contrôle du 2 octobre relit 1,9154533013354427 USD pour tout le projet depuis le 21 septembre. Cette période contient aussi septembre et Production : elle fournit une borne conservatrice du coût Development d'octobre à cette date, pas une facture exacte du mois civil. La projection conserve le scénario Development précédent de 4,72 USD avec une provision supplémentaire de 0,20 USD pour le collecteur dédié, soit 4,92 USD. Le relevé contient la réponse de facturation utilisée et sa date de revue. Cette projection conditionnelle doit être revue si les ressources ou transferts dépassent les hypothèses et renouvelée en novembre ; le worker suspend les calculs si le relevé manque ou atteint cinq USD.
 
 Rollback : retirer `FORECAST_RESEARCH_CONFIG` pour suspendre seulement la recherche, ou restaurer l'image précédente du cron. Conserver les objets et leurs copies. Ne pas appliquer de migration descendante pour annuler ce déploiement.
 

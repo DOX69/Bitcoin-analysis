@@ -31,6 +31,19 @@ jest.mock('react-chartjs-2', () => ({
     ),
 }));
 
+it('keeps original weekly Q25/Q50/Q75 on monthly history and exposes them outside canvas', () => {
+    render(<PriceChart scaleType="logarithmic" currencySymbol="€" data={[{ date: '2026-09-01', aggregation: 'monthly', open: 200, high: 220, low: 180, close: 210, volume: 1, rsi_status: 'Neutral' }]} projection={{ emissions: [{ id: 'e1', issued: '2026-08-31', points: [{ date: '2026-09-06', low: 80, median: 100, high: 120 }] }] }} />);
+    const table = screen.getByRole('table', { name: 'Valeurs des prévisions' });
+    expect(within(table).getByText('2026-09-06')).toBeInTheDocument();
+    expect(within(table).getByText('€100.00')).toBeInTheDocument();
+    const datasets = JSON.parse(screen.getByTestId('chart-data').textContent!).datasets;
+    const median = datasets.find((d: { label: string }) => d.label.startsWith('Médiane'));
+    expect(median.borderDash).toEqual([7, 5]);
+    expect(median.borderColor).toBe('#f4c684');
+    expect(median.data).toEqual([{ x: Date.parse('2026-09-06'), y: 100 }]);
+    expect(datasets.filter((d: { fill: unknown }) => d.fill === '-2')).toHaveLength(1);
+});
+
 describe('PriceChart calendar dates and RSI values', () => {
     it('names active lines and exposes their values outside the canvas', () => {
         render(<PriceChart showSma showEma showMacd data={[{
@@ -154,6 +167,14 @@ it('keeps source candle lows identical to the accessible table', () => {
     const chartData = JSON.parse(screen.getByTestId('chart-data').textContent ?? '{}');
     expect(chartData.datasets[0].data[0]).toEqual({x: Date.UTC(2017, 3, 1), o: 1000, h: 1200, l: 50, c: 1100});
     expect(within(screen.getByRole('table')).getByText('$50.00')).toBeInTheDocument();
+});
+
+it('draws nested prediction bands from unchanged model quantiles', () => {
+    render(<PriceChart data={[]} projection={{ emissions: [{ id: 'e1', issued: '2026-10-05', points: [{ date: '2026-10-11', outerLow: 60, low: 80, median: 100, high: 120, outerHigh: 140 }] }] }} />);
+    const datasets = JSON.parse(screen.getByTestId('chart-data').textContent ?? '{}').datasets;
+    expect(datasets.slice(-5).map((dataset: { data: { y: number }[] }) => dataset.data[0].y)).toEqual([60,80,100,120,140]);
+    expect(datasets.slice(-5).map((dataset: { fill: unknown }) => dataset.fill)).toEqual([false,false,false,'-2','-4']);
+    expect(within(screen.getByRole('table', { name: 'Valeurs des prévisions' })).getAllByRole('columnheader').map(header => header.textContent)).toEqual(['Calculée le', 'Échéance UTC', 'Q10', 'Q25', 'Q50', 'Q75', 'Q90']);
 });
 
 

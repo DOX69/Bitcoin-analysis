@@ -1,5 +1,9 @@
 import importlib
+import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import psycopg
 import pytest
@@ -13,9 +17,7 @@ def test_pipeline_holds_lock_runs_in_order_and_releases_it(database_url):
     def ingest_market(connection, run_id):
         with psycopg.connect(database_url, autocommit=True) as competitor:
             with competitor.cursor() as cursor:
-                cursor.execute(
-                    "SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,)
-                )
+                cursor.execute("SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,))
                 assert cursor.fetchone()[0] is False
         events.append(("market", run_id))
 
@@ -36,9 +38,7 @@ def test_pipeline_holds_lock_runs_in_order_and_releases_it(database_url):
 
     with psycopg.connect(database_url, autocommit=True) as competitor:
         with competitor.cursor() as cursor:
-            cursor.execute(
-                "SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,)
-            )
+            cursor.execute("SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,))
             lock_is_available = cursor.fetchone()[0]
             cursor.execute("SELECT pg_advisory_unlock(%s)", (orchestrator.LOCK_KEY,))
 
@@ -70,9 +70,7 @@ def test_pipeline_returns_nonzero_skips_dbt_and_unlocks_after_ingestion_failure(
 
     with psycopg.connect(database_url, autocommit=True) as competitor:
         with competitor.cursor() as cursor:
-            cursor.execute(
-                "SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,)
-            )
+            cursor.execute("SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,))
             lock_is_available = cursor.fetchone()[0]
             cursor.execute("SELECT pg_advisory_unlock(%s)", (orchestrator.LOCK_KEY,))
 
@@ -91,9 +89,7 @@ def test_pipeline_returns_nonzero_skips_dbt_and_unlocks_after_ingestion_failure(
         ValueError("Invalid payload"),
     ],
 )
-def test_http_ingestion_failures_return_one_and_skip_dbt(
-    database_url, failed_stage, failure
-):
+def test_http_ingestion_failures_return_one_and_skip_dbt(database_url, failed_stage, failure):
     orchestrator = importlib.import_module("raw_ingest.orchestrator")
     dbt_calls = []
 
@@ -104,9 +100,7 @@ def test_http_ingestion_failures_return_one_and_skip_dbt(
         database_url,
         run_id="failed-http-run",
         market_ingestor=fail if failed_stage == "market" else lambda *args: None,
-        indicator_ingestor=(
-            fail if failed_stage == "indicators" else lambda *args: None
-        ),
+        indicator_ingestor=(fail if failed_stage == "indicators" else lambda *args: None),
         dbt_runner=lambda database_url_arg: dbt_calls.append(database_url_arg),
     )
 
@@ -124,9 +118,7 @@ def test_dbt_runner_uses_root_context_and_database_url_pg_variables(monkeypatch)
     monkeypatch.setenv("DBT_TARGET_SCHEMA", "silver_test")
     monkeypatch.setattr(orchestrator.subprocess, "run", record_run)
 
-    orchestrator.run_dbt_build(
-        "postgresql://ingestor:p%40ss@db.internal:5433/bitcoin?sslmode=require"
-    )
+    orchestrator.run_dbt_build("postgresql://ingestor:p%40ss@db.internal:5433/bitcoin?sslmode=require")
 
     command, check, cwd, env = calls[0]
     assert command == [
@@ -181,3 +173,168 @@ def test_fixture_parity_tests_are_tagged(test_name):
     contents = (repository_root / "dbt_silver_gold" / "tests" / test_name).read_text()
 
     assert "{{ config(tags=['fixture']) }}" in contents
+
+
+@pytest.mark.parametrize("failed_stage", [None, "market", "dbt", "forecast"])
+@pytest.mark.parametrize("backup_fails", [False, True])
+def test_backup_runs_under_lock_despite_pipeline_failures(database_url, failed_stage, backup_fails, caplog):
+    from raw_ingest import orchestrator
+
+    events = []
+
+    def stage(name):
+        def run(*args):
+            events.append(name)
+            if failed_stage == name:
+                raise RuntimeError("stage failed")
+
+        return run
+
+    def backup():
+        events.append("backup")
+        with psycopg.connect(database_url, autocommit=True) as competitor:
+            assert not competitor.execute("SELECT pg_try_advisory_lock(%s)", (orchestrator.LOCK_KEY,)).fetchone()[0]
+        if backup_fails:
+            raise RuntimeError("postgresql://secret-password@private")
+        return {"status": "completed"}
+
+    code = orchestrator.run_pipeline(
+        database_url,
+        run_id="backup-test",
+        market_ingestor=stage("market"),
+        indicator_ingestor=stage("indicators"),
+        dbt_runner=stage("dbt"),
+        forecast_runner=stage("forecast"),
+        backup_runner=backup,
+    )
+    assert events[-1] == "backup"
+    assert events.count("backup") == 1
+    assert code == int(failed_stage in ("market", "dbt"))
+    assert "secret-password" not in caplog.text
+    if backup_fails:
+        assert "Forecast backup failed" in caplog.text
+
+
+def test_backup_disabled_without_configuration(monkeypatch):
+    from raw_ingest import orchestrator
+
+    monkeypatch.delenv("FORECAST_BACKUP_CONFIG", raising=False)
+    assert orchestrator.run_forecast_backup() == {"status": "disabled"}
+
+
+def test_experimental_publisher_uses_bounded_worker_without_package_sync(monkeypatch):
+    from raw_ingest import orchestrator
+    from forecast import pipeline
+
+    monkeypatch.setenv("FORECAST_EXPERIMENTAL_PUBLISH_CONFIG", "/config/experiment.json")
+    monkeypatch.setenv("FORECAST_JOB_CONFIG", "/config/validated.json")
+    calls = []
+
+    def supervise(command, log_path, **limits):
+        calls.append((command, limits))
+        log_path.write_text('{"status":"up_to_date"}')
+        return {"wall_seconds": 1, "peak_rss_bytes": 1024}
+
+    monkeypatch.setattr(pipeline, "supervise", supervise)
+    assert orchestrator.run_forecast()["status"] == "completed"
+    assert calls[0][0][-4:] == ["-m", "forecast.experimental", "--config", "/config/experiment.json"]
+    assert "--no-sync" in calls[0][0]
+    assert calls[0][1] == {"seconds": 300, "rss_bytes": 4 * 1024**3}
+
+
+def test_backup_supervisor_bounds_worker_and_does_not_log_raw_output(monkeypatch, tmp_path, caplog):
+    from raw_ingest import orchestrator
+    from forecast import pipeline
+
+    calls = []
+    config = str(tmp_path / "backup.json")
+    monkeypatch.setenv("FORECAST_BACKUP_CONFIG", config)
+
+    def supervise(command, log_path, **limits):
+        calls.append((command, limits))
+        log_path.write_text(
+            json.dumps(
+                {
+                    "manifest_key": "development/backups/20260909/manifest.json",
+                    "bytes": 120,
+                    "seconds": 0.5,
+                    "debug": "secret-password",
+                }
+            )
+        )
+        return {"wall_seconds": 1, "peak_rss_bytes": 1024}
+
+    monkeypatch.setattr(pipeline, "supervise", supervise)
+    result = orchestrator.run_forecast_backup()
+    assert result == {
+        "status": "completed",
+        "wall_seconds": 1,
+        "peak_rss_bytes": 1024,
+        "manifest_key": "development/backups/20260909/manifest.json",
+        "bytes": 120,
+        "seconds": 0.5,
+    }
+    assert calls[0][0][-3:] == ["backup", "--config", config]
+    assert calls[0][1] == {"seconds": 300, "rss_bytes": 4 * 1024**3}
+    assert "--no-sync" in calls[0][0]
+    assert "secret-password" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "secret-password: invalid JSON",
+        '{"manifest_key":"secret-password\\nforged","bytes":1,"seconds":0}',
+        '{"manifest_key":"development/manifest.json","bytes":-1,"seconds":0}',
+        '{"manifest_key":"development/manifest.json","bytes":1,"seconds":NaN}',
+    ],
+)
+def test_backup_rejects_invalid_report_without_logging_worker_text(monkeypatch, tmp_path, caplog, output):
+    from raw_ingest import orchestrator
+    from forecast import pipeline
+
+    monkeypatch.setenv("FORECAST_BACKUP_CONFIG", str(tmp_path / "backup.json"))
+
+    def supervise(command, log_path, **limits):
+        log_path.write_text(output)
+        return {"wall_seconds": 1, "peak_rss_bytes": 1024}
+
+    monkeypatch.setattr(pipeline, "supervise", supervise)
+    with pytest.raises((ValueError, TypeError)):
+        orchestrator.run_forecast_backup()
+    assert "secret-password" not in caplog.text
+
+
+def test_backup_config_preserves_forecast_dependencies_during_dbt(monkeypatch):
+    from raw_ingest import orchestrator
+
+    monkeypatch.delenv("FORECAST_JOB_CONFIG", raising=False)
+    monkeypatch.setenv("FORECAST_BACKUP_CONFIG", "/config/backup.json")
+    monkeypatch.setenv("DBT_TARGET_SCHEMA", "validation")
+    calls = []
+    monkeypatch.setattr(orchestrator.subprocess, "run", lambda command, **kwargs: calls.append(command))
+    orchestrator.run_dbt_build("postgresql://postgres@localhost/test")
+    assert "--no-sync" in calls[0]
+
+
+@pytest.mark.parametrize("level, visible", [(None, True), ("WARNING", False)])
+def test_main_configures_backup_status_logging_in_fresh_process(level, visible):
+    environment = os.environ.copy()
+    environment.pop("LOG_LEVEL", None)
+    environment["DATABASE_URL"] = "unused-by-test"
+    if level is not None:
+        environment["LOG_LEVEL"] = level
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from raw_ingest import orchestrator as o; "
+            "o.run_pipeline = lambda *a, **k: "
+            "o.logger.info('Forecast backup status: completed') or 0; o.main()",
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert ("Forecast backup status: completed" in result.stderr) is visible

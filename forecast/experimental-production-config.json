@@ -1,0 +1,4 @@
+{
+  "destination_environment": "production",
+  "cost_prefix": "development/experimental/lightgbm-v1/budget"
+}

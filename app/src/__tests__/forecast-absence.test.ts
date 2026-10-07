@@ -19,14 +19,14 @@ function getProductionSources(directory: string): string[] {
     });
 }
 
-describe('forecast removal', () => {
+describe('forecast V1 boundaries', () => {
     it('rejects forecast API requests', () => {
         expect(BitcoinSearchParamsSchema.safeParse({ type: 'forecast' }).success).toBe(false);
     });
 
-    it('leaves no forecast implementation in production sources', () => {
+    it('keeps the removed legacy forecast table and utility absent', () => {
         const matches = getProductionSources(SRC_ROOT).filter(file =>
-            /forecast|forcast_btc_price/i.test(fs.readFileSync(file, 'utf8'))
+            /forcast_btc_price/i.test(fs.readFileSync(file, 'utf8'))
         );
 
         expect(matches).toEqual([]);
@@ -90,7 +90,7 @@ describe('Databricks adapter removal', () => {
             'playwright-verify.js',
         ].map(file => path.join(APP_ROOT, file));
         const matches = inspectedFiles.filter(file =>
-            /@databricks\/sql|NEXT_PUBLIC_DATABRICKS|DATABRICKS_(?:HOST|TOKEN|PATH|HTTP_PATH|CATALOG)|forecast|dotenv|\.env(?:\.local)?/i.test(
+            /@databricks\/sql|NEXT_PUBLIC_DATABRICKS|DATABRICKS_(?:HOST|TOKEN|PATH|HTTP_PATH|CATALOG)|dotenv|\.env(?:\.local)?/i.test(
                 fs.readFileSync(file, 'utf8')
             )
         );

@@ -1,0 +1,13 @@
+# Forecast storage contract
+
+`forecast` is a PostgreSQL schema independent of dbt rebuilds. One publication row points to the active and rollback versions. Activation verifies the complete private S3 artifact bundle before changing both pointers in one transaction. No version is activated automatically.
+
+An ordinary emission has the unique key `origin_week`, across model versions. A replay returns its existing ID and never replaces values. Scores use `(emission_id, horizon, observation_revision)`; corrected observations create identifiable revisions. Emissions and scores have no scheduled deletion. Status invalidation preserves their payloads.
+
+`GET /api/forecast?currency=USD|EUR|CHF&asOf=YYYY-MM-DD` returns `status`, `model` and `emissions`. Status is `available`, `absent`, `stale`, `withdrawn` or `invalid`. Database errors return HTTP 503. Parameters fail with HTTP 400. The optional date excludes later emissions. The last three emissions of the published version are returned in descending creation order. An emission older than eight days at the requested date makes the result stale.
+
+Each emission contains `id`, `emissionDate`, `originWeek`, `originDate`, `status`, `fx` and 52 `points`. Points contain `horizonWeeks`, `targetDate`, `q25`, `q50`, `q75`. USD quantiles and frozen EUR/CHF conversions come from the original payload. Q10/Q90 remain internal. Credentials, manifests and bucket paths never enter responses.
+
+Private S3 keys are immutable, environment-prefixed version paths. Conditional creation prevents replacement; SHA-256 checks cover manifest and every file. Loading uses the pipeline compatibility checks, then a caller-supplied control calculation before activation. Retain artifacts for at least 24 months after their latest target; active and rollback versions stay protected. Rejected candidates without emissions retain files for 90 days. Metadata remains after artifact expiry. Independent backup and restore evidence belongs to the Development validation lot.
+
+`ArtifactRepository.upload` returns the manifest SHA-256. Add it as `storage_sha256` to the PostgreSQL manifest metadata passed to `register_version`; never modify the uploaded manifest file. `materialize(prefix, manifest_sha256, directory)` requires a fresh local directory and returns the compatibility-checked model. Activation and rollback both require a verification callback. Production callers must load the artifacts and execute the saved control calculation inside that callback. A conflicting replay for an existing origin raises an error; an identical replay returns the original ID.

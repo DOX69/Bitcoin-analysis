@@ -52,6 +52,51 @@ const history = [
     { date: '2026-09-01', open: 77_000, high: 80_000, low: 76_000, close: 78_623, volume: 11, rsi_status: 'Neutral' },
 ];
 
+it('offers the published forecast switched off and distinguishes an absent model', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'absent', model: null, emissions: [] }) });
+    render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
+    expect(screen.getByRole('checkbox', { name: 'Forecast' })).not.toBeChecked();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Autre modèle/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Forecast' }));
+    expect(screen.getByText('Chargement des prévisions…')).toBeInTheDocument();
+    expect(await screen.findByText('Aucune prévision disponible pour cette période.')).toBeInTheDocument();
+});
+
+it.each([
+    ['stale', 'Prévision en retard. Les dates et valeurs d’origine sont conservées.'],
+    ['withdrawn', 'Modèle retiré. Aucune courbe affichée.'],
+    ['invalid', 'Données de prévision invalides. Aucune courbe affichée.'],
+])('renders the %s state explicitly', async (status, message) => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ status, model: null, emissions: [] }) });
+    render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Forecast' }));
+    expect(await screen.findByText(message)).toBeInTheDocument();
+});
+
+it('defaults to latest, limits selection to three and distinguishes empty selection', async () => {
+    const emissions = Array.from({ length: 4 }, (_, i) => ({ id: `e${i}`, emissionDate: `2026-09-0${i + 1}`, originWeek: '2026-08-24', originDate: '2026-08-30', status: 'valid', fx: {}, points: Array.from({ length: 52 }, (_, h) => ({ horizonWeeks: h + 1, targetDate: new Date(Date.UTC(2026, 8, 6 + h * 7)).toISOString().slice(0, 10), q25: 80, q50: 100, q75: 120 })) }));
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'available', model: { id: 'v1', name: 'Published model' }, emissions }) });
+    render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Forecast' }));
+    await screen.findByText('Published model');
+    expect(screen.getByRole('button', { name: /Prévisions · Dernière/ })).toBeInTheDocument();
+    const choices = screen.getAllByRole('checkbox').filter(e => e !== screen.getByRole('checkbox', { name: 'Forecast' }));
+    expect(choices).toHaveLength(3);
+    expect(choices[0]).toBeChecked();
+    fireEvent.click(choices[0]);
+    expect(screen.getByText('Sélectionnez une prévision dans la liste.')).toBeInTheDocument();
+    choices.forEach(choice => fireEvent.click(choice));
+    expect(screen.getByRole('button', { name: /3 sélectionnées/ })).toBeInTheDocument();
+});
+
+it('labels a published recipe in plain language', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'absent', model: { id: 'v1', name: 'gaussian_random_walk' }, emissions: [] }) });
+    render(<DashboardClient initialMetrics={metrics} initialHistoricalData={history} selectedTime="6m" startDate="" endDate="" selectedCurrency="USD" />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Forecast' }));
+    expect(await screen.findByText('Marche aléatoire gaussienne')).toBeInTheDocument();
+});
+
 describe('DashboardClient market truth', () => {
     beforeEach(() => mockPush.mockClear());
 

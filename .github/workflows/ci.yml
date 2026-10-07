@@ -14,6 +14,8 @@ jobs:
       FORECAST_TEST_DATABASE_URL: postgresql://postgres@localhost:55432/forecast_test
       FORECAST_JOBS_TEST_DATABASE_URL: postgresql://postgres@localhost:55432/forecast_jobs_test
       FORECAST_INTEGRATION_DATABASE_URL: postgresql://postgres@localhost:55432/forecast_integration_test
+      FORECAST_BACKUP_TEST_DATABASE_URL: postgresql://postgres@localhost:55432/postgres
+      FORECAST_VALIDATION_TEST_DATABASE_URL: postgresql://postgres@localhost:55432/postgres
       OMP_NUM_THREADS: '2'
       OPENBLAS_NUM_THREADS: '2'
       MKL_NUM_THREADS: '2'

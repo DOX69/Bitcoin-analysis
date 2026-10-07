@@ -1,6 +1,6 @@
 # Conditions de publication du forecast
 
-La seule piste de confirmation prospective active est `lightgbm_quantile`, hebdomadaire, sur 52 horizons et cinq quantiles. Elle reste en Development et conserve `publishable=false`. Le dashboard ne publie pas ce candidat ; l'ancien aperçu quotidien Ridge est retiré.
+La seule piste de confirmation prospective active est `lightgbm_quantile`, hebdomadaire, sur 52 horizons et cinq quantiles. Elle conserve `publishable=false` pour la promotion d'un modèle validé. La publication expérimentale à six mois autorisée le 7 octobre utilise un schéma séparé et un affichage explicitement expérimental, selon [EXPERIMENTAL_RELEASE.md](EXPERIMENTAL_RELEASE.md). L'ancien aperçu quotidien Ridge est retiré.
 
 Le benchmark historique et les tests de fixtures ne prouvent pas la qualité prédictive future. Gaussian random walk reste un comparateur ; le prix inchangé et le random walk sans dérive restent les baselines d'évaluation. Aucune recalibration n'est appliquée.
 

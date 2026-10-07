@@ -169,6 +169,14 @@ it('keeps source candle lows identical to the accessible table', () => {
     expect(within(screen.getByRole('table')).getByText('$50.00')).toBeInTheDocument();
 });
 
+it('draws nested prediction bands from unchanged model quantiles', () => {
+    render(<PriceChart data={[]} projection={{ emissions: [{ id: 'e1', issued: '2026-10-05', points: [{ date: '2026-10-11', outerLow: 60, low: 80, median: 100, high: 120, outerHigh: 140 }] }] }} />);
+    const datasets = JSON.parse(screen.getByTestId('chart-data').textContent ?? '{}').datasets;
+    expect(datasets.slice(-5).map((dataset: { data: { y: number }[] }) => dataset.data[0].y)).toEqual([60,80,100,120,140]);
+    expect(datasets.slice(-5).map((dataset: { fill: unknown }) => dataset.fill)).toEqual([false,false,false,'-2','-4']);
+    expect(within(screen.getByRole('table', { name: 'Valeurs des prévisions' })).getAllByRole('columnheader').map(header => header.textContent)).toEqual(['Calculée le', 'Échéance UTC', 'Q10', 'Q25', 'Q50', 'Q75', 'Q90']);
+});
+
 
 it.each(['line', 'candlestick'] as const)('preserves all selected series and table columns for %s charts', (type) => {
     render(<PriceChart type={type} showRsi showSma showEma showMacd data={[{

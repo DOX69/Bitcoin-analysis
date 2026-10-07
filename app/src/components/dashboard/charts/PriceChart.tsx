@@ -52,7 +52,7 @@ export interface PriceChartProjection {
     emissions: {
         id: string;
         issued: string;
-        points: { date: string; low: number; median: number; high: number }[];
+        points: { date: string; low: number; median: number; high: number; outerLow?: number; outerHigh?: number }[];
     }[];
 }
 
@@ -126,6 +126,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
 }) => {
     const projectionPoints = projection?.emissions.flatMap(emission => emission.points) ?? [];
     const hasProjection = projectionPoints.length > 0;
+    const hasOuterBand = projectionPoints.some(point => point.outerLow !== undefined && point.outerHigh !== undefined);
     const lastObservedDate = data.length ? getCalendarDateTimestamp(data[data.length - 1].date) : undefined;
     const projectionSeparator: Plugin<SupportedChartType> = {
         id: 'projection-separator',
@@ -153,20 +154,22 @@ const PriceChart: React.FC<PriceChartProps> = ({
     const projectionLabels = new Set<string>();
     const projectionDatasets = projection?.emissions.flatMap(emission => {
         const issued = new Date(getCalendarDateTimestamp(emission.issued)).toLocaleDateString('fr-FR', { timeZone: 'UTC' });
-        return (['low', 'median', 'high'] as const).map((field) => {
+        const fields = emission.points.every(point => point.outerLow !== undefined && point.outerHigh !== undefined) ? ['outerLow', 'low', 'median', 'high', 'outerHigh'] as const : ['low', 'median', 'high'] as const;
+        return fields.map((field) => {
             const median = field === 'median';
-            const label = `${field === 'low' ? 'Estimation basse' : median ? 'Médiane' : 'Estimation haute'} · ${issued}`;
+            const outer = field === 'outerLow' || field === 'outerHigh';
+            const label = `${field === 'outerLow' ? 'Q10' : field === 'outerHigh' ? 'Q90' : field === 'low' ? 'Estimation basse' : median ? 'Médiane' : 'Estimation haute'} · ${issued}`;
             projectionLabels.add(label);
             const color = median ? '#f4c684' : '#ba9364';
             return {
                 type: 'line' as const,
                 label,
-                data: emission.points.map(point => ({ x: getCalendarDateTimestamp(point.date), y: point[field] })),
+                data: emission.points.flatMap(point => point[field] === undefined ? [] : [{ x: getCalendarDateTimestamp(point.date), y: point[field] }]),
                 borderColor: color,
-                backgroundColor: 'rgba(210, 163, 102, 0.10)',
-                borderWidth: median ? 2 : 0.7,
+                backgroundColor: outer ? 'rgba(210, 163, 102, 0.07)' : 'rgba(210, 163, 102, 0.16)',
+                borderWidth: median ? 2 : outer ? 0.4 : 0.7,
                 borderDash: median ? [7, 5] : [],
-                fill: field === 'high' ? '-2' : false,
+                fill: field === 'outerHigh' ? '-4' : field === 'high' ? '-2' : false,
                 tension: 0,
                 pointRadius: 0,
                 pointHoverRadius: 4,
@@ -542,8 +545,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
             ) : (
                 <div className="w-full" key={`${type}-${showRsi}-${data.length}-${currencySymbol}-${projection ? 'on' : 'off'}-${projection?.emissions.map(({ id }) => id).join(',') ?? ''}`}>
                     {hasProjection && <div className="sr-only"><table aria-label="Valeurs des prévisions">
-                        <thead><tr><th>Calculée le</th><th>Échéance UTC</th><th>Q25</th><th>Q50</th><th>Q75</th></tr></thead>
-                        <tbody>{projection?.emissions.flatMap(emission => emission.points.map(point => <tr key={`${emission.id}-${point.date}`}><td>{emission.issued}</td><td>{point.date}</td><td>{formatAccessiblePrice(point.low, currencySymbol)}</td><td>{formatAccessiblePrice(point.median, currencySymbol)}</td><td>{formatAccessiblePrice(point.high, currencySymbol)}</td></tr>))}</tbody>
+                        <thead><tr><th>Calculée le</th><th>Échéance UTC</th>{hasOuterBand && <th>Q10</th>}<th>Q25</th><th>Q50</th><th>Q75</th>{hasOuterBand && <th>Q90</th>}</tr></thead>
+                        <tbody>{projection?.emissions.flatMap(emission => emission.points.map(point => <tr key={`${emission.id}-${point.date}`}><td>{emission.issued}</td><td>{point.date}</td>{hasOuterBand && <td>{point.outerLow === undefined ? 'Unavailable' : formatAccessiblePrice(point.outerLow, currencySymbol)}</td>}<td>{formatAccessiblePrice(point.low, currencySymbol)}</td><td>{formatAccessiblePrice(point.median, currencySymbol)}</td><td>{formatAccessiblePrice(point.high, currencySymbol)}</td>{hasOuterBand && <td>{point.outerHigh === undefined ? 'Unavailable' : formatAccessiblePrice(point.outerHigh, currencySymbol)}</td>}</tr>))}</tbody>
                     </table></div>}
                     {hasProjection && <ul aria-label="Courbes de projection" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">
                         {(['Haute', 'Médiane', 'Basse'] as const).map((label, index) => <li key={label} className="flex items-center gap-1.5">
@@ -553,6 +556,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                             }} />
                             {label}
                         </li>)}
+                        {hasOuterBand && <><li>Bande 50 % · Q25–Q75</li><li>Bande 80 % · Q10–Q90</li></>}
                     </ul>}
                     {(showSma || showEma || showRsi || showMacd) && (
                         <ul aria-label="Active chart series" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs text-muted-foreground md:px-0">

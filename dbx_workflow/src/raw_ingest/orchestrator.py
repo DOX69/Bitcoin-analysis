@@ -61,6 +61,7 @@ def run_dbt_build(database_url):
             "FORECAST_JOB_CONFIG",
             "FORECAST_BACKUP_CONFIG",
             "FORECAST_RESEARCH_CONFIG",
+            "FORECAST_EXPERIMENTAL_PUBLISH_CONFIG",
         )
     ):
         command = DBT_COMMAND[:2] + ["--no-sync"] + DBT_COMMAND[2:]
@@ -73,7 +74,8 @@ def run_dbt_build(database_url):
 
 
 def run_forecast():
-    config = os.environ.get("FORECAST_JOB_CONFIG")
+    experimental = os.environ.get("FORECAST_EXPERIMENTAL_PUBLISH_CONFIG")
+    config = experimental or os.environ.get("FORECAST_JOB_CONFIG")
     if not config:
         return {"status": "disabled"}
     from forecast.pipeline import supervise
@@ -90,8 +92,7 @@ def run_forecast():
         "--no-sync",
         "python",
         "-m",
-        "forecast.jobs",
-        "worker",
+        *(["forecast.experimental"] if experimental else ["forecast.jobs", "worker"]),
         "--config",
         config,
     ]

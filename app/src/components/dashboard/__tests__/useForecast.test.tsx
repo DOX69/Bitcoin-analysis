@@ -67,3 +67,11 @@ it('preserves the original curve for a delayed emission', async () => {
     expect(result.current.projection.emissions[0].points[0].median).toBe(100);
 });
 
+it('preserves both uncertainty bands for a six-month experimental emission', async () => {
+    const emission = { ...payload.emissions[0], horizonEnd: '2027-03-07', points: points.slice(0, 26) };
+    (fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ ...payload, model: { ...payload.model, experimental: true, horizonMonths: 6 }, emissions: [emission] }) });
+    const { result } = renderHook(() => useForecast(true, 'USD', '', ''));
+    await waitFor(() => expect(result.current.status).toBe('available'));
+    expect(result.current.projection.emissions[0].points[0]).toEqual({ date: '2026-09-13', low: 80, median: 100, high: 120, outerLow: 60, outerHigh: 140 });
+});
+

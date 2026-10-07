@@ -35,6 +35,7 @@ interface DashboardClientProps {
     endDate: string;
     selectedCurrency: Currency;
     prototypeVariant?: 'A';
+    forecastInitiallyEnabled?: boolean;
 }
 
 const TIME_FILTERS = [
@@ -58,6 +59,7 @@ export default function DashboardClient({
     selectedTime: initialTime,
     selectedCurrency: initialCurrency,
     prototypeVariant,
+    forecastInitiallyEnabled = false,
 }: DashboardClientProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -69,7 +71,7 @@ export default function DashboardClient({
     const [chartType, setChartType] = useState<'line' | 'candlestick'>('line');
     const [scaleType, setScaleType] = useState<'linear' | 'logarithmic'>('linear');
     const [isPending, startTransition] = useTransition();
-    const [showProjection, setShowProjection] = useState(false);
+    const [showProjection, setShowProjection] = useState(forecastInitiallyEnabled);
     const [projectionModel, setProjectionModel] = useState('recommended');
     const [emissionSelection, setEmissionSelection] = useState<{ scope: string; ids: string[] } | null>(null);
     const forecast = useForecast(showProjection && !prototypeVariant, initialCurrency, startDate, endDate);
@@ -281,6 +283,7 @@ export default function DashboardClient({
                             <CardContent className="px-0 py-0 md:p-6">
                                 {projectionControls}
                                 {showProjection && !prototypeVariant && <div className="mb-3 space-y-1 text-xs text-muted-foreground" role="status" aria-live="polite">
+                                    {forecast.model?.experimental && <p className="text-amber-300">Prévision expérimentale à 6 mois · Qualité prédictive non confirmée.</p>}
                                     {forecastMessages[forecast.status] && <p>{forecastMessages[forecast.status]}</p>}
                                     {forecast.emissions.filter(e => e.status === 'invalidated').map(e => <p key={e.id}>Émission du {e.emissionDate} invalidée. Courbe retirée.</p>)}
                                     {forecast.emissions.filter(e => selectedEmissionIds.includes(e.id) && e.status !== 'invalidated').map(e => <p key={e.id}>Calculée le {e.emissionDate} · origine {e.originDate}{e.status === 'delayed' ? ' · émission en retard' : ''}{initialCurrency !== 'USD' && e.fx[initialCurrency] ? ` · change ${initialCurrency} figé le ${e.fx[initialCurrency].date} (${e.fx[initialCurrency].rate})` : ''}</p>)}

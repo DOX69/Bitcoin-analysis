@@ -11,7 +11,7 @@ interface ForecastPrototypeProps {
     emissions: { id: string; issued: string }[];
     selectedIds: string[];
     onSelectionChange: (ids: string[]) => void;
-    publishedModel?: { id: string; name: string } | null;
+    publishedModel?: { id: string; name: string; experimental?: boolean; horizonMonths?: 6 } | null;
 }
 
 // Shared controls for the published model and the development-only fixture.
@@ -47,10 +47,10 @@ export default function ForecastPrototype({ enabled, onEnabledChange, model, onM
                 {new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${emission.issued}T00:00:00Z`))}{index === 0 && <small>Dernière</small>}
             </label>)}
         </div>
-        <small className="forecast-demo">{publishedModel !== undefined ? 'Hebdomadaire · Médiane Q50 · Q25–Q75' : 'Projections simulées'}</small>
+        <small className="forecast-demo">{publishedModel?.experimental ? 'Expérimental · 6 mois · Bandes 50 % / 80 %' : publishedModel !== undefined ? 'Hebdomadaire · Médiane Q50 · Q25–Q75' : 'Projections simulées'}</small>
         <div id={infoId} popover="auto" className="forecast-explanation" aria-label="À propos des prévisions">
             <button className="forecast-close" type="button" popoverTarget={infoId} popoverTargetAction="hide" aria-label="Fermer les informations"><X size={18} aria-hidden="true" /></button>
-            <p>Le modèle estime la clôture du Bitcoin chaque dimanche pour les 52 prochaines semaines. La première échéance est le dimanche suivant la dernière semaine complète observée. Il ne calcule pas de prix pour les jours intermédiaires. La médiane donne l’estimation centrale, entourée d’une estimation haute et basse. Les anciennes émissions sont conservées. Le prix réel peut sortir de cette zone : ce n’est pas une garantie.</p>
+            <p>Le modèle estime la clôture du Bitcoin chaque dimanche {publishedModel?.horizonMonths === 6 ? 'pendant les six mois calendaires suivant le calcul' : 'pour les 52 prochaines semaines'}. La première échéance est le dimanche suivant la dernière semaine complète observée. Il ne calcule pas de prix pour les jours intermédiaires. La médiane donne l’estimation centrale. {publishedModel?.experimental ? 'Les bandes Q25–Q75 et Q10–Q90 représentent les intervalles nominaux de 50 % et 80 %. Leur couverture réelle reste à mesurer. La qualité prédictive de ce modèle expérimental n’est pas confirmée.' : 'Elle est entourée d’une estimation haute et basse.'} Les anciennes émissions sont conservées. Le prix réel peut sortir de cette zone : ce n’est pas une garantie.</p>
         </div>
         <style jsx global>{`
             .forecast-controls {display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;color:var(--foreground);font-size:13px}

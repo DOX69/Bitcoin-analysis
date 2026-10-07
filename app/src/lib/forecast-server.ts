@@ -1,9 +1,11 @@
 import { executeQuery } from './postgres';
 import type { ForecastEmission, ForecastResponse } from './forecast-types';
+import { readExperimentalForecast } from './forecast-experimental';
 
 type StoredEmission = { id: string; emission_date: string; origin_week: string; status: ForecastEmission['status']; payload: { fx: ForecastEmission['fx']; points: Array<Record<string, unknown>> } };
 
 export async function readForecast(currency: string, asOf: string): Promise<ForecastResponse> {
+    if (process.env.FORECAST_EXPERIMENTAL_ENABLED === 'true') return readExperimentalForecast(currency, asOf);
     if (process.env.RAILWAY_ENVIRONMENT_NAME?.toLowerCase() === 'development' && process.env.FORECAST_RESEARCH_PREVIEW === 'true') {
         // The retired research flag cannot publish an unvalidated model.
         return { status: 'absent', model: null, emissions: [] };

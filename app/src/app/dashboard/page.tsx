@@ -84,6 +84,7 @@ export default async function Dashboard({ searchParams }: PageProps) {
             endDate={endDate || ''}
             selectedCurrency={selectedCurrency}
             prototypeVariant={prototypeVariant}
+            forecastInitiallyEnabled={!prototypeVariant && process.env.FORECAST_EXPERIMENTAL_ENABLED === 'true'}
         />
     );
 }

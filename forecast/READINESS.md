@@ -1,68 +1,18 @@
-# Préparation d'un forecast pour la production
+# Conditions de publication du forecast
 
-Le [guide d’audit en lecture seule](RESEARCH_AUDIT.md) décrit les statuts explicites,
-la vérification des copies et l’export des scores sans relancer la collecte.
+La seule piste de confirmation prospective active est `lightgbm_quantile`, hebdomadaire, sur 52 horizons et cinq quantiles. Elle reste en Development et conserve `publishable=false`. Le dashboard ne publie pas ce candidat ; l'ancien aperçu quotidien Ridge est retiré.
 
-État du 2 octobre 2026 : objectif non atteint. La relecture des deux buckets confirme zéro émission LightGBM et zéro observation mature pour ce candidat. Les deux rapports du 25 septembre sont conservés, mais ne prouvent aucune émission. Les archives hybrides et quotidiennes appartiennent à d'autres recettes et ne comptent pas pour LightGBM.
+Le benchmark historique et les tests de fixtures ne prouvent pas la qualité prédictive future. Gaussian random walk reste un comparateur ; le prix inchangé et le random walk sans dérive restent les baselines d'évaluation. Aucune recalibration n'est appliquée.
 
-Le cron principal utilisait encore l'image du 23 septembre, antérieure au correctif `libgomp1`. Ses journaux montrent un échec de la recherche les 28 et 29 septembre. Le service LightGBM corrigé du 25 septembre était ponctuel, sans cron. Le 2 octobre, le cron principal a reçu le correctif et le service dédié est configuré pour un passage quotidien à 06:30 UTC, après ingestion, avec `restartPolicyType=NEVER`. Voir [l'exploitation Development](DEVELOPMENT_RESEARCH.md).
+Avant promotion, il faut :
 
-La première émission régulière attendue est le 5 octobre 2026. Si elle a effectivement lieu et si aucune semaine ne manque ensuite, la première cible annuelle devient mature le 4 octobre 2027 et la 104e le 24 septembre 2029. Ces dates découlent du minimum actuel de 104 origines matures sur chacun des 52 horizons. Elles ne promettent pas une validation. Un lancement immédiat ou une émission antidatée ne réduit pas ce délai.
+- Une recette, un snapshot, des paramètres et des versions numériques figés, avec artefacts vérifiés et copie indépendante.
+- Au moins 104 origines matures par horizon et deux blocs temporels contigus complets, puis une revue de la dépendance des erreurs, des scores et de la couverture.
+- Un holdout final réellement vierge, ou son indisponibilité explicite accompagnée de confirmation prospective. Un historique déjà examiné ne devient pas un test final.
+- Une vérification du modèle concret en Development, du coût complet, des sauvegardes et du rejeu, puis une décision manuelle selon [RELEASE.md](RELEASE.md).
 
-## Décision de travail
+La collecte n'antidate aucune émission : lundi UTC, avec reprise mardi seulement. Un signal `ready_for_confirmation_review` demande une revue ; il n'active aucun modèle.
 
-Le propriétaire demande de poursuivre jusqu'à disposer d'un forecast prêt pour la production et délègue le choix du minimum d'observations nouvelles. Les seuils de qualité, les 52 horizons et la séparation historique/prospectif restent inchangés. Le passage de seuils sur des données déjà consultées ne suffit pas.
+Le dernier contrôle consigné dans les documents avant ce nettoyage date du 2 octobre 2026 : rapport `development/research/lightgbm-v1/reports/20261002T094130228276Z.json`, zéro émission, zéro cible mature, copie indépendante vérifiée. Ce constat daté ne décrit pas l'état cloud actuel. Les rapports et preuves antérieurs restent dans [l'archive](ARCHIVE.md).
 
-La piste active est `lightgbm_quantile`, figée sous `development/research/lightgbm-v1/`. Ses résultats historiques restent exploratoires et échouent encore les garde-fous historiques. L'hybride du 10 septembre reste archivé séparément : il passe les 52 horizons du benchmark de sélection, mais échoue sur 46 horizons du stress. Aucun de ces résultats ne justifie une activation de modèle.
-
-## Confirmation prospective
-
-Les rapports distinguent maintenant `selection`, `final_holdout` et `prospective`. Le holdout final reste `not_available` tant qu'une plage historique non consultée n'a pas été fournie avant le lancement. La recherche quotidienne suit la même règle avec une maturité de 365 jours ; ses anciens groupes ne sont pas renommés artificiellement.
-
-Chaque émission conserve la version du modèle, l'empreinte du snapshot, les quantiles de la recette et ceux de la baseline probabiliste. Le scoring archive la révision, la source et l'instant de connaissance de chaque observation. Une révision produit un nouveau résultat sans modifier l'émission originale.
-
-Le collecteur `prospective_research.py` conserve les émissions locales du lundi, avec reprise possible le mardi, sous l'empreinte de manifeste `3c8b3864ce908e1acdbb01c635ddd82eb1f61337b95c2c6a3d04377fb92d24c3`. Il vérifie le code de recette, les versions numériques et la distribution archivée. Il ne contient aucun accès au registre de production.
-
-- Minimum choisi : 104 observations matures à chacun des 52 horizons, et au moins deux blocs complets de h origines hebdomadaires contiguës pour chaque horizon h. À un an, cela fournit au moins deux blocs annuels pour examiner les différences de régime. Ce minimum est une règle de travail conservatrice, pas un seuil de significativité ni une preuve d'indépendance.
-- Vérifier les garde-fous existants sur tous les horizons, puis examiner les scores et couvertures des blocs, leur dépendance et les écarts de régime. Des effectifs suffisants ne valent pas automatiquement confirmation suffisante.
-- Toute modification de recette après examen de ces résultats exige une nouvelle version et une nouvelle confirmation. Conserver les observations antérieures comme développement.
-- Les cibles deviennent matures le lundi UTC suivant leur dimanche de clôture. Les fichiers fictifs, historiques, antidatés, les doublons et les horizons absents ne comptent pas.
-- Conserver les données quotidiennes reçues à chaque passage et les empreintes des émissions. Les révisions de source produisent un nouveau rapport, sans réécrire les prévisions.
-
-Si la première émission régulière est créée le 14 septembre 2026, sa première cible annuelle sera le 12 septembre 2027. Avec une émission chaque semaine sans interruption, la 104e cible annuelle sera le 2 septembre 2029, scorée au plus tôt le lendemain. Ce calendrier exprime le temps nécessaire au minimum choisi ; il ne promet pas une validation à cette date.
-
-La prévision du 10 septembre est désormais incluse dans les rapports prospectifs, sans modifier son fichier original. Son empreinte était déjà consignée dans RESEARCH.md avant ses cibles. Le collecteur vérifie cette empreinte exacte, le snapshot et le rejeu complet avant de l'admettre. Cette exception concerne uniquement ce document précis créé le jeudi 10 septembre à 18:03:51 UTC ; les nouvelles émissions restent limitées au lundi/mardi. Sa première cible est évaluable le 14 septembre 2026, et sa première cible annuelle le 6 septembre 2027 après la clôture du dimanche 5 septembre. Une seule observation annuelle ne suffira pas à confirmer sa couverture.
-
-## Exécution locale
-
-Les archives et observations sont conservées hors Git dans `C:/Users/ggrft/forecast-evidence/20260913/`. Le précontrôle réel a relu les 52 quantiles du modèle et les sept observations quotidiennes de la dernière semaine du snapshot. La source présente une révision de clôture documentée dans RESEARCH.md.
-
-Depuis la racine du dépôt :
-
-```powershell
-uv run --locked --extra forecast python -m forecast.prospective_research `
-  --bundle C:/Users/ggrft/forecast-evidence/20260913/hybrid-frozen `
-  --directory C:/Users/ggrft/forecast-evidence/20260913/prospective `
-  --base-url https://bitcoin-web-development.up.railway.app `
-  --include-legacy-shadow
-```
-
-Le dimanche et du mercredi au samedi, la commande retourne `not_due`. Une reprise conserve l'émission existante. Avant scoring, le collecteur vérifie aussi le snapshot associé à chaque émission, son prix d'origine et le rejeu de ses 260 quantiles avec la recette figée. Les rapports successifs restent disponibles dans des dossiers datés. `ready_for_confirmation_review` demande une revue quand les effectifs et les seuils passent ; `publishable` reste faux. Une empreinte seule protège contre une modification accidentelle, pas contre un opérateur qui remplacerait simultanément le fichier et son reçu.
-
-L'option `--score-only` permet de vérifier les émissions déjà archivées à tout moment, sans en créer. Elle a été exécutée sur les vraies données le 13 septembre 2026 à 16:10:54 UTC. Le rapport contient la prévision originale du 10 septembre et zéro cible mature pour chacun des 52 horizons. Rapport local : `prospective/20260913T161054755242Z/report.json`. L'automatisation inclut désormais cette archive vérifiée.
-
-Le cron Railway Development remplace l'automatisation Codex initiale à 07:00 Europe/Paris. La [procédure Development](DEVELOPMENT_RESEARCH.md) décrit le worker, les buckets, la reprise et le budget. Le traitement cloud du 13 septembre à 19:40 UTC a réussi, avec vérification du rapport et du snapshot dans les deux buckets. Le suivi Codex a ensuite été supprimé. La commande locale reste disponible pour audit ; aucun rattrapage ne doit antidater une émission.
-
-## Vérifications du 13 septembre
-
-Avant publication, la suite Python complète a passé 242 tests avec PostgreSQL local. Les 159 tests frontend, TypeScript, lint, build Next.js et dbt debug/compile/build complet puis incrémental passent aussi. La correction LF/CRLF ajoute un test ; les 16 tests du collecteur et de son entrée cloud passent après correction. La CI GitHub du commit `b78f8a53` réussit ses trois jobs. Ces vérifications remplacent les résultats partiels ci-dessous pour l'état de livraison du code ; elles ne constituent pas une validation statistique du modèle.
-
-La suite forecast exécutée après ajout des recettes passe 103 tests, avec 18 tests ignorés faute de configuration PostgreSQL ou de dépendances optionnelles. Les huit tests ajoutés ensuite pour le collecteur passent aussi, dont un parcours émission lundi, reprise mardi, conservation du snapshot et détection de modification. Total de 111 tests distincts réussis sur ces exécutions. Les 17 nouveaux tests couvrent notamment causalité, maturité, quantiles, snapshots figés et archives. Les tests du collecteur vérifient aussi le refus d'un snapshot modifié et la portée exacte de l'exception du 10 septembre.
-
-Ruff, Black et `git diff --check` passent sur les changements. Les 42 entrées des deux inventaires d'archives copiées correspondent à leurs empreintes. L'appel réel du collecteur ce dimanche retourne `not_due`, sans émission antidatée. Le premier lancement planifié du lundi a échoué sur Frankfurter ; sa reprise réelle du 14 septembre a créé l'émission hebdomadaire. Les preuves figurent dans [DEVELOPMENT_RESEARCH.md](DEVELOPMENT_RESEARCH.md). Aucun test PostgreSQL ignoré, test de fixture ou contrôle de code n'est compté comme preuve de qualité prédictive.
-
-## Conditions encore nécessaires
-
-Une confirmation concluante doit précéder l'intégration de la recette au format d'artefact accepté par le registre de production. Le registre actuel accepte seulement les recettes initiales. Il faudra ensuite vérifier ce modèle concret en Development, relire le coût complet et les sauvegardes, puis préparer la promotion et la livraison selon [RELEASE.md](RELEASE.md). Aucun de ces contrôles ne peut être remplacé par les tests d'une fixture.
-
-La règle minimale de 104 observations est appliquée au rapport local de cette collecte. Elle ne modifie pas silencieusement le validateur de promotion des autres recettes.
+Voir [DEVELOPMENT_RESEARCH.md](DEVELOPMENT_RESEARCH.md) pour l'exploitation et [README.md](README.md) pour les contrats de données et de mesure.

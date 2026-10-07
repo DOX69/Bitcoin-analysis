@@ -5,8 +5,8 @@ type StoredEmission = { id: string; emission_date: string; origin_week: string; 
 
 export async function readForecast(currency: string, asOf: string): Promise<ForecastResponse> {
     if (process.env.RAILWAY_ENVIRONMENT_NAME?.toLowerCase() === 'development' && process.env.FORECAST_RESEARCH_PREVIEW === 'true') {
-        const { readResearchForecast } = await import('./forecast-research-server');
-        return readResearchForecast(currency, asOf);
+        // The retired research flag cannot publish an unvalidated model.
+        return { status: 'absent', model: null, emissions: [] };
     }
     const versions = await executeQuery<{ id: string; name: string; withdrawn: boolean }>(
         `SELECT v.id, v.manifest->>'candidate' AS name, v.withdrawn

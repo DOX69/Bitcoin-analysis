@@ -105,7 +105,7 @@ def run_forecast():
     return {"status": "completed", **result}
 
 
-def run_forecast_research(*, daily=False):
+def run_forecast_research():
     config = os.environ.get("FORECAST_RESEARCH_CONFIG")
     if not config:
         return {"status": "disabled"}
@@ -122,7 +122,7 @@ def run_forecast_research(*, daily=False):
         "--no-sync",
         "python",
         "-m",
-        "forecast.daily_cloud" if daily else "forecast.cloud_research",
+        "forecast.candidate_cloud",
         "--config",
         config,
     ]
@@ -150,10 +150,6 @@ def run_forecast_research(*, daily=False):
             if key in report
         },
     }
-
-
-def run_daily_forecast_research():
-    return run_forecast_research(daily=True)
 
 
 def run_forecast_backup():
@@ -213,7 +209,6 @@ def run_pipeline(
     forecast_runner=run_forecast,
     backup_runner=run_forecast_backup,
     research_runner=run_forecast_research,
-    daily_research_runner=run_daily_forecast_research,
 ):
     with psycopg.connect(database_url, autocommit=True) as connection:
         with connection.cursor() as cursor:
@@ -236,14 +231,6 @@ def run_pipeline(
             except Exception:
                 logger.error(
                     "Forecast research failed; ingestion and dbt remain successful"
-                )
-            try:
-                logger.info(
-                    "Daily forecast research status: %s", daily_research_runner()
-                )
-            except Exception:
-                logger.error(
-                    "Daily forecast research failed; ingestion and dbt remain successful"
                 )
             return 0
         except Exception:

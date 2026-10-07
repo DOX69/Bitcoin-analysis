@@ -4,7 +4,6 @@ import pytest
 
 from forecast.benchmark import (
     MAX_HORIZON,
-    ResidualQuantileCalibrator,
     aggregate_daily_rows,
     estimate_railway_cost_usd,
     _process_rss_bytes,
@@ -58,19 +57,6 @@ def test_split_series_keeps_calibration_and_test_targets_disjoint() -> None:
     assert split.test_end + MAX_HORIZON == len(weekly)
     assert split.train_end + MAX_HORIZON <= split.calibration_end
     assert split.calibration_end + MAX_HORIZON <= split.test_end + MAX_HORIZON
-
-
-def test_calibrator_orders_quantiles_after_residual_correction() -> None:
-    calibrator = ResidualQuantileCalibrator.fit(
-        predictions=[[[10.0, 11.0, 12.0], [20.0, 19.0, 21.0]]],
-        actuals=[[13.0, 18.0]],
-        quantiles=(0.1, 0.5, 0.9),
-    )
-
-    calibrated = calibrator.apply([[[10.0, 11.0, 12.0], [20.0, 19.0, 21.0]]])
-
-    assert calibrated[0][0] == sorted(calibrated[0][0])
-    assert calibrated[0][1] == sorted(calibrated[0][1])
 
 
 def test_estimate_railway_cost_is_zero_for_zero_runtime() -> None:

@@ -29,12 +29,9 @@ SQL RSI uses the existing 14-observation window. It is unavailable until 14 pric
 
 Keep the production cron as the only production scheduler. Do not move the cron root directory to `/dbx_workflow`; that would hide the dbt project and the root workspace lockfile.
 
-The old Databricks configuration remains only as disabled files:
+Forecast research keeps the frozen weekly LightGBM candidate. Gaussian random walk remains a benchmark comparator and integration fixture. Neither recipe is automatically published. See [the forecast pipeline](forecast/README.md), [Development collection](forecast/DEVELOPMENT_RESEARCH.md), and [the retired research archive](forecast/ARCHIVE.md).
 
-- `databricks.yml.disabled`
-- `dbx_workflow/resources/master_orchestrator_job.yml.disabled`
-
-These files are not part of the active runtime.
+The root `uv.lock` is the workspace dependency lock. Retired Databricks configuration and experimental model runners are preserved in the archive.
 
 ## Railway configuration
 

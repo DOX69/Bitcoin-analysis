@@ -491,6 +491,8 @@ def main():
     parser.add_argument("--score-only", action="store_true")
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
+    if config.get("research_model") != MODEL_NAME:
+        raise ValueError("Only the configured LightGBM research recipe is supported")
     if (
         config.get("environment") != "development"
         or os.environ.get("RAILWAY_ENVIRONMENT_NAME", "").lower() != "development"

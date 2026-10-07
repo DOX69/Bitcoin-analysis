@@ -3,6 +3,20 @@ jest.mock('@/lib/postgres', () => ({ executeQuery: jest.fn() }));
 import { executeQuery } from '@/lib/postgres';
 import { GET } from '@/app/api/forecast/route';
 const query = jest.mocked(executeQuery);
+
+test('retired research preview stays absent even when its old flag is enabled', async () => {
+    const environment = process.env;
+    process.env = { ...environment, RAILWAY_ENVIRONMENT_NAME: 'Development', FORECAST_RESEARCH_PREVIEW: 'true' };
+    query.mockClear();
+    try {
+        const response = await GET(new Request('http://localhost/api/forecast'));
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ status: 'absent', model: null, emissions: [] });
+        expect(query).not.toHaveBeenCalled();
+    } finally {
+        process.env = environment;
+    }
+});
 test('rejects invalid currency without accessing database', async () => {
     const response = await GET(new Request('http://localhost/api/forecast?currency=BAD'));
     expect(response.status).toBe(400);

@@ -7,7 +7,7 @@ Le cycle compare les deux recettes candidates acceptées dans [Réexaminer le co
 
 La référence `last_close_holdout_reference` n'est pas une recette ni un modèle enregistré. Elle est calculée séparément sur les origines hors échantillon : pour chaque origine de test, elle répète le dernier close connu et mesure ensuite les cibles arrivées à maturité. Le suivi prospectif applique la même règle au `origin_close` de l'émission et aux observations réelles reçues après l'émission.
 
-Aucune recette n'applique de recalibration. L'ancien `ResidualQuantileCalibrator` reste disponible pour comprendre les résultats exploratoires précédents ; le pipeline ne l'appelle pas.
+Aucune recette n'applique de recalibration. La collecte prospective active conserve uniquement la recette LightGBM figée ; Gaussian random walk reste un comparateur et une fixture d'intégration.
 
 ## Sources d'évidence
 
@@ -97,4 +97,4 @@ La CI exécute cette suite séparément de l'ingestion. Elle couvre recettes, ma
 
 Le rapport signale les horizons qui échouent aux garde-fous historiques de première version. Il conserve `publishable: false` pour toutes les recettes. Une confirmation prospective et une décision manuelle restent nécessaires. Les comparaisons à une future version active appartiennent à la validation de promotion. Aucune publication ni dépense Railway n'est déclenchée ici.
 
-La [recherche complémentaire de modèles](RESEARCH.md) documente les nouvelles recettes demandées après ce premier cycle, leurs résultats et leurs limites. Ses runners restent séparés du registre de production.
+Les runners exploratoires et leurs résultats sont conservés dans [l'archive](ARCHIVE.md). La [collecte Development](DEVELOPMENT_RESEARCH.md) réutilise LightGBM sans promotion automatique. Les [conditions de publication](READINESS.md) restent à satisfaire.

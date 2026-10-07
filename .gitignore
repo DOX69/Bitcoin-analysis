@@ -257,3 +257,8 @@ screenshot/
 
 # Local dashboard prototypes
 app/src/components/dashboard/prototype/
+
+# Local verification artifacts
+.playwright-cli/
+app/*test_output.txt
+dbx_workflow/run_output.json

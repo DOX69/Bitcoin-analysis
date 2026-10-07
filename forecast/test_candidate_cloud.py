@@ -7,6 +7,25 @@ from forecast.storage_artifacts import ArtifactRepository
 from forecast.test_backups import Objects
 
 
+def test_retired_recipe_cannot_start_lightgbm_collection(monkeypatch, tmp_path):
+    import json
+    import sys
+
+    config = tmp_path / "research.json"
+    config.write_text(
+        json.dumps({"environment": "development", "research_model": "hybrid"})
+    )
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT_NAME", "Development")
+    monkeypatch.setattr(sys, "argv", ["candidate_cloud", "--config", str(config)])
+    monkeypatch.setattr(
+        cloud,
+        "configured_repositories",
+        lambda _: pytest.fail("Retired recipe accessed storage"),
+    )
+    with pytest.raises(ValueError, match="LightGBM"):
+        cloud.main()
+
+
 class Candidate:
     name = "lightgbm_quantile"
 

@@ -19,16 +19,18 @@ def series(count=360):
     ]
 
 
-def test_runner_never_uses_residual_calibration(monkeypatch):
-    def forbidden(*args, **kwargs):
-        pytest.fail("Residual calibration is forbidden in this cycle")
-
-    monkeypatch.setattr(b.ResidualQuantileCalibrator, "fit", forbidden)
+def test_runner_scores_original_quantiles():
     closes = [r["close"] for r in series()]
-    result = b._candidate_measurement(
-        b.GaussianRandomWalkCandidate(), closes, b.split_series(series())
+    split = b.split_series(series())
+    candidate = b.GaussianRandomWalkCandidate()
+    candidate.fit(closes, split.train_end)
+    origins = list(range(split.test_start, split.test_end))
+    expected, _ = b._score(
+        [candidate.predict(closes, origin) for origin in origins],
+        b._actuals(closes, origins),
     )
-    assert result.metrics["mae"] > 0
+    result = b._candidate_measurement(candidate, closes, split)
+    assert result.metrics == expected
 
 
 def test_last_close_reference_is_evaluation_only():
@@ -226,13 +228,8 @@ def test_emission_uses_sunday_targets_and_known_constant_fx(tmp_path):
         emit_forecast(candidate, rows, cutoff.isoformat(), fx)
 
 
-def test_worker_reports_both_periods_without_promoting(tmp_path, monkeypatch):
+def test_worker_reports_both_periods_without_promoting(tmp_path):
     from forecast.pipeline import prepare_run, run_candidate
-
-    def forbidden(*args, **kwargs):
-        pytest.fail("The current pipeline must not fit a calibrator")
-
-    monkeypatch.setattr(b.ResidualQuantileCalibrator, "fit", forbidden)
 
     snapshot = tmp_path / "input.csv"
     b._write_weekly_csv(snapshot, series())

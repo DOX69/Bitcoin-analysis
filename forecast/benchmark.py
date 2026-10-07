@@ -6,7 +6,6 @@ import hashlib
 import json
 import math
 import statistics
-import sys
 import threading
 import time
 import urllib.parse
@@ -109,78 +108,6 @@ def split_series(weekly: Sequence[dict[str, Any]]) -> Split:
     return Split(train_end, train_end, calibration_end, calibration_end, test_end)
 
 
-def _empirical_quantile(values: Sequence[float], quantile: float) -> float:
-    ordered = sorted(values)
-    position = (len(ordered) - 1) * quantile
-    lower = math.floor(position)
-    upper = math.ceil(position)
-    if lower == upper:
-        return ordered[lower]
-    weight = position - lower
-    return ordered[lower] + weight * (ordered[upper] - ordered[lower])
-
-
-@dataclass(frozen=True)
-class ResidualQuantileCalibrator:
-    corrections: tuple[tuple[float, ...], ...]
-    quantiles: tuple[float, ...]
-    preserve_median: bool = False
-
-    @classmethod
-    def fit(
-        cls,
-        predictions: Sequence[Sequence[Sequence[float]]],
-        actuals: Sequence[Sequence[float]],
-        quantiles: Sequence[float],
-        preserve_median: bool = False,
-    ) -> "ResidualQuantileCalibrator":
-        horizon_count = len(predictions[0])
-        corrections = []
-        for horizon_index in range(horizon_count):
-            by_quantile = []
-            for quantile_index, quantile in enumerate(quantiles):
-                residuals = [
-                    actual[horizon_index] - prediction[horizon_index][quantile_index]
-                    for prediction, actual in zip(predictions, actuals)
-                ]
-                correction = (
-                    0.0
-                    if preserve_median and quantile == 0.5
-                    else _empirical_quantile(residuals, quantile)
-                )
-                by_quantile.append(correction)
-            corrections.append(tuple(by_quantile))
-        return cls(tuple(corrections), tuple(quantiles), preserve_median)
-
-    def apply(
-        self, predictions: Sequence[Sequence[Sequence[float]]]
-    ) -> list[list[list[float]]]:
-        calibrated = []
-        for origin in predictions:
-            calibrated.append(
-                [
-                    sorted(
-                        prediction + correction
-                        for prediction, correction in zip(
-                            row, self.corrections[horizon_index]
-                        )
-                    )
-                    for horizon_index, row in enumerate(origin)
-                ]
-            )
-        return calibrated
-
-    def to_json_bytes(self) -> bytes:
-        return json.dumps(
-            {
-                "quantiles": self.quantiles,
-                "corrections": self.corrections,
-                "preserve_median": self.preserve_median,
-            },
-            sort_keys=True,
-        ).encode()
-
-
 def estimate_railway_cost_usd(runtime_seconds: float) -> float:
     minutes = max(0.0, runtime_seconds) / 60
     return minutes * (
@@ -190,47 +117,9 @@ def estimate_railway_cost_usd(runtime_seconds: float) -> float:
 
 
 def _process_rss_bytes() -> int:
-    if sys.platform == "win32":
-        import ctypes
-        from ctypes import wintypes
+    import psutil
 
-        class ProcessMemoryCounters(ctypes.Structure):
-            _fields_ = [
-                ("cb", wintypes.DWORD),
-                ("PageFaultCount", wintypes.DWORD),
-                ("PeakWorkingSetSize", ctypes.c_size_t),
-                ("WorkingSetSize", ctypes.c_size_t),
-                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-                ("PagefileUsage", ctypes.c_size_t),
-                ("PeakPagefileUsage", ctypes.c_size_t),
-            ]
-
-        counters = ProcessMemoryCounters()
-        counters.cb = ctypes.sizeof(ProcessMemoryCounters)
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        psapi = ctypes.WinDLL("psapi", use_last_error=True)
-        get_current_process = kernel32.GetCurrentProcess
-        get_current_process.restype = wintypes.HANDLE
-        get_memory_info = psapi.GetProcessMemoryInfo
-        get_memory_info.argtypes = [
-            wintypes.HANDLE,
-            ctypes.POINTER(ProcessMemoryCounters),
-            wintypes.DWORD,
-        ]
-        get_memory_info.restype = wintypes.BOOL
-        if not get_memory_info(
-            get_current_process(), ctypes.byref(counters), counters.cb
-        ):
-            raise ctypes.WinError(ctypes.get_last_error())
-        return int(counters.WorkingSetSize)
-
-    import resource
-
-    value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return int(value * (1024 if sys.platform != "darwin" else 1))
+    return psutil.Process().memory_info().rss
 
 
 class PeakRssSampler:

@@ -62,6 +62,8 @@ Set `DATABASE_URL` with a reference to the private Railway PostgreSQL service,
 and set `DBT_TARGET_SCHEMA` on the Cron service. Keep exactly one production
 scheduler active.
 
-The former Databricks job definition is archived as
-`resources/master_orchestrator_job.yml.disabled`. It is retained for reference
-and is not an active bundle resource.
+The workspace uses the root `uv.lock`. Retired Databricks definitions and
+experimental forecast runners are preserved in [the archive](../forecast/ARCHIVE.md).
+When configured, research collection runs `forecast.candidate_cloud` in a bounded
+worker after ingestion and dbt. Research failure does not cancel ingestion;
+the backup hook still runs. See [Development research](../forecast/DEVELOPMENT_RESEARCH.md).
